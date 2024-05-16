@@ -4,13 +4,12 @@ import threading
 
 from fastapi import FastAPI
 
-from jex_dex_aggregator_api.tasks import sync_dex_aggregator
+from jex_dex_aggregator_api.tasks import sync_pools
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s [%(process)d] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-THREAD_SYNC_DEX_AGGREGATOR = threading.Thread(
-    target=sync_dex_aggregator.sync_dex_aggregator_pools)
+THREAD_SYNC_DEX_AGGREGATOR = threading.Thread(target=sync_pools.loop)
 
 
 async def lifespan(app: FastAPI):
@@ -22,7 +21,7 @@ async def lifespan(app: FastAPI):
     yield
 
     if not no_task:
-        sync_dex_aggregator.stop()
+        sync_pools.stop()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -30,6 +29,6 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get('/ready')
 def read_root():
-    ready = sync_dex_aggregator.is_ready()
+    ready = sync_pools.is_ready()
 
     return {'ready': ready}

@@ -61,7 +61,7 @@ def stop():
     _must_stop = True
 
 
-def sync_dex_aggregator_pools():
+def loop():
     logging.info('Starting DEX aggregator pools sync')
 
     global _ready
