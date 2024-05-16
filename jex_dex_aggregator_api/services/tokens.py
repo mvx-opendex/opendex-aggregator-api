@@ -9,6 +9,7 @@ from jex_dex_aggregator_api.utils.redis_utils import redis_get_or_set_cache
 
 TOKENS: List[Esdt] = []
 
+JEX_IDENTIFIER = 'JEX-9040ca'
 USDC_IDENTIFIER = 'USDC-c76f1f'
 WEGLD_IDENTIFIER = 'WEGLD-bd4d79'
 

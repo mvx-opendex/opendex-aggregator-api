@@ -23,6 +23,7 @@ from jex_dex_aggregator_api.pools.pools import (AshSwapPoolV2,
 from jex_dex_aggregator_api.services.externals import async_sc_query
 from jex_dex_aggregator_api.services.parsers.ashswap import (
     parse_ashswap_stablepool_status, parse_ashswap_v2_pool_status)
+from jex_dex_aggregator_api.services.parsers.common import parse_address
 from jex_dex_aggregator_api.services.parsers.hatom import parse_hatom_mm
 from jex_dex_aggregator_api.services.parsers.jexchange import (
     parse_jex_cp_lp_status, parse_jex_deployed_contract,
@@ -32,7 +33,8 @@ from jex_dex_aggregator_api.services.parsers.vestadex import \
     parse_vestadex_view_pools
 from jex_dex_aggregator_api.services.parsers.xexchange import \
     parse_xexchange_pool_status
-from jex_dex_aggregator_api.services.tokens import (USDC_IDENTIFIER,
+from jex_dex_aggregator_api.services.tokens import (JEX_IDENTIFIER,
+                                                    USDC_IDENTIFIER,
                                                     WEGLD_IDENTIFIER,
                                                     get_or_fetch_token)
 from jex_dex_aggregator_api.utils.convert import hex2dec, hex2str
@@ -87,16 +89,16 @@ def sync_dex_aggregator_pools():
 
 async def _sync_all_pools():
     functions = [
-        # _sync_onedex_pools,
-        # _sync_xexchange_pools,
-        # _sync_ashswap_stable_pools,
-        # _sync_ashswap_v2_pools,
-        # _sync_jex_cp_pools,
-        # _sync_jex_stablepools,
-        # _sync_exrond_pools,
-        # _sync_vestadex_pools,
-        # _sync_vestax_staking_pool,
-        # _sync_hatom_staking_pool,
+        _sync_onedex_pools,
+        _sync_xexchange_pools,
+        _sync_ashswap_stable_pools,
+        _sync_ashswap_v2_pools,
+        _sync_jex_cp_pools,
+        _sync_jex_stablepools,
+        _sync_exrond_pools,
+        _sync_vestadex_pools,
+        _sync_vestax_staking_pool,
+        _sync_hatom_staking_pool,
         _sync_hatom_money_markets
     ]
 
@@ -337,32 +339,37 @@ async def _sync_ashswap_v2_pools():
 async def _sync_jex_cp_pools():
     logging.info('Loading JEX CP pools')
 
-    sc_deployer = sc_address_jex_lp_deployer()
-    if sc_deployer is None:
-        logging.info('OneDex swap SC address not set -> skip')
-        return
-
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
-        res = await async_sc_query(http_client, sc_deployer, 'getAllContracts')
+        res = await async_sc_query(http_client,
+                                   sc_address_aggregator(),
+                                   'getJexCpPools')
 
-        if res is not None:
-            contracts = [parse_jex_deployed_contract(r) for r in res]
-            sc_addresses = [x.sc_address
-                            for x in contracts
-                            if x.sc_type == 0]
+        if res is None:
+            logging.error('Error fetching JEX CP pools')
+            return
+
+        sc_addresses = [parse_address(x)[0] for i, x in enumerate(res)
+                        if i % 2 == 0]
+
+        lp_statuses = [x for i, x in enumerate(res)
+                       if i % 2 == 1]
+
+        lp_statuses = [parse_jex_cp_lp_status(sc_addresses[i].bech32(), x)
+                       for i, x in enumerate(lp_statuses)]
+
+        logging.info(f'JEX: CP pools before filter {len(lp_statuses)}')
+
+        lp_statuses = [s for s in lp_statuses
+                       if not s.paused
+                       and _is_pair_valid([(s.first_token_identifier, s.first_token_reserve),
+                                           (s.second_token_identifier, s.second_token_reserve)])]
+
+        logging.info(f'JEX: CP pools after filter {len(lp_statuses)}')
 
         nb_pools = 0
 
-        for sc_address in sc_addresses:
-            try:
-                res = await async_sc_query(http_client, sc_address, 'getStatus')
-
-                lp_status = parse_jex_cp_lp_status(sc_address, res[0])
-            except:
-                logging.exception(
-                    f'Error parsing liquidity pool (address={sc_address})')
-                continue
+        for lp_status in lp_statuses:
 
             if lp_status.paused:
                 continue
@@ -389,9 +396,9 @@ async def _sync_jex_cp_pools():
                 second_token_reserves=second_token_reserves)
 
             set_dex_aggregator_pool(
-                sc_address, first_token.identifier, second_token.identifier, pool)
+                lp_status.sc_address, first_token.identifier, second_token.identifier, pool)
             set_dex_aggregator_pool(
-                sc_address, second_token.identifier, first_token.identifier, pool)
+                lp_status.sc_address, second_token.identifier, first_token.identifier, pool)
 
             deposit_pool = JexConstantProductDepositPool(fees_percent_base_pts=0,
                                                          first_token=first_token,
@@ -399,9 +406,9 @@ async def _sync_jex_cp_pools():
                                                          lp_token_supply=lp_token_supply,
                                                          second_token=second_token,
                                                          second_token_reserves=second_token_reserves)
-            set_dex_aggregator_pool(sc_address, first_token.identifier,
+            set_dex_aggregator_pool(lp_status.sc_address, first_token.identifier,
                                     lp_status.lp_token_identifier, deposit_pool)
-            set_dex_aggregator_pool(sc_address, second_token.identifier,
+            set_dex_aggregator_pool(lp_status.sc_address, second_token.identifier,
                                     lp_status.lp_token_identifier, deposit_pool)
 
             nb_pools += 1
@@ -785,6 +792,9 @@ def _is_pair_valid(tokens_reserves: List[Tuple[str, str]]) -> bool:
     is_valid = True
 
     for token_id, reserve in tokens_reserves:
+        if token_id == JEX_IDENTIFIER and int(reserve) < 100_000*10**18:
+            is_valid = False
+            break
         if token_id == WEGLD_IDENTIFIER and int(reserve) < 10**18:
             is_valid = False
             break

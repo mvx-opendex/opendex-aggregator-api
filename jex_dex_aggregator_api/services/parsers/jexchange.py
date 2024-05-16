@@ -1,10 +1,9 @@
-
-from jex_dex_aggregator_api.services.parsers.common import (parse_address, parse_amount,
-                                                            parse_token_identifier, parse_uint8, parse_uint32)
-
 from jex_dex_aggregator_api.data.model import (JexCpLpStatus,
                                                JexDeployedPoolContract,
                                                JexStablePoolStatus)
+from jex_dex_aggregator_api.services.parsers.common import (
+    parse_address, parse_amount, parse_token_identifier, parse_uint8,
+    parse_uint32)
 
 
 def parse_jex_cp_lp_status(sc_address: str, hex_: str) -> JexCpLpStatus:
