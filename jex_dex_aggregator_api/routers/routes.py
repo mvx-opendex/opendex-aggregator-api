@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 from typing import List
 
@@ -7,7 +6,7 @@ from multiversx_sdk_core import Address
 from pydantic import BaseModel
 
 from jex_dex_aggregator_api.data.constants import SC_TYPES
-from jex_dex_aggregator_api.pools.model import SwapRoute
+from jex_dex_aggregator_api.services import routes as routes_svc
 from jex_dex_aggregator_api.utils.convert import int2hex, str2hex
 from jex_dex_aggregator_api.utils.redis_utils import redis_get_or_set_cache
 
@@ -59,26 +58,13 @@ def get_routes(response: Response,
     response.headers['Access-Control-Allow-Origin'] = '*'
 
     def _do():
-        start_route = SwapRoute(token_in=token_in,
-                                token_out=token_out,
-                                hops=[])
-
-        routes: List[SwapRoute] = []
-
-        # find_route_candidates(start_route,
-        #                       token_in,
-        #                       token_out,
-        #                       max_hops=max_hops,
-        #                       max_routes=999,
-        #                       candidates=routes)
-
-        # routes = sorted(routes, key=lambda r: _route_penalty(r))
-
-        return routes
+        return routes_svc.find_routes(token_in,
+                                      token_out,
+                                      max_hops)
 
     cache_key = f'routes_{token_in}_{token_out}_{max_hops}'
     body = redis_get_or_set_cache(cache_key,
-                                  timedelta(seconds=60),
+                                  timedelta(seconds=6),
                                   _do,
                                   lambda json_: json_,
                                   deferred=True,

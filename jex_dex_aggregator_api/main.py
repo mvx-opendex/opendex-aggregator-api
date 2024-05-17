@@ -5,6 +5,7 @@ import threading
 from fastapi import FastAPI
 
 from jex_dex_aggregator_api.tasks import sync_pools
+from jex_dex_aggregator_api.routers import routes
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s [%(process)d] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -26,7 +27,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 # app.include_router(routers.evaluations)
-# app.include_router(routers.routes.router)
+app.include_router(routes.router)
 
 
 @app.get('/ready')

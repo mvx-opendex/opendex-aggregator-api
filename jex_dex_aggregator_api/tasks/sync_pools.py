@@ -9,7 +9,8 @@ from typing import Callable, List, Tuple
 import aiohttp
 from multiversx_sdk_core import Address
 
-from jex_dex_aggregator_api.data.datastore import set_dex_aggregator_pool
+from jex_dex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
+                                                   set_swap_pools)
 from jex_dex_aggregator_api.data.model import VestaDexPool
 from jex_dex_aggregator_api.pools.model import SwapPool
 from jex_dex_aggregator_api.pools.pools import (AshSwapPoolV2,
@@ -113,6 +114,8 @@ async def _sync_all_pools():
         logging.info(f'{task.get_name()} -> {len(result)} swap pools')
 
         swap_pools.extend(result)
+
+    set_swap_pools(swap_pools)
 
     logging.info(f'Nb swap pools: {len(swap_pools)} (total)')
 
