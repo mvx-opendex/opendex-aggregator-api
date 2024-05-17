@@ -11,6 +11,7 @@ from multiversx_sdk_core import Address
 
 from jex_dex_aggregator_api.data.datastore import set_dex_aggregator_pool
 from jex_dex_aggregator_api.data.model import VestaDexPool
+from jex_dex_aggregator_api.pools.model import SwapPool
 from jex_dex_aggregator_api.pools.pools import (AshSwapPoolV2,
                                                 ConstantPricePool,
                                                 ConstantProductPool,
@@ -62,7 +63,7 @@ def stop():
 
 
 def loop():
-    logging.info('Starting DEX aggregator pools sync')
+    logging.info('Starting pools sync')
 
     global _ready
 
@@ -72,11 +73,11 @@ def loop():
         now = datetime.now()
         if now - start > delta:
 
-            redis_lock_and_do('sync_dex_aggregator_pools',
+            redis_lock_and_do('sync_pools',
                               lambda: asyncio.run(
                                   _sync_all_pools(), debug=False),
                               task_ttl=timedelta(seconds=10),
-                              lock_ttl=timedelta(seconds=60))
+                              lock_ttl=timedelta(seconds=30))
 
             logging.info(f'All pools synced @ {datetime.utcnow().isoformat()}')
             start = now
@@ -84,7 +85,7 @@ def loop():
 
         sleep(1)
 
-    logging.info('Stopping DEX aggregator pools sync')
+    logging.info('Stopping pools sync')
 
 
 async def _sync_all_pools():
@@ -104,17 +105,26 @@ async def _sync_all_pools():
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
              for f in functions]
-    await asyncio.gather(*tasks)
+    results = await asyncio.gather(*tasks)
+
+    swap_pools = []
+
+    for task, result in zip(tasks, results):
+        logging.info(f'{task.get_name()} -> {len(result)} swap pools')
+
+        swap_pools.extend(result)
+
+    logging.info(f'Nb swap pools: {len(swap_pools)} (total)')
 
 
-async def _safely_do(function_: Callable[..., None]):
+async def _safely_do(function_: Callable[..., None]) -> List[SwapPool]:
     try:
-        await function_()
+        return await function_()
     except:
         logging.exception(f'Error while loading pools {function_}')
 
 
-async def _sync_xexchange_pools():
+async def _sync_xexchange_pools() -> List[SwapPool]:
     logging.info('Loading xExchange pools')
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
@@ -128,15 +138,18 @@ async def _sync_xexchange_pools():
         else:
             logging.error(
                 'Error calling "getXExchangePools" from aggregator SC')
-            return
+            return []
 
     logging.info(f'xExchange: pairs before filter {len(lp_statuses)}')
 
     lp_statuses = [s for s in lp_statuses
-                   if _is_pair_valid([(s.first_token_id, str(s.first_token_reserve)),
+                   if s.state == 1
+                   and _is_pair_valid([(s.first_token_id, str(s.first_token_reserve)),
                                       (s.second_token_id, str(s.second_token_reserve))])]
 
     logging.info(f'xExchange: pairs after filter {len(lp_statuses)}')
+
+    swap_pools = []
 
     for lp_status in lp_statuses:
         first_token = get_or_fetch_token(lp_status.first_token_id)
@@ -147,15 +160,20 @@ async def _sync_xexchange_pools():
 
         fees_percent_base_pts = lp_status.total_fee_percent // 10
 
-        if lp_status.state == 1:
-            pool = ConstantProductPool(fees_percent_base_pts=fees_percent_base_pts,
-                                       first_token=first_token,
-                                       first_token_reserves=lp_status.first_token_reserve,
-                                       second_token=second_token,
-                                       second_token_reserves=lp_status.second_token_reserve,
-                                       lp_token_supply=lp_status.lp_token_supply)
-        else:
-            pool = None
+        pool = ConstantProductPool(fees_percent_base_pts=fees_percent_base_pts,
+                                   first_token=first_token,
+                                   first_token_reserves=lp_status.first_token_reserve,
+                                   second_token=second_token,
+                                   second_token_reserves=lp_status.second_token_reserve,
+                                   lp_token_supply=lp_status.lp_token_supply)
+
+        swap_pools.append(SwapPool(name=f'xExchange: {first_token.name}/{second_token.name}',
+                                   sc_address=lp_status.sc_address,
+                                   tokens_in=[first_token.identifier,
+                                              second_token.identifier],
+                                   tokens_out=[first_token.identifier,
+                                               second_token.identifier],
+                                   type='xexchange'))
 
         set_dex_aggregator_pool(
             lp_status.sc_address, first_token.identifier, second_token.identifier, pool)
@@ -164,14 +182,16 @@ async def _sync_xexchange_pools():
 
     logging.info('Loading xExchange pools - done')
 
+    return swap_pools
 
-async def _sync_onedex_pools():
+
+async def _sync_onedex_pools() -> List[SwapPool]:
     logging.info('Loading OneDex pools')
 
     sc_address = sc_address_onedex_swap()
     if not sc_address:
         logging.info('OneDex swap SC address not set -> skip')
-        return
+        return []
 
     pairs = []
 
@@ -185,7 +205,7 @@ async def _sync_onedex_pools():
             total_fee_percent = hex2dec(res[0])
         else:
             logging.error('Error calling "getTotalFeePercent" from OneDex SC')
-            return
+            return []
 
         res = await async_sc_query(http_client,
                                    sc_address,
@@ -195,7 +215,7 @@ async def _sync_onedex_pools():
             main_pair_tokens = [hex2str(r) for r in res]
         else:
             logging.error('Error calling "getMainPairTokens" from OneDex SC')
-            return
+            return []
 
         res = await async_sc_query(http_client,
                                    sc_address,
@@ -204,19 +224,20 @@ async def _sync_onedex_pools():
 
         if res is not None:
             pairs = [parse_onedex_pair(r) for r in res]
-            pairs = [p for p in pairs if p.state == 1]
         else:
             logging.error('Error calling "viewPairs" from OneDex SC')
-            return
+            return []
 
         logging.info(f'OneDex: pairs before {len(pairs)}')
 
-        pairs = [p for p in pairs if _is_pair_valid(
-            [(p.first_token_identifier, p.first_token_reserve),
-             (p.second_token_identifier, p.second_token_reserve)]
-        )]
+        pairs = [p for p in pairs
+                 if p.state == 1
+                 and _is_pair_valid([(p.first_token_identifier, p.first_token_reserve),
+                                     (p.second_token_identifier, p.second_token_reserve)])]
 
         logging.info(f'OneDex: pairs after {len(pairs)}')
+
+    swap_pools = []
 
     for pair in pairs:
         first_token = get_or_fetch_token(pair.first_token_identifier)
@@ -232,6 +253,14 @@ async def _sync_onedex_pools():
                                          second_token_reserves=pair.second_token_reserve,
                                          main_pair_tokens=main_pair_tokens)
 
+        swap_pools.append(SwapPool(name=f'OneDex: {first_token.name}/{second_token.name}',
+                                   sc_address=sc_address,
+                                   tokens_in=[first_token.identifier,
+                                              second_token.identifier],
+                                   tokens_out=[first_token.identifier,
+                                               second_token.identifier],
+                                   type='onedex'))
+
         set_dex_aggregator_pool(
             sc_address, pair.first_token_identifier, pair.second_token_identifier, pool)
         set_dex_aggregator_pool(
@@ -239,11 +268,15 @@ async def _sync_onedex_pools():
 
     logging.info('Loading OneDex pools - done')
 
+    return swap_pools
 
-async def _sync_ashswap_stable_pools():
+
+async def _sync_ashswap_stable_pools() -> List[SwapPool]:
     logging.info('Loading AshSwap stable pools')
 
     agg_sc = sc_address_aggregator()
+
+    swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
@@ -276,20 +309,33 @@ async def _sync_ashswap_stable_pools():
                                       underlying_prices=status.underlying_prices)
                 pools.append(pool)
 
+                token_ids = [t.identifier for t in tokens]
+                swap_pools.append(SwapPool(name=f"AshSwap: {['/'.join([t.name for t in tokens])]}",
+                                           sc_address=status.sc_address,
+                                           tokens_in=token_ids,
+                                           tokens_out=token_ids,
+                                           type='ashswap_stablepool'))
+
                 for t1, t2 in product(tokens, tokens):
                     if t1.identifier != t2.identifier:
-                        set_dex_aggregator_pool(
-                            status.sc_address, t1.identifier, t2.identifier, pool)
+                        set_dex_aggregator_pool(status.sc_address,
+                                                t1.identifier,
+                                                t2.identifier,
+                                                pool)
 
     logging.info(f'AshSwap stable pools: {len(pools)}')
 
     logging.info('Loading AshSwap stable pools - done')
 
+    return swap_pools
 
-async def _sync_ashswap_v2_pools():
+
+async def _sync_ashswap_v2_pools() -> List[SwapPool]:
     logging.info('Loading AshSwap V2 pools')
 
     agg_sc = sc_address_aggregator()
+
+    swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
         pools = []
@@ -326,18 +372,31 @@ async def _sync_ashswap_v2_pools():
                                      xp=status.xp)
                 pools.append(pool)
 
+                token_ids = [t.identifier for t in tokens]
+                swap_pools.append(SwapPool(name=f"AshSwap: {['/'.join([t.name for t in tokens])]}",
+                                           sc_address=status.sc_address,
+                                           tokens_in=token_ids,
+                                           tokens_out=token_ids,
+                                           type='ashswap_v2'))
+
                 for t1, t2 in product(tokens, tokens):
                     if t1.identifier != t2.identifier:
-                        set_dex_aggregator_pool(
-                            status.sc_address, t1.identifier, t2.identifier, pool)
+                        set_dex_aggregator_pool(status.sc_address,
+                                                t1.identifier,
+                                                t2.identifier,
+                                                pool)
 
     logging.info(f'AshSwap V2 pools: {len(pools)}')
 
     logging.info('Loading AshSwap V2 pools - done')
 
+    return swap_pools
 
-async def _sync_jex_cp_pools():
+
+async def _sync_jex_cp_pools() -> List[SwapPool]:
     logging.info('Loading JEX CP pools')
+
+    swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
@@ -347,7 +406,7 @@ async def _sync_jex_cp_pools():
 
         if res is None:
             logging.error('Error fetching JEX CP pools')
-            return
+            return []
 
         sc_addresses = [parse_address(x)[0] for i, x in enumerate(res)
                         if i % 2 == 0]
@@ -400,6 +459,14 @@ async def _sync_jex_cp_pools():
             set_dex_aggregator_pool(
                 lp_status.sc_address, second_token.identifier, first_token.identifier, pool)
 
+            swap_pools.append(SwapPool(name=f'JEX: {first_token.name}/{second_token.name}',
+                                       sc_address=lp_status.sc_address,
+                                       tokens_in=[first_token.identifier,
+                                                  second_token.identifier],
+                                       tokens_out=[first_token.identifier,
+                                                   second_token.identifier],
+                                       type='jexchange_lp'))
+
             deposit_pool = JexConstantProductDepositPool(fees_percent_base_pts=0,
                                                          first_token=first_token,
                                                          first_token_reserves=first_token_reserves,
@@ -411,20 +478,34 @@ async def _sync_jex_cp_pools():
             set_dex_aggregator_pool(lp_status.sc_address, second_token.identifier,
                                     lp_status.lp_token_identifier, deposit_pool)
 
+            swap_pools.append(SwapPool(name=f'JEX: {first_token.name}/{second_token.name} (D)',
+                                       sc_address=lp_status.sc_address,
+                                       tokens_in=[first_token.identifier,
+                                                  second_token.identifier],
+                                       tokens_out=[
+                                           lp_status.lp_token_identifier],
+                                       type='jexchange_lp_deposit'))
+
+            # TODO JexConstantProductWithdrawPool
+
             nb_pools += 1
 
     logging.info(f'JEX CP pools: {nb_pools}')
 
     logging.info('Loading JEX CP pools - done')
 
+    return swap_pools
 
-async def _sync_jex_stablepools():
+
+async def _sync_jex_stablepools() -> List[SwapPool]:
     logging.info('Loading JEX stable pools')
 
     sc_deployer = sc_address_jex_lp_deployer()
     if sc_deployer is None:
         logging.info('OneDex swap SC address not set -> skip')
-        return
+        return []
+
+    swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
@@ -468,12 +549,25 @@ async def _sync_jex_stablepools():
                                      reserves=reserves,
                                      underlying_prices=underlying_prices)
 
+            token_ids = [t.identifier for t in tokens]
+            swap_pools.append(SwapPool(name=f"JEX: {'/'.join([t.name for t in tokens])}",
+                                       sc_address=lp_status.sc_address,
+                                       tokens_in=token_ids,
+                                       tokens_out=token_ids,
+                                       type='jexchange_stablepool'))
+
             deposit_pool = JexStableSwapPoolDeposit(amp_factor=lp_status.amp_factor,
                                                     fees_percent_base_pts=lp_status.swap_fee,
                                                     tokens=tokens,
                                                     lp_token_supply=lp_token_supply,
                                                     reserves=reserves,
                                                     underlying_prices=underlying_prices)
+            swap_pools.append(SwapPool(name=f"JEX: {'/'.join([t.name for t in tokens])} (D)",
+                                       sc_address=lp_status.sc_address,
+                                       tokens_in=token_ids,
+                                       tokens_out=[
+                                           lp_status.lp_token_identifier],
+                                       type='jexchange_stablepool_deposit'))
 
             for t1, t2 in product(lp_status.tokens, lp_status.tokens):
                 if t1 != t2:
@@ -490,9 +584,12 @@ async def _sync_jex_stablepools():
 
     logging.info('Loading JEX stable pools - done')
 
+    return swap_pools
 
-async def _sync_exrond_pools():
+
+async def _sync_exrond_pools() -> List[SwapPool]:
     logging.info('Loading Exrond pools')
+
     query = '''
 {
   pairs {
@@ -522,6 +619,8 @@ async def _sync_exrond_pools():
     }
     url = 'https://api.exrond.com/graphql'
     # resp = requests.post(url, json=data)
+
+    swap_pools = []
 
     async with aiohttp.request('POST', url=url, json=data) as resp:
         json_ = await resp.json()
@@ -562,6 +661,14 @@ async def _sync_exrond_pools():
                                        second_token_reserves=second_token_reserves,
                                        lp_token_supply=0)
 
+            swap_pools.append(SwapPool(name=f'Exrond: {first_token.name}/{second_token.name}',
+                                       sc_address=sc_address,
+                                       tokens_in=[first_token.identifier,
+                                                  second_token.identifier],
+                                       tokens_out=[first_token.identifier,
+                                                   second_token.identifier],
+                                       type='exrond'))
+
             set_dex_aggregator_pool(
                 sc_address, first_token.identifier, second_token.identifier, pool)
             set_dex_aggregator_pool(
@@ -571,16 +678,19 @@ async def _sync_exrond_pools():
 
     logging.info('Loading Exrond pools - done')
 
+    return swap_pools
 
-async def _sync_vestadex_pools():
+
+async def _sync_vestadex_pools() -> List[SwapPool]:
     logging.info('Loading VestaDex pools')
 
     sc_address = sc_address_vestadex_router()
     if not sc_address:
         logging.info('VestaDex router SC address not set -> skip')
-        return
+        return []
 
     pairs: List[VestaDexPool] = []
+    swap_pools = []
 
     done = False
     from_ = 1
@@ -635,6 +745,14 @@ async def _sync_vestadex_pools():
                                    second_token=second_token,
                                    second_token_reserves=int(pair.second_token_reserve))
 
+        swap_pools.append(SwapPool(name=f'VestaDex: {first_token.name}/{second_token.name}',
+                                   sc_address=sc_address,
+                                   tokens_in=[first_token.identifier,
+                                              second_token.identifier],
+                                   tokens_out=[first_token.identifier,
+                                               second_token.identifier],
+                                   type='vestadex'))
+
         set_dex_aggregator_pool(
             pair.pool_address, first_token.identifier, second_token.identifier, pool)
         set_dex_aggregator_pool(
@@ -644,14 +762,18 @@ async def _sync_vestadex_pools():
 
     logging.info('Loading VestaDex pools - done')
 
+    return swap_pools
 
-async def _sync_vestax_staking_pool():
+
+async def _sync_vestax_staking_pool() -> List[SwapPool]:
     logging.info('Loading VestaX staking pool')
 
     sc_address = sc_address_vestax_staking()
     if not sc_address:
         logging.info('VestaX staking SC address not set -> skip')
-        return
+        return []
+
+    swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
@@ -659,17 +781,23 @@ async def _sync_vestax_staking_pool():
                                    sc_address,
                                    function='getVegldPrice')
         if res is None:
-            return
+            return []
 
         egld_price = hex2dec(res[0])
 
-        token_in = get_or_fetch_token('WEGLD-bd4d79')
+        token_in = get_or_fetch_token(WEGLD_IDENTIFIER)
         token_out = get_or_fetch_token('VEGLD-2b9319')
 
         pool = ConstantPricePool(egld_price,
                                  token_in=token_in,
                                  token_out=token_out,
                                  token_out_reserve=999*10**token_out.decimals)
+
+        swap_pools.append(SwapPool(name=f'VestaX (stake)',
+                                   sc_address=sc_address,
+                                   tokens_in=[WEGLD_IDENTIFIER],
+                                   tokens_out=['VEGLD-2b9319'],
+                                   type='vestax_stake'))
 
         set_dex_aggregator_pool(sc_address,
                                 token_in.identifier,
@@ -678,14 +806,18 @@ async def _sync_vestax_staking_pool():
 
     logging.info('Loading VestaX staking pool - done')
 
+    return swap_pools
 
-async def _sync_hatom_staking_pool():
+
+async def _sync_hatom_staking_pool() -> List[SwapPool]:
     logging.info('Loading Hatom staking pool')
 
     sc_address = sc_address_hatom_staking()
     if not sc_address:
         logging.info('Hatom staking SC address not set -> skip')
-        return
+        return []
+
+    swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
@@ -694,26 +826,36 @@ async def _sync_hatom_staking_pool():
                                    function='getExchangeRate')
 
         if res is None:
-            return
+            return []
 
         egld_price = hex2dec(res[0])
 
-        token_in = get_or_fetch_token('WEGLD-bd4d79')
+        token_in = get_or_fetch_token(WEGLD_IDENTIFIER)
         token_out = get_or_fetch_token('SEGLD-3ad2d0')
 
         pool = ConstantPricePool(egld_price, token_in=token_in, token_out=token_out,
                                  token_out_reserve=999*10**token_out.decimals)
+
+        swap_pools.append(SwapPool(name=f'Hatom (stake)',
+                                   sc_address=sc_address,
+                                   tokens_in=[WEGLD_IDENTIFIER],
+                                   tokens_out=['SEGLD-3ad2d0'],
+                                   type='hatom_stake'))
 
         set_dex_aggregator_pool(
             sc_address, token_in.identifier, token_out.identifier, pool)
 
     logging.info('Loading Hatom staking pool - done')
 
+    return swap_pools
 
-async def _sync_hatom_money_markets():
+
+async def _sync_hatom_money_markets() -> List[SwapPool]:
     logging.info('Loading Hatom MM pools')
 
     agg_sc = sc_address_aggregator()
+
+    swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
         def _addr(x): return Address.from_bech32(x).pubkey
@@ -767,6 +909,12 @@ async def _sync_hatom_money_markets():
                                              h_token,
                                              9999999*10**h_token.decimals)
 
+            swap_pools.append(SwapPool(name=f'Hatom: {underlying_token.name} market',
+                                       sc_address=mm.sc_address,
+                                       tokens_in=[underlying_token.identifier],
+                                       tokens_out=[h_token.identifier],
+                                       type='hatom_money_market_mint'))
+
             # redeem
             redeem_price = mm.ratio_underlying_to_tokens * \
                 10**(18-h_token.decimals)
@@ -776,16 +924,30 @@ async def _sync_hatom_money_markets():
                                             underlying_token,
                                             mm.cash)
 
-            set_dex_aggregator_pool(
-                mm.sc_address, underlying_token.identifier, h_token.identifier, deposit_pool)
-            set_dex_aggregator_pool(mm.sc_address, h_token.identifier,
-                                    underlying_token.identifier, redeem_pool)
+            swap_pools.append(SwapPool(name=f'Hatom: {underlying_token.name} market',
+                                       sc_address=mm.sc_address,
+                                       tokens_in=[h_token.identifier],
+                                       tokens_out=[
+                                           underlying_token.identifier],
+                                       type='hatom_money_market_redeem'))
+
+            set_dex_aggregator_pool(mm.sc_address,
+                                    underlying_token.identifier,
+                                    h_token.identifier,
+                                    deposit_pool)
+
+            set_dex_aggregator_pool(mm.sc_address,
+                                    h_token.identifier,
+                                    underlying_token.identifier,
+                                    redeem_pool)
 
             nb_mms += 1
 
     logging.info(f'Hatom money markets: {nb_mms}')
 
     logging.info('Loading Hatom MM pools - done')
+
+    return swap_pools
 
 
 def _is_pair_valid(tokens_reserves: List[Tuple[str, str]]) -> bool:

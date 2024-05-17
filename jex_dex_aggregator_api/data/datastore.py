@@ -21,14 +21,14 @@ def set_swap_pools(pools: List[SwapPool]):
 
 
 def get_dex_aggregator_pool(sc_address: str, token_in: str, token_out: str) -> AbstractPool:
-    key = f'dex-agg-pool_{sc_address}_{token_in}_{token_out}'
+    key = f'pool_{sc_address}_{token_in}_{token_out}'
 
     return redis_get(key,
                      lambda serialized: pickle.loads(base64.b64decode(serialized)))
 
 
 def set_dex_aggregator_pool(sc_address: str, token_in: str, token_out: str, pool: AbstractPool):
-    key = f'dex-agg-pool_{sc_address}_{token_in}_{token_out}'
+    key = f'pool_{sc_address}_{token_in}_{token_out}'
 
     redis_set(key,
               base64.b64encode(pickle.dumps(pool)),
