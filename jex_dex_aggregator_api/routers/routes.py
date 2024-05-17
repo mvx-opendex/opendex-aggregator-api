@@ -77,11 +77,11 @@ def get_routes(response: Response,
         return routes
 
     cache_key = f'routes_{token_in}_{token_out}_{max_hops}'
-    body, _ = redis_get_or_set_cache(cache_key,
-                                     timedelta(seconds=60),
-                                     _do,
-                                     lambda json_: json_,
-                                     deferred=True,
-                                     background_tasks=background_tasks)
+    body = redis_get_or_set_cache(cache_key,
+                                  timedelta(seconds=60),
+                                  _do,
+                                  lambda json_: json_,
+                                  deferred=True,
+                                  background_tasks=background_tasks)
 
     return body

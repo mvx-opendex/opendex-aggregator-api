@@ -44,10 +44,9 @@ def fetch_token(identifier: str) -> Esdt:
 
     cache_key = f'esdt_{identifier}'
 
-    token, _ = redis_get_or_set_cache(cache_key,
-                                      timedelta(days=7),
-                                      _do,
-                                      lambda json_: Esdt.parse_obj(json_),
-                                      lock_for_update=False)
+    token = redis_get_or_set_cache(cache_key,
+                                   timedelta(days=7),
+                                   _do,
+                                   lambda json_: Esdt.model_validate(json_))
 
     return token

@@ -13,8 +13,6 @@ CACHE_KEY_PREFIX = 'agg-api'
 
 REDIS = Redis(host=os.environ['REDIS_HOST'], port=6379)
 
-LOCAL_CACHE = {}
-
 
 def redis_get(cache_key: str,
               parse: Callable[[dict], Any],
@@ -47,52 +45,50 @@ def redis_get_or_set_cache(cache_key: str,
                            task: Callable[[], Any],
                            parse: Callable[[dict], Any],
                            lock_ttl: timedelta = timedelta(seconds=5),
-                           lock_for_update=True,
                            deferred=False,
                            background_tasks: Optional[BackgroundTasks] = None):
-    key = _format_cache_key(cache_key)
+    fmt_key = _format_cache_key(cache_key)
 
-    default_value = LOCAL_CACHE.get(key, None)
-
-    # get from cache
-    cached = REDIS.get(key)
-    if cached:
-        json_ = json.loads(cached)
-        return parse(json_), False
+    from_cache = REDIS.get(fmt_key)
+    if from_cache:
+        json_ = json.loads(from_cache)
+        return parse(json_)
 
     # or try to lock for update
-    if lock_for_update:
-        lock_key = f'{key}_lock'
-        lock = REDIS.lock(lock_key, timeout=lock_ttl.total_seconds())
-        if not lock.acquire(blocking=False):
-            # already locked, return default value
-            return default_value, False
+    lock_key = _format_lock_key(cache_key)
+    lock = REDIS.lock(lock_key, timeout=lock_ttl.total_seconds())
+    if not lock.acquire(blocking=False):
+        # already locked, return "previously" known value
+        return _get_prev(cache_key, parse)
 
     def _do_task_and_update_cache():
         body = task()
 
         # update cache
-        LOCAL_CACHE[key] = body
-        REDIS.setex(key, cache_ttl,
+        REDIS.setex(cache_key, cache_ttl,
                     json.dumps(jsonable_encoder(body)))
+        _set_prev(cache_key, body)
 
         return body
 
-    if deferred and key in LOCAL_CACHE:
-        body = LOCAL_CACHE[key]
-        background_tasks.add_task(_do_task_and_update_cache)
-    else:
-        # get value from task return
-        body = _do_task_and_update_cache()
+    try:
+        if deferred:
+            body = _get_prev(cache_key, parse)
+            if body:
+                background_tasks.add_task(_do_task_and_update_cache)
+            else:
+                body = _do_task_and_update_cache()
+        else:
+            body = _do_task_and_update_cache()
 
-    # release lock
-    if lock_for_update:
+    finally:
+        # release lock
         try:
             lock.release()
         except:
             pass
 
-    return body, True
+    return body
 
 
 def redis_lock_and_do(key: str,
@@ -133,3 +129,32 @@ def redis_lock_and_do(key: str,
 
 def _format_cache_key(key: str) -> str:
     return f'{CACHE_KEY_PREFIX}::{key}'
+
+
+def _format_lock_key(key: str) -> str:
+    return _format_cache_key(f'{key}_lock')
+
+
+def _format_cache_key_prev(key: str) -> str:
+    return _format_cache_key(f'{key}_prev')
+
+
+def _get_prev(key: str,
+              parse: Callable[[dict], Any]) -> Optional[Any]:
+    key_prev = _format_cache_key_prev(key)
+
+    from_cache = REDIS.get(key_prev)
+    if from_cache:
+        json_ = json.loads(from_cache)
+        return parse(json_)
+
+    return None
+
+
+def _set_prev(key: str,
+              value: Any):
+    key_prev = _format_cache_key_prev(key)
+
+    REDIS.setex(key_prev,
+                timedelta(hours=1),
+                json.dumps(jsonable_encoder(value)))
