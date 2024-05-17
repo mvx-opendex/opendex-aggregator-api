@@ -15,8 +15,6 @@ def find_routes(token_in: str,
 
     all_pools = get_swap_pools()
 
-    logging.info(f'nb pools: {len(all_pools)}')
-
     _find_routes_inner(token_out,
                        all_pools,
                        max_hops,
