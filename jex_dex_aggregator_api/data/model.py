@@ -1,5 +1,5 @@
 
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -99,10 +99,6 @@ class VestaDexPool(BaseModel):
     fee_token_id: str
     total_fee_percentage: int
     special_fee_percentage: int
-
-
-SC_TYPE_CONSTANT_PRODUCT = 0
-SC_TYPE_STABLE_SWAP = 1
 
 
 class JexDeployedPoolContract(BaseModel):
