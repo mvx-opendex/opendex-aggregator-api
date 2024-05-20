@@ -3,7 +3,7 @@ from typing import List
 
 import pytest
 
-from model import Esdt
+from jex_dex_aggregator_api.data.model import Esdt
 
 from .pools import ConstantPricePool, ConstantProductPool, StableSwapPool
 
@@ -13,8 +13,14 @@ from .pools import ConstantPricePool, ConstantProductPool, StableSwapPool
     (0.5*10**18, 1000, 10, 20)
 ])
 def test_ConstantPricePool_estimate_amount_out(price: int, reserve: int, amount_in: int, expected: int):
-    token_in = Esdt(decimals=18, identifier='IN-000000', name='IN')
-    token_out = Esdt(decimals=18, identifier='OUT-000000', name='OUT')
+    token_in = Esdt(decimals=18,
+                    identifier='IN-000000',
+                    name='IN',
+                    is_lp_token=False)
+    token_out = Esdt(decimals=18,
+                     identifier='OUT-000000',
+                     name='OUT',
+                     is_lp_token=False)
 
     pool = ConstantPricePool(price, token_in, token_out, reserve)
 
@@ -25,8 +31,14 @@ def test_ConstantPricePool_estimate_amount_out(price: int, reserve: int, amount_
     ([1000_000000000000000000, 1000_000000], 10_000000000000000000, 9_900990)
 ])
 def test_ConstantProductPool_estimate_amount_out(reserves: List[int], amount_in: int, expected: int):
-    first_token = Esdt(decimals=18, identifier='IN-000000', name='IN')
-    second_token = Esdt(decimals=6, identifier='OUT-000000', name='OUT')
+    first_token = Esdt(decimals=18,
+                       identifier='IN-000000',
+                       name='IN',
+                       is_lp_token=False)
+    second_token = Esdt(decimals=6,
+                        identifier='OUT-000000',
+                        name='OUT',
+                        is_lp_token=False)
 
     pool = ConstantProductPool(
         fees_percent_base_pts=0,
@@ -50,9 +62,18 @@ def test_StableSwapPool_estimate_amount_out(reserves: List[int],
                                             amount_in: int,
                                             token_out_identifier: str,
                                             expected: int):
-    busd = Esdt(decimals=18, identifier='BUSD-40b57e', name='BUSD')
-    usdc = Esdt(decimals=6, identifier='USDC-c76f1f', name='USDC')
-    usdt = Esdt(decimals=6, identifier='USDT-f8c08c', name='USDT')
+    busd = Esdt(decimals=18,
+                identifier='BUSD-40b57e',
+                name='BUSD',
+                is_lp_token=False)
+    usdc = Esdt(decimals=6,
+                identifier='USDC-c76f1f',
+                name='USDC',
+                is_lp_token=False)
+    usdt = Esdt(decimals=6,
+                identifier='USDT-f8c08c',
+                name='USDT',
+                is_lp_token=False)
     tokens = [busd, usdc, usdt]
 
     token_in = filter(lambda x: x.identifier ==
@@ -76,8 +97,14 @@ def test_StableSwapPool_estimate_amount_out_with_underlying_prices(
         underlying_prices: List[int],
         amount_in: int,
         expected: int):
-    segld = Esdt(decimals=18, identifier='SEGLD-000000', name='SEGLD')
-    wegld = Esdt(decimals=18, identifier='WEGLD-000000', name='WEGLD')
+    segld = Esdt(decimals=18,
+                 identifier='SEGLD-000000',
+                 name='SEGLD',
+                 is_lp_token=False)
+    wegld = Esdt(decimals=18,
+                 identifier='WEGLD-000000',
+                 name='WEGLD',
+                 is_lp_token=False)
 
     token_in = wegld
     token_out = segld
