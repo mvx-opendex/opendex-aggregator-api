@@ -19,9 +19,11 @@ def get_routes(response: Response,
     response.headers['Access-Control-Allow-Origin'] = '*'
 
     def _do():
-        return routes_svc.find_routes(token_in,
-                                      token_out,
-                                      max_hops)
+        routes = routes_svc.find_routes(token_in,
+                                        token_out,
+                                        max_hops)
+
+        return routes_svc.sort_routes(routes)
 
     cache_key = f'routes_{token_in}_{token_out}_{max_hops}'
     body = redis_get_or_set_cache(cache_key,

@@ -26,6 +26,11 @@ def find_routes(token_in: str,
     return results
 
 
+def sort_routes(routes: List[SwapRoute]) -> List[SwapRoute]:
+
+    return sorted(routes, key=lambda x: len(x.hops))
+
+
 def _find_routes_inner(token_out: str,
                        all_pools: List[SwapPool],
                        max_hops: int,
