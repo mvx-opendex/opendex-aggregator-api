@@ -24,3 +24,9 @@ class SwapRoute(BaseModel):
 
     def serialize():
         raise NotImplementedError()
+
+
+class SwapEvaluation(BaseModel):
+    amount_in: int
+    amount_out: int
+    route: SwapRoute
