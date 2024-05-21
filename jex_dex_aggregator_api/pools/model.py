@@ -28,6 +28,7 @@ class SwapRoute(BaseModel):
 
 class SwapEvaluation(BaseModel):
     amount_in: int
+    estimated_gas: int
     fee_amount: int
     fee_token: Optional[str]
     net_amount_out: int

@@ -30,6 +30,7 @@ def evaluate(route: SwapRoute,
     amount = amount_in
     fee_amount = 0
     fee_token = None
+    estimated_gas = 10_000_000
 
     for hop in route.hops:
         if hop.token_in != token:
@@ -56,6 +57,8 @@ def evaluate(route: SwapRoute,
 
         token = hop.token_out
 
+        estimated_gas += pool.estimated_gas()
+
     if token != route.token_out:
         raise ValueError(
             f'Invalid output token after swaps [{token}] != [{route.token_out}]')
@@ -66,7 +69,8 @@ def evaluate(route: SwapRoute,
         amount -= fee_amount
 
     return SwapEvaluation(amount_in=amount_in,
-                          net_amount_out=amount,
+                          estimated_gas=estimated_gas,
                           fee_amount=fee_amount,
                           fee_token=fee_token,
+                          net_amount_out=amount,
                           route=route)
