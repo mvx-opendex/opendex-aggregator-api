@@ -29,7 +29,10 @@ class AbstractPool:
         return (amount * 10**18) // 10**token.decimals
 
     def _denormalize_amount(self, amount: int, token: Esdt) -> int:
-        return (amount * 10**token.decimals) // 10**18
+        num = amount * 10**token.decimals
+        den = 10**18
+
+        return int(num // den)
 
 
 @dataclass

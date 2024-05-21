@@ -41,12 +41,16 @@ def _adapt_evaluation(e: SwapEvaluation) -> SwapEvaluationOut:
     net_human_amount_out = e.net_amount_out / 10**token_out.decimals
     net_theorical_amount_out = e.theorical_amount_out / 10**token_out.decimals
 
-    return SwapEvaluationOut(amount_in=e.amount_in,
-                             estimated_gas=e.estimated_gas,
-                             fee_amount=e.fee_amount,
+    slippage_percent = 100 * (net_human_amount_out -
+                              net_theorical_amount_out) / net_theorical_amount_out
+
+    return SwapEvaluationOut(amount_in=str(e.amount_in),
+                             estimated_gas=str(e.estimated_gas),
+                             fee_amount=str(e.fee_amount),
                              fee_token=e.fee_token,
-                             net_amount_out=e.net_amount_out,
+                             net_amount_out=str(e.net_amount_out),
                              route=e.route,
-                             theorical_amount_out=e.theorical_amount_out,
+                             theorical_amount_out=str(e.theorical_amount_out),
                              net_human_amount_out=net_human_amount_out,
-                             net_theorical_amount_out=net_theorical_amount_out)
+                             net_theorical_amount_out=net_theorical_amount_out,
+                             slippage_percent=slippage_percent)

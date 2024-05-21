@@ -1,18 +1,26 @@
 
 
-from typing import List
+from typing import List, Optional
 
 from multiversx_sdk_core import Address
 from pydantic import BaseModel
 
 from jex_dex_aggregator_api.data.constants import SC_TYPES
-from jex_dex_aggregator_api.pools.model import SwapEvaluation
+from jex_dex_aggregator_api.pools.model import SwapEvaluation, SwapRoute
 from jex_dex_aggregator_api.utils.convert import int2hex, str2hex
 
 
-class SwapEvaluationOut(SwapEvaluation):
+class SwapEvaluationOut(BaseModel):
+    amount_in: str
+    estimated_gas: str
+    fee_amount: str
+    fee_token: Optional[str]
+    net_amount_out: str
+    route: SwapRoute
+    theorical_amount_out: str
     net_human_amount_out: float
     net_theorical_amount_out: float
+    slippage_percent: float
 
 
 class SwapPoolOut(BaseModel):
