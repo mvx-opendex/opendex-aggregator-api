@@ -22,6 +22,9 @@ class AbstractPool:
     def estimated_gas(self) -> int:
         raise NotImplementedError()
 
+    def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+        raise NotImplementedError()
+
     def _normalize_amount(self, amount: int, token: Esdt) -> int:
         return (amount * 10**18) // 10**token.decimals
 
@@ -46,15 +49,8 @@ class ConstantProductPool(AbstractPool):
 
     @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
-        if token_in.identifier == self.first_token.identifier:
-            (in_reserve_before, out_reserve_before) = (
-                self.first_token_reserves, self.second_token_reserves)
-        elif token_in.identifier == self.second_token.identifier:
-            (in_reserve_before, out_reserve_before) = (
-                self.second_token_reserves, self.first_token_reserves)
-        else:
-            raise ValueError(
-                f'Invalid token in: {token_in.identifier} for pool {self}')
+        in_reserve_before, out_reserve_before = self._reserves(token_in,
+                                                               token_out)
 
         fee = (amount_in * self.fees_percent_base_pts) // 10000
 
@@ -68,8 +64,29 @@ class ConstantProductPool(AbstractPool):
 
         return int(amount_out)
 
+    @override
+    def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+        in_reserve, out_reserve = self._reserves(token_in, token_out)
+
+        num = amount_in * out_reserve
+        den = in_reserve
+
+        return num // den
+
     def estimated_gas(self) -> int:
         return 20_000_000
+
+    def _reserves(self, token_in: Esdt, token_out: Esdt) -> Tuple[int, int]:
+        if token_in.identifier == self.first_token.identifier \
+                and token_out.identifier == self.second_token.identifier:
+            return (self.first_token_reserves, self.second_token_reserves)
+
+        if token_in.identifier == self.second_token.identifier \
+                and token_out.identifier == self.first_token.identifier:
+            return (self.second_token_reserves, self.first_token_reserves)
+
+        raise ValueError(
+            f'Invalid in/out tokens [{token_in.identifier}-{token_out.identifier}] for pool {self}')
 
     def __str__(self) -> str:
         return f'ConstantProductPool({self.first_token_reserves/10**self.first_token.decimals:.4f} \
@@ -197,7 +214,7 @@ class JexConstantProductDepositPool(ConstantProductPool):
 
 
 @dataclass
-class AshSwapPoolV2(AbstractPool):
+class AshSwapPoolV2(ConstantProductPool):
 
     PRECISION = 10**18
 
@@ -326,6 +343,13 @@ class ConstantPricePool(AbstractPool):
 
         return int(amount_out)
 
+    @override
+    def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+        # same as normal swap
+        return self.estimate_amount_out(token_in,
+                                        amount_in,
+                                        token_out)
+
     def estimated_gas(self) -> int:
         return 20_000_000
 
@@ -383,6 +407,22 @@ class StableSwapPool(AbstractPool):
         fee = (amount_out * self.fees_percent_base_pts) // 10_000
 
         return int(amount_out - fee)
+
+    @override
+    def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+        normalized_amount_in = self._normalize_amount(amount_in, token_in)
+
+        i_token_in, _ = find(lambda x: x.identifier ==
+                             token_in.identifier, self.tokens)
+        i_token_out, _ = find(lambda x: x.identifier ==
+                              token_out.identifier, self.tokens)
+
+        amount_num = normalized_amount_in * self.underlying_prices[i_token_in]
+        amount_den = self.underlying_prices[i_token_out]
+
+        print(self.underlying_prices)
+
+        return self._denormalize_amount(amount_num // amount_den, token_out)
 
     def estimated_gas(self) -> int:
         return 20_000_000
