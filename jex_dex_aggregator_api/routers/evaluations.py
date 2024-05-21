@@ -39,10 +39,10 @@ def _adapt_evaluation(e: SwapEvaluation) -> SwapEvaluationOut:
     token_out = get_or_fetch_token(e.route.token_out)
 
     net_human_amount_out = e.net_amount_out / 10**token_out.decimals
-    net_theorical_amount_out = e.theorical_amount_out / 10**token_out.decimals
+    theorical_human_amount_out = e.theorical_amount_out / 10**token_out.decimals
 
     slippage_percent = 100 * (net_human_amount_out -
-                              net_theorical_amount_out) / net_theorical_amount_out
+                              theorical_human_amount_out) / theorical_human_amount_out
 
     return SwapEvaluationOut(amount_in=str(e.amount_in),
                              estimated_gas=str(e.estimated_gas),
@@ -50,7 +50,7 @@ def _adapt_evaluation(e: SwapEvaluation) -> SwapEvaluationOut:
                              fee_token=e.fee_token,
                              net_amount_out=str(e.net_amount_out),
                              route=e.route,
-                             theorical_amount_out=str(e.theorical_amount_out),
                              net_human_amount_out=net_human_amount_out,
-                             net_theorical_amount_out=net_theorical_amount_out,
-                             slippage_percent=slippage_percent)
+                             slippage_percent=slippage_percent,
+                             theorical_amount_out=str(e.theorical_amount_out),
+                             theorical_human_amount_out=theorical_human_amount_out)
