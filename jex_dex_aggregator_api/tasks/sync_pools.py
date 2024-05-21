@@ -313,7 +313,7 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
                 pools.append(pool)
 
                 token_ids = [t.identifier for t in tokens]
-                swap_pools.append(SwapPool(name=f"AshSwap: {['/'.join([t.name for t in tokens])]}",
+                swap_pools.append(SwapPool(name=f"AshSwap: {'/'.join([t.name for t in tokens])}",
                                            sc_address=status.sc_address,
                                            tokens_in=token_ids,
                                            tokens_out=token_ids,
@@ -376,7 +376,7 @@ async def _sync_ashswap_v2_pools() -> List[SwapPool]:
                 pools.append(pool)
 
                 token_ids = [t.identifier for t in tokens]
-                swap_pools.append(SwapPool(name=f"AshSwap: {['/'.join([t.name for t in tokens])]}",
+                swap_pools.append(SwapPool(name=f"AshSwap: {'/'.join([t.name for t in tokens])}",
                                            sc_address=status.sc_address,
                                            tokens_in=token_ids,
                                            tokens_out=token_ids,
