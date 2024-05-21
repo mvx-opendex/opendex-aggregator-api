@@ -12,14 +12,17 @@ from services.parsers.routing import parse_evaluate_response
 from services.tokens import get_or_fetch_token
 from utils.env import sc_address_aggregator
 
+from jex_dex_aggregator_api.data.constants import (
+    SC_TYPE_ASHSWAP_STABLEPOOL_DEPOSIT, SC_TYPE_ASHSWAP_STABLEPOOL_WITHDRAW,
+    SC_TYPE_DX25, SC_TYPE_JEXCHANGE_LP_WITHDRAW, SC_TYPE_JEXCHANGE_ORDERBOOK)
+
 
 def can_estimate_offline(route: SwapRoute) -> bool:
-    return len(list(filter(lambda h: h.pool.type in ['ashswap_stablepool_deposit',
-                                                     'ashswap_stablepool_withdraw',
-                                                     'dx25',
-                                                     'jexchange',
-                                                     'jexchange_lp_withdraw',
-                                                     'jexchange_stableswap'], route.hops))) == 0
+    return len(list(filter(lambda h: h.pool.type in [SC_TYPE_ASHSWAP_STABLEPOOL_DEPOSIT,
+                                                     SC_TYPE_ASHSWAP_STABLEPOOL_WITHDRAW,
+                                                     SC_TYPE_DX25,
+                                                     SC_TYPE_JEXCHANGE_ORDERBOOK,
+                                                     SC_TYPE_JEXCHANGE_LP_WITHDRAW], route.hops))) == 0
 
 
 def estimate_offline(token_in: str, amount_in: int, route: SwapRoute) -> Tuple[int, int, int, str]:

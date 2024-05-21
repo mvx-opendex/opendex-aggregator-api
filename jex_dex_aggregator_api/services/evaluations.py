@@ -1,4 +1,9 @@
 
+from jex_dex_aggregator_api.data.constants import (
+    SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
+    SC_TYPE_JEXCHANGE_LP_WITHDRAW, SC_TYPE_JEXCHANGE_ORDERBOOK,
+    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
+    SC_TYPE_JEXCHANGE_STABLEPOOL_WITHDRAW)
 from jex_dex_aggregator_api.data.datastore import get_dex_aggregator_pool
 from jex_dex_aggregator_api.pools.model import SwapEvaluation, SwapRoute
 from jex_dex_aggregator_api.services.tokens import (WEGLD_IDENTIFIER,
@@ -6,13 +11,13 @@ from jex_dex_aggregator_api.services.tokens import (WEGLD_IDENTIFIER,
 
 FEE_MULTIPLIER = 0.05
 
-NO_FEE_POOL_TYPES = ['jexchange',
-                     'jexchange_lp',
-                     'jexchange_lp_deposit',
-                     'jexchange_lp_withdraw',
-                     'jexchange_stablepool',
-                     'jexchange_stablepool_deposit',
-                     'jexchange_stablepool_withdraw']
+NO_FEE_POOL_TYPES = [SC_TYPE_JEXCHANGE_ORDERBOOK,
+                     SC_TYPE_JEXCHANGE_LP,
+                     SC_TYPE_JEXCHANGE_LP_DEPOSIT,
+                     SC_TYPE_JEXCHANGE_LP_WITHDRAW,
+                     SC_TYPE_JEXCHANGE_STABLEPOOL,
+                     SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
+                     SC_TYPE_JEXCHANGE_STABLEPOOL_WITHDRAW]
 
 
 def evaluate(route: SwapRoute,

@@ -1,23 +1,49 @@
+SC_TYPE_ASHSWAP_STABLEPOOL = 'ashswap_stablepool'
+SC_TYPE_ASHSWAP_V2 = 'ashswap_v2'
+SC_TYPE_EXROND = 'exrond'
+SC_TYPE_JEXCHANGE_ORDERBOOK = 'jexchange'
+SC_TYPE_ONEDEX = 'onedex'
+SC_TYPE_XEXCHANGE = 'xexchange'
+SC_TYPE_JEXCHANGE_STABLESWAP_OLD = 'jexchange_stableswap'
+SC_TYPE_JEXCHANGE_LP = 'jexchange_lp'
+SC_TYPE_JEWELSWAP_LEND_DEPOSIT = 'jewelswap_lend_deposit'
+SC_TYPE_JEWELSWAP_LEND_WITHDRAW = 'jewelswap_lend_withdraw'
+SC_TYPE_ASHSWAP_STABLEPOOL_DEPOSIT = 'ashswap_stablepool_deposit'
+SC_TYPE_ASHSWAP_STABLEPOOL_WITHDRAW = 'ashswap_stablepool_withdraw'
+SC_TYPE_JEXCHANGE_LP_DEPOSIT = 'jexchange_lp_deposit'
+SC_TYPE_JEXCHANGE_LP_WITHDRAW = 'jexchange_lp_withdraw'
+SC_TYPE_VESTADEX = 'vestadex'
+SC_TYPE_VESTAX_STAKE = 'vestax_stake'
+SC_TYPE_HATOM_STAKE = 'hatom_stake'
+SC_TYPE_HATOM_MONEY_MARKET_MINT = 'hatom_money_market_mint'
+SC_TYPE_HATOM_MONEY_MARKET_REDEEM = 'hatom_money_market_redeem'
+SC_TYPE_JEXCHANGE_STABLEPOOL = 'jexchange_stablepool'
+SC_TYPE_DX25 = 'dx25'
+SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT = 'jexchange_stablepool_deposit'
+SC_TYPE_JEXCHANGE_STABLEPOOL_WITHDRAW = 'jexchange_stablepool_withdraw'
+
+
 SC_TYPES = [None,
-            "ashswap_stablepool",
-            "ashswap_v2",
-            "exrond",
-            "jexchange",
-            "onedex",
-            "xexchange",
-            "jexchange_stableswap",
-            "jexchange_lp",
-            "jewelswap_lend_deposit",
-            "jewelswap_lend_withdraw",
-            "ashswap_stablepool_deposit",
-            "ashswap_stablepool_withdraw",
-            "jexchange_lp_deposit",
-            "jexchange_lp_withdraw",
-            "vestadex",
-            "vestax_stake",
-            "hatom_stake",
-            "hatom_money_market_mint",
-            "hatom_money_market_redeem",
-            "jexchange_stablepool",
-            "dx25",
-            "jexchange_stablepool_deposit",]
+            SC_TYPE_ASHSWAP_STABLEPOOL,
+            SC_TYPE_ASHSWAP_V2,
+            SC_TYPE_EXROND,
+            SC_TYPE_JEXCHANGE_ORDERBOOK,
+            SC_TYPE_ONEDEX,
+            SC_TYPE_XEXCHANGE,
+            SC_TYPE_JEXCHANGE_STABLESWAP_OLD,
+            SC_TYPE_JEXCHANGE_LP,
+            SC_TYPE_JEWELSWAP_LEND_DEPOSIT,
+            SC_TYPE_JEWELSWAP_LEND_WITHDRAW,
+            SC_TYPE_ASHSWAP_STABLEPOOL_DEPOSIT,
+            SC_TYPE_ASHSWAP_STABLEPOOL_WITHDRAW,
+            SC_TYPE_JEXCHANGE_LP_DEPOSIT,
+            SC_TYPE_JEXCHANGE_LP_WITHDRAW,
+            SC_TYPE_VESTADEX,
+            SC_TYPE_VESTAX_STAKE,
+            SC_TYPE_HATOM_STAKE,
+            SC_TYPE_HATOM_MONEY_MARKET_MINT,
+            SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
+            SC_TYPE_JEXCHANGE_STABLEPOOL,
+            SC_TYPE_DX25,
+            SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
+            SC_TYPE_JEXCHANGE_STABLEPOOL_WITHDRAW]

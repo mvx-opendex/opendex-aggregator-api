@@ -9,6 +9,12 @@ from typing import Callable, List, Tuple
 import aiohttp
 from multiversx_sdk_core import Address
 
+from jex_dex_aggregator_api.data.constants import (
+    SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2, SC_TYPE_EXROND,
+    SC_TYPE_HATOM_MONEY_MARKET_MINT, SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
+    SC_TYPE_HATOM_STAKE, SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
+    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
+    SC_TYPE_ONEDEX, SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
 from jex_dex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools)
 from jex_dex_aggregator_api.data.model import VestaDexPool
@@ -176,7 +182,7 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
                                               second_token.identifier],
                                    tokens_out=[first_token.identifier,
                                                second_token.identifier],
-                                   type='xexchange'))
+                                   type=SC_TYPE_XEXCHANGE))
 
         set_dex_aggregator_pool(
             lp_status.sc_address, first_token.identifier, second_token.identifier, pool)
@@ -262,7 +268,7 @@ async def _sync_onedex_pools() -> List[SwapPool]:
                                               second_token.identifier],
                                    tokens_out=[first_token.identifier,
                                                second_token.identifier],
-                                   type='onedex'))
+                                   type=SC_TYPE_ONEDEX))
 
         set_dex_aggregator_pool(
             sc_address, pair.first_token_identifier, pair.second_token_identifier, pool)
@@ -317,7 +323,7 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
                                            sc_address=status.sc_address,
                                            tokens_in=token_ids,
                                            tokens_out=token_ids,
-                                           type='ashswap_stablepool'))
+                                           type=SC_TYPE_ASHSWAP_STABLEPOOL))
 
                 for t1, t2 in product(tokens, tokens):
                     if t1.identifier != t2.identifier:
@@ -380,7 +386,7 @@ async def _sync_ashswap_v2_pools() -> List[SwapPool]:
                                            sc_address=status.sc_address,
                                            tokens_in=token_ids,
                                            tokens_out=token_ids,
-                                           type='ashswap_v2'))
+                                           type=SC_TYPE_ASHSWAP_V2))
 
                 for t1, t2 in product(tokens, tokens):
                     if t1.identifier != t2.identifier:
@@ -468,7 +474,7 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
                                                   second_token.identifier],
                                        tokens_out=[first_token.identifier,
                                                    second_token.identifier],
-                                       type='jexchange_lp'))
+                                       type=SC_TYPE_JEXCHANGE_LP))
 
             deposit_pool = JexConstantProductDepositPool(fees_percent_base_pts=0,
                                                          first_token=first_token,
@@ -487,7 +493,7 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
                                                   second_token.identifier],
                                        tokens_out=[
                                            lp_status.lp_token_identifier],
-                                       type='jexchange_lp_deposit'))
+                                       type=SC_TYPE_JEXCHANGE_LP_DEPOSIT))
 
             # TODO JexConstantProductWithdrawPool
 
@@ -557,7 +563,7 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
                                        sc_address=lp_status.sc_address,
                                        tokens_in=token_ids,
                                        tokens_out=token_ids,
-                                       type='jexchange_stablepool'))
+                                       type=SC_TYPE_JEXCHANGE_STABLEPOOL))
 
             deposit_pool = JexStableSwapPoolDeposit(amp_factor=lp_status.amp_factor,
                                                     fees_percent_base_pts=lp_status.swap_fee,
@@ -570,7 +576,7 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
                                        tokens_in=token_ids,
                                        tokens_out=[
                                            lp_status.lp_token_identifier],
-                                       type='jexchange_stablepool_deposit'))
+                                       type=SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT))
 
             for t1, t2 in product(lp_status.tokens, lp_status.tokens):
                 if t1 != t2:
@@ -670,7 +676,7 @@ async def _sync_exrond_pools() -> List[SwapPool]:
                                                   second_token.identifier],
                                        tokens_out=[first_token.identifier,
                                                    second_token.identifier],
-                                       type='exrond'))
+                                       type=SC_TYPE_EXROND))
 
             set_dex_aggregator_pool(
                 sc_address, first_token.identifier, second_token.identifier, pool)
@@ -754,7 +760,7 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
                                               second_token.identifier],
                                    tokens_out=[first_token.identifier,
                                                second_token.identifier],
-                                   type='vestadex'))
+                                   type=SC_TYPE_VESTADEX))
 
         set_dex_aggregator_pool(
             pair.pool_address, first_token.identifier, second_token.identifier, pool)
@@ -800,7 +806,7 @@ async def _sync_vestax_staking_pool() -> List[SwapPool]:
                                    sc_address=sc_address,
                                    tokens_in=[WEGLD_IDENTIFIER],
                                    tokens_out=['VEGLD-2b9319'],
-                                   type='vestax_stake'))
+                                   type=SC_TYPE_VESTAX_STAKE))
 
         set_dex_aggregator_pool(sc_address,
                                 token_in.identifier,
@@ -843,7 +849,7 @@ async def _sync_hatom_staking_pool() -> List[SwapPool]:
                                    sc_address=sc_address,
                                    tokens_in=[WEGLD_IDENTIFIER],
                                    tokens_out=['SEGLD-3ad2d0'],
-                                   type='hatom_stake'))
+                                   type=SC_TYPE_HATOM_STAKE))
 
         set_dex_aggregator_pool(
             sc_address, token_in.identifier, token_out.identifier, pool)
@@ -916,7 +922,7 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
                                        sc_address=mm.sc_address,
                                        tokens_in=[underlying_token.identifier],
                                        tokens_out=[h_token.identifier],
-                                       type='hatom_money_market_mint'))
+                                       type=SC_TYPE_HATOM_MONEY_MARKET_MINT))
 
             # redeem
             redeem_price = mm.ratio_underlying_to_tokens * \
@@ -932,7 +938,7 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
                                        tokens_in=[h_token.identifier],
                                        tokens_out=[
                                            underlying_token.identifier],
-                                       type='hatom_money_market_redeem'))
+                                       type=SC_TYPE_HATOM_MONEY_MARKET_REDEEM))
 
             set_dex_aggregator_pool(mm.sc_address,
                                     underlying_token.identifier,
