@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -28,5 +28,7 @@ class SwapRoute(BaseModel):
 
 class SwapEvaluation(BaseModel):
     amount_in: int
-    amount_out: int
+    fee_amount: int
+    fee_token: Optional[str]
+    net_amount_out: int
     route: SwapRoute

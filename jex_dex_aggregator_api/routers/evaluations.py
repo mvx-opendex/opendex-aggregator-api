@@ -25,5 +25,5 @@ def get_evaluations(response: Response,
                    for r in routes]
 
     return sorted(evaluations,
-                  key=lambda x: x.amount_out,
+                  key=lambda x: x.net_amount_out,
                   reverse=True)
