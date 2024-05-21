@@ -33,3 +33,4 @@ class SwapEvaluation(BaseModel):
     fee_token: Optional[str]
     net_amount_out: int
     route: SwapRoute
+    theorical_amount_out: int

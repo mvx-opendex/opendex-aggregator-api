@@ -31,6 +31,7 @@ def evaluate(route: SwapRoute,
     fee_amount = 0
     fee_token = None
     estimated_gas = 10_000_000
+    theorical_amount = amount_in
 
     for hop in route.hops:
         if hop.token_in != token:
@@ -47,6 +48,7 @@ def evaluate(route: SwapRoute,
             fee_amount = int(amount * FEE_MULTIPLIER)
             fee_token = WEGLD_IDENTIFIER
             amount -= fee_amount
+            theorical_amount -= fee_amount
 
         esdt_in = get_or_fetch_token(hop.token_in)
         esdt_out = get_or_fetch_token(hop.token_out)
@@ -54,6 +56,10 @@ def evaluate(route: SwapRoute,
         amount = pool.estimate_amount_out(esdt_in,
                                           amount,
                                           esdt_out)
+
+        theorical_amount = pool.estimate_theorical_amount_out(esdt_in,
+                                                              theorical_amount,
+                                                              esdt_out)
 
         token = hop.token_out
 
@@ -73,4 +79,5 @@ def evaluate(route: SwapRoute,
                           fee_amount=fee_amount,
                           fee_token=fee_token,
                           net_amount_out=amount,
-                          route=route)
+                          route=route,
+                          theorical_amount_out=theorical_amount)
