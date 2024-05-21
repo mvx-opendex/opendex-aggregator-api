@@ -230,6 +230,30 @@ class AshSwapPoolV2(ConstantProductPool):
     tokens: List[Esdt]
     xp: List[int]
 
+    def __init__(self,
+                 amp: int,
+                 d: int,
+                 fee_gamma: int,
+                 future_a_gamma_time: int,
+                 gamma: int,
+                 mid_fee: int,
+                 out_fee: int,
+                 price_scale: int,
+                 reserves: List[int],
+                 tokens: List[Esdt],
+                 xp: List[int]):
+        self.amp = amp
+        self.d = d
+        self.fee_gamma = fee_gamma
+        self.future_a_gamma_time = future_a_gamma_time
+        self.gamma = gamma
+        self.mid_fee = mid_fee
+        self.out_fee = out_fee
+        self.price_scale = price_scale
+        self.reserves = reserves
+        self.tokens = tokens
+        self.xp = xp
+
     @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
         """
