@@ -52,7 +52,7 @@ class ConstantProductPool(AbstractPool):
         in_reserve_before, out_reserve_before = self._reserves(token_in,
                                                                token_out)
 
-        fee = (amount_in * self.fees_percent_base_pts) // 10000
+        fee = (amount_in * self.fees_percent_base_pts) // 10_000
 
         amount_in -= fee
 
@@ -68,10 +68,11 @@ class ConstantProductPool(AbstractPool):
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
         in_reserve, out_reserve = self._reserves(token_in, token_out)
 
-        num = amount_in * out_reserve
-        den = in_reserve
+        fee = (amount_in * self.fees_percent_base_pts) // 10_000
 
-        return num // den
+        amount_in -= fee
+
+        return (amount_in * out_reserve) // in_reserve
 
     def estimated_gas(self) -> int:
         return 20_000_000
@@ -444,9 +445,11 @@ class StableSwapPool(AbstractPool):
         amount_num = normalized_amount_in * self.underlying_prices[i_token_in]
         amount_den = self.underlying_prices[i_token_out]
 
-        print(self.underlying_prices)
+        amount = amount_num // amount_den
 
-        return self._denormalize_amount(amount_num // amount_den, token_out)
+        fee = (amount * self.fees_percent_base_pts) // 10_000
+
+        return self._denormalize_amount(amount - fee, token_out)
 
     def estimated_gas(self) -> int:
         return 20_000_000
