@@ -17,7 +17,7 @@ class SwapEvaluationOut(BaseModel):
     fee_token: Optional[str]
     net_amount_out: str
     net_human_amount_out: float
-    route: SwapRoute
+    routes: List[SwapRoute]
     slippage_percent: float
     theorical_amount_out: str
     theorical_human_amount_out: float

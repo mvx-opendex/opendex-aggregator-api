@@ -52,10 +52,11 @@ def _find_routes_inner(token_out: str,
                  if token_in in p.tokens_in]
 
         for pool in pools:
+
             next_hops = [SwapHop(pool=pool,
                                  token_in=token_in,
                                  token_out=t) for t in pool.tokens_out
-                         if t != token_in]
+                         if t != token_in and t != route.token_in]
 
             for next_hop in next_hops:
                 next_route = SwapRoute(hops=[*route.hops, next_hop],

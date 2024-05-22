@@ -1,4 +1,5 @@
 
+import json
 from typing import List
 from fastapi import APIRouter, BackgroundTasks, Query, Response
 
@@ -32,7 +33,18 @@ def get_evaluations(response: Response,
                          key=lambda x: x.net_amount_out,
                          reverse=True)
 
-    return [_adapt_evaluation(x) for x in evaluations[:5]]
+    dyn_routing_evaluation = eval_svc.find_best_dynamic_routing_algo1(evaluations,
+                                                                      amount_in)
+
+    print('Static route')
+    print([h.pool.name for h in evaluations[0].route.hops])
+    print(
+        f'{amount_in} {token_in} -> {evaluations[0].net_amount_out} {token_out}')
+
+    print('Dynamic route')
+    print(dyn_routing_evaluation.pretty_string())
+
+    return [_adapt_evaluation(x) for x in evaluations[:2]]
 
 
 def _adapt_evaluation(e: SwapEvaluation) -> SwapEvaluationOut:
@@ -49,7 +61,7 @@ def _adapt_evaluation(e: SwapEvaluation) -> SwapEvaluationOut:
                              fee_amount=str(e.fee_amount),
                              fee_token=e.fee_token,
                              net_amount_out=str(e.net_amount_out),
-                             route=e.route,
+                             routes=[e.route],
                              net_human_amount_out=net_human_amount_out,
                              slippage_percent=slippage_percent,
                              theorical_amount_out=str(e.theorical_amount_out),
