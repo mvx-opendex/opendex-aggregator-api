@@ -138,3 +138,55 @@ def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluatio
                                                                   for e in best_evals]),
                                         token_in=first_eval.route.token_in,
                                         token_out=first_eval.route.token_out)
+
+
+def find_best_dynamic_routing_algo2(single_route_evaluations: List[SwapEvaluation],
+                                    amount_in: int) -> Optional[DynamicRoutingSwapEvaluation]:
+    if len(single_route_evaluations) < 2:
+        return None
+
+    first_eval = single_route_evaluations[0]
+
+    first_route = first_eval.route
+
+    candidates = [e for e in single_route_evaluations[1:]
+                  if e.theorical_amount_out >= first_eval.net_amount_out
+                  and e.route.is_disjointed(first_route)]
+
+    if len(candidates) == 0:
+        return None
+
+    def _slippage(e: SwapEvaluation):
+        return (e.net_amount_out - e.theorical_amount_out) / e.theorical_amount_out
+
+    candidates = [c for c in candidates
+                  if _slippage(c) > -0.1]
+
+    candidates = sorted(candidates,
+                        key=lambda x: x.theorical_amount_out,
+                        reverse=True)
+
+    candidates = [first_eval] + candidates[:1]
+
+    slippage = [-1/_slippage(c)
+                for c in candidates]
+
+    total_slippage = sum(slippage)
+
+    weights = [s / total_slippage
+               for s in slippage]
+
+    evals = [evaluate(c.route,
+                      int(amount_in * w))
+             for c, w in zip(candidates, weights)]
+
+    return DynamicRoutingSwapEvaluation(amount_in=amount_in,
+                                        estimated_gas=sum([e.estimated_gas
+                                                           for e in evals]),
+                                        evaluations=evals,
+                                        net_amount_out=sum([e.net_amount_out
+                                                            for e in evals]),
+                                        theorical_amount_out=sum([e.theorical_amount_out
+                                                                  for e in evals]),
+                                        token_in=first_eval.route.token_in,
+                                        token_out=first_eval.route.token_out)

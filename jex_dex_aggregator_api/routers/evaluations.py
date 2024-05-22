@@ -33,7 +33,7 @@ def get_evaluations(response: Response,
                          key=lambda x: x.net_amount_out,
                          reverse=True)
 
-    dyn_routing_evaluation = eval_svc.find_best_dynamic_routing_algo1(evaluations,
+    dyn_routing_evaluation = eval_svc.find_best_dynamic_routing_algo2(evaluations,
                                                                       amount_in)
 
     print('Static route')
