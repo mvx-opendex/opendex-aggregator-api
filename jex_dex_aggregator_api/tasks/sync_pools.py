@@ -755,7 +755,7 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
                                    second_token_reserves=int(pair.second_token_reserve))
 
         swap_pools.append(SwapPool(name=f'VestaDex: {first_token.name}/{second_token.name}',
-                                   sc_address=sc_address,
+                                   sc_address=pair.pool_address,
                                    tokens_in=[first_token.identifier,
                                               second_token.identifier],
                                    tokens_out=[first_token.identifier,
