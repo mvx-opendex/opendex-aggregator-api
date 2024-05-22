@@ -71,6 +71,9 @@ class ConstantProductPool(AbstractPool):
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
         in_reserve, out_reserve = self._reserves(token_in, token_out)
 
+        if in_reserve == 0:
+            return 0
+
         fee = (amount_in * self.fees_percent_base_pts) // 10_000
 
         amount_in -= fee
@@ -246,6 +249,9 @@ class AshSwapPoolV2(ConstantProductPool):
                  reserves: List[int],
                  tokens: List[Esdt],
                  xp: List[int]):
+        assert len(tokens) == 2, 'Invalid number of tokens'
+        assert len(reserves) == 2, 'Invalid number of token reserves'
+
         self.amp = amp
         self.d = d
         self.fee_gamma = fee_gamma
@@ -257,6 +263,10 @@ class AshSwapPoolV2(ConstantProductPool):
         self.reserves = reserves
         self.tokens = tokens
         self.xp = xp
+        self.first_token = tokens[0]
+        self.first_token_reserves = reserves[0]
+        self.second_token = tokens[1]
+        self.second_token_reserves = reserves[1]
 
     @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
@@ -316,6 +326,22 @@ class AshSwapPoolV2(ConstantProductPool):
 
     def estimated_gas(self) -> int:
         return 30_000_000
+
+    @override
+    def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+        i_token_in, _ = find(lambda x: x.identifier ==
+                             token_in.identifier, self.tokens)
+        i_token_out, _ = find(lambda x: x.identifier ==
+                              token_out.identifier, self.tokens)
+
+        in_reserve = self.reserves[i_token_in]
+        out_reserve = self.reserves[i_token_out]
+
+        fee = self._fee(self.xp)
+
+        amount_in -= fee
+
+        return (amount_in * out_reserve) // in_reserve
 
     def _fee(self, xp: List[int]) -> int:
         n_coins = len(self.tokens)
