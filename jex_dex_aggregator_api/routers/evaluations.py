@@ -42,7 +42,10 @@ def get_evaluations(response: Response,
         f'{amount_in} {token_in} -> {evaluations[0].net_amount_out} {token_out}')
 
     print('Dynamic route')
-    print(dyn_routing_evaluation.pretty_string())
+    if dyn_routing_evaluation:
+        print(dyn_routing_evaluation.pretty_string())
+    else:
+        print('Not found')
 
     return [_adapt_evaluation(x) for x in evaluations[:2]]
 

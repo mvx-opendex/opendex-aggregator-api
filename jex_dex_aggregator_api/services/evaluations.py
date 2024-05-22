@@ -1,6 +1,6 @@
 
 import logging
-from typing import List
+from typing import List, Optional
 from jex_dex_aggregator_api.data.constants import (
     SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
     SC_TYPE_JEXCHANGE_LP_WITHDRAW, SC_TYPE_JEXCHANGE_ORDERBOOK,
@@ -93,9 +93,9 @@ def evaluate(route: SwapRoute,
 
 
 def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluation],
-                                    amount_in: int) -> DynamicRoutingSwapEvaluation:
+                                    amount_in: int) -> Optional[DynamicRoutingSwapEvaluation]:
     if len(single_route_evaluations) < 2:
-        return single_route_evaluations[0]
+        return None
 
     first_eval = single_route_evaluations[0]
 
@@ -124,6 +124,9 @@ def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluatio
         if amount_out > best_amount_out:
             best_amount_out = amount_out
             best_evals = [e1, e2]
+
+    if len(best_evals) == 0:
+        return None
 
     return DynamicRoutingSwapEvaluation(amount_in=amount_in,
                                         estimated_gas=sum([e.estimated_gas
