@@ -55,15 +55,15 @@ class ConstantProductPool(AbstractPool):
         in_reserve_before, out_reserve_before = self._reserves(token_in,
                                                                token_out)
 
-        fee = (amount_in * self.fees_percent_base_pts) // 10_000
-
-        amount_in -= fee
-
         amount_out = (amount_in * out_reserve_before) // \
             (in_reserve_before + amount_in)
 
         if amount_out > out_reserve_before:
             raise ValueError(f'Amount to swap to big {amount_in}')
+
+        fee = (amount_out * self.fees_percent_base_pts) // 10_000
+
+        amount_out -= fee
 
         return int(amount_out)
 
