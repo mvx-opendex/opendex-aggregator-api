@@ -6,7 +6,7 @@ from multiversx_sdk_core import Address
 from pydantic import BaseModel
 
 from jex_dex_aggregator_api.data.constants import SC_TYPES
-from jex_dex_aggregator_api.pools.model import SwapEvaluation, SwapRoute
+from jex_dex_aggregator_api.pools.model import SwapRoute
 from jex_dex_aggregator_api.utils.convert import int2hex, str2hex
 
 
