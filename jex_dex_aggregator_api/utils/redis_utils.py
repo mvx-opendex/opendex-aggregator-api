@@ -47,12 +47,10 @@ def redis_get_or_set_cache(cache_key: str,
                            lock_ttl: timedelta = timedelta(seconds=5),
                            deferred=False,
                            background_tasks: Optional[BackgroundTasks] = None):
-    fmt_key = _format_cache_key(cache_key)
-
-    from_cache = REDIS.get(fmt_key)
+    from_cache = redis_get(cache_key,
+                           parse)
     if from_cache:
-        json_ = json.loads(from_cache)
-        return parse(json_)
+        return from_cache
 
     # or try to lock for update
     lock_key = _format_lock_key(cache_key)
@@ -65,8 +63,9 @@ def redis_get_or_set_cache(cache_key: str,
         body = task()
 
         # update cache
-        REDIS.setex(cache_key, cache_ttl,
-                    json.dumps(jsonable_encoder(body)))
+        redis_set(cache_key,
+                  body,
+                  cache_ttl)
         _set_prev(cache_key, body)
 
         return body
