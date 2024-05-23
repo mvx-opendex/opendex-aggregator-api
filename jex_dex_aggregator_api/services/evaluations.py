@@ -1,13 +1,16 @@
 
 import logging
-from typing import List, Optional
+from typing import Any, List, Mapping, Optional, Tuple
+
 from jex_dex_aggregator_api.data.constants import (
     SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
     SC_TYPE_JEXCHANGE_LP_WITHDRAW, SC_TYPE_JEXCHANGE_ORDERBOOK,
     SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
     SC_TYPE_JEXCHANGE_STABLEPOOL_WITHDRAW)
 from jex_dex_aggregator_api.data.datastore import get_dex_aggregator_pool
-from jex_dex_aggregator_api.pools.model import DynamicRoutingSwapEvaluation, SwapEvaluation, SwapRoute
+from jex_dex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
+                                                SwapEvaluation, SwapRoute)
+from jex_dex_aggregator_api.pools.pools import AbstractPool
 from jex_dex_aggregator_api.services.tokens import (WEGLD_IDENTIFIER,
                                                     get_or_fetch_token)
 
@@ -23,7 +26,9 @@ NO_FEE_POOL_TYPES = [SC_TYPE_JEXCHANGE_ORDERBOOK,
 
 
 def evaluate(route: SwapRoute,
-             amount_in: int) -> SwapEvaluation:
+             amount_in: int,
+             pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
+             update_reserves: bool = False) -> SwapEvaluation:
 
     should_apply_fee = len(route.hops) > 1 and all(
         (h.pool.type not in NO_FEE_POOL_TYPES for h in route.hops))
@@ -39,9 +44,16 @@ def evaluate(route: SwapRoute,
         if hop.token_in != token:
             raise ValueError(f'Invalid input token [{hop.token_in}]')
 
-        pool = get_dex_aggregator_pool(hop.pool.sc_address,
-                                       hop.token_in,
-                                       hop.token_out)
+        pool_cache_key = (hop.pool.sc_address,
+                          hop.token_in,
+                          hop.token_out)
+        pool = pools_cache.get(pool_cache_key, None)
+
+        if pool is None:
+            pool = get_dex_aggregator_pool(hop.pool.sc_address,
+                                           hop.token_in,
+                                           hop.token_out).deep_copy()
+            pools_cache[pool_cache_key] = pool
 
         if pool is None:
             raise ValueError(
@@ -57,9 +69,16 @@ def evaluate(route: SwapRoute,
         esdt_out = get_or_fetch_token(hop.token_out)
 
         try:
-            amount = pool.estimate_amount_out(esdt_in,
-                                              amount,
-                                              esdt_out)
+            amount_out = pool.estimate_amount_out(esdt_in,
+                                                  amount,
+                                                  esdt_out)
+
+            if update_reserves:
+                pool.update_reserves(esdt_in,
+                                     amount,
+                                     esdt_out,
+                                     amount_out)
+            amount = amount_out
         except ValueError as e:
             logging.info('Error during estimation -> 0')
             logging.debug(e)
@@ -190,3 +209,75 @@ def find_best_dynamic_routing_algo2(single_route_evaluations: List[SwapEvaluatio
                                                                   for e in evals]),
                                         token_in=first_eval.route.token_in,
                                         token_out=first_eval.route.token_out)
+
+
+def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
+                                    amount_in: int) -> Optional[DynamicRoutingSwapEvaluation]:
+
+    amounts = [amount_in // 10] * 9
+    amounts += [amount_in - sum(amounts)]
+    amounts = [a for a in amounts if a > 0]
+
+    pools_cache: Mapping[Tuple[str, str, str], AbstractPool] = {}
+
+    total_amount_out = 0
+
+    amount_per_route: Mapping[SwapRoute, int] = {}
+
+    for amount in amounts:
+        evals = [evaluate(r,
+                          amount,
+                          pools_cache) for r in routes]
+
+        best_eval = sorted(evals,
+                           key=lambda x: x.net_amount_out,
+                           reverse=True)[0]
+
+        print(best_eval.route.hops)
+
+        total_amount_out += best_eval.net_amount_out
+
+        evaluate(best_eval.route,
+                 amount,
+                 pools_cache,
+                 update_reserves=True)
+
+        amount_of_route = amount_per_route.get(best_eval.route, 0)
+
+        amount_of_route += amount
+
+        amount_per_route[best_eval.route] = amount_of_route
+
+        print('-----------------------')
+
+    print(f'Total amount out: {total_amount_out}')
+
+    pools_cache.clear()
+
+    print('-----------------------')
+    print('Verifications')
+
+    total_amount_out_verif = 0
+
+    evals: List[SwapEvaluation] = []
+    for route, amount in amount_per_route.items():
+        print(f'Route: {[h.pool.name for h in route.hops]}')
+        print(f'Amount: {amount}')
+
+        eval = evaluate(route, amount, pools_cache, update_reserves=True)
+        total_amount_out_verif += eval.net_amount_out
+
+        evals.append(eval)
+
+    print(f'Total amount out (verif): {total_amount_out_verif}')
+
+    return DynamicRoutingSwapEvaluation(amount_in=amount_in,
+                                        estimated_gas=sum((e.estimated_gas)
+                                                          for e in evals),
+                                        evaluations=evals,
+                                        net_amount_out=sum((e.net_amount_out
+                                                            for e in evals)),
+                                        theorical_amount_out=sum((e.theorical_amount_out
+                                                                  for e in evals)),
+                                        token_in=evals[0].route.token_in,
+                                        token_out=evals[0].route.token_out)

@@ -26,15 +26,18 @@ def get_evaluations(response: Response,
                                        max_hops,
                                        background_tasks)
 
-    evaluations = [eval_svc.evaluate(r, amount_in)
+    evaluations = [eval_svc.evaluate(r, amount_in, pools_cache={})
                    for r in routes]
 
     evaluations = sorted(evaluations,
                          key=lambda x: x.net_amount_out,
                          reverse=True)
 
-    dyn_routing_evaluation = eval_svc.find_best_dynamic_routing_algo2(evaluations,
-                                                                      amount_in)
+    # dyn_routing_eval = eval_svc.find_best_dynamic_routing_algo2(evaluations,
+    #                                                                   amount_in)
+
+    dyn_routing_eval = eval_svc.find_best_dynamic_routing_algo3(routes,
+                                                                amount_in)
 
     print('Static route')
     print([h.pool.name for h in evaluations[0].route.hops])
@@ -42,8 +45,8 @@ def get_evaluations(response: Response,
         f'{amount_in} {token_in} -> {evaluations[0].net_amount_out} {token_out}')
 
     print('Dynamic route')
-    if dyn_routing_evaluation:
-        print(dyn_routing_evaluation.pretty_string())
+    if dyn_routing_eval:
+        print(dyn_routing_eval.pretty_string())
     else:
         print('Not found')
 

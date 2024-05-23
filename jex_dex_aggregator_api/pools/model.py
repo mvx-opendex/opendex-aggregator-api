@@ -1,4 +1,5 @@
 from typing import List, Optional
+import uuid
 
 from pydantic import BaseModel
 
@@ -24,9 +25,13 @@ class SwapHop(BaseModel):
 
 
 class SwapRoute(BaseModel):
+    id_: int = uuid.uuid4().__hash__()
     hops: List[SwapHop]
     token_in: str
     token_out: str
+
+    def __hash__(self) -> int:
+        return self.id_
 
     def is_disjointed(self, other):
         if type(other) != type(self):
@@ -38,7 +43,7 @@ class SwapRoute(BaseModel):
 
         return True
 
-    def serialize():
+    def serialize(self):
         raise NotImplementedError()
 
 
