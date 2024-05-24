@@ -19,7 +19,13 @@ class AbstractPool:
     def deep_copy(self):
         raise NotImplementedError()
 
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
+        """
+        :return: a tuple with:
+        - net amount out
+        - admin fee (token in) removed from reserves
+        - admin fee (token out) removed from reserves
+        """
         raise NotImplementedError()
 
     def estimated_gas(self) -> int:
@@ -70,7 +76,7 @@ class ConstantProductPool(AbstractPool):
                                    second_token_reserves=self.second_token_reserves)
 
     @override
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
         in_reserve_before, out_reserve_before = self._reserves(token_in,
                                                                token_out)
 
@@ -84,7 +90,7 @@ class ConstantProductPool(AbstractPool):
 
         amount_out -= fee
 
-        return int(amount_out)
+        return int(amount_out), 0, 0
 
     @override
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
@@ -137,6 +143,29 @@ class ConstantProductPool(AbstractPool):
 
 
 @dataclass
+class XExchangeConstantProductPool(ConstantProductPool):
+
+    @override
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
+        in_reserve_before, out_reserve_before = self._reserves(token_in,
+                                                               token_out)
+
+        fee = (amount_in * self.fees_percent_base_pts) // 10_000
+
+        amount_in -= fee
+
+        amount_out = (amount_in * out_reserve_before) // \
+            (in_reserve_before + amount_in)
+
+        if amount_out > out_reserve_before:
+            raise ValueError(f'Amount to swap to big {amount_in}')
+
+        admin_fee_in = fee // 3
+
+        return int(amount_out), admin_fee_in, 0
+
+
+@dataclass
 class OneDexConstantProductPool(ConstantProductPool):
     """
     OneDex constant product pool with specific fees management.
@@ -167,7 +196,7 @@ class OneDexConstantProductPool(ConstantProductPool):
                                          main_pair_tokens=self.main_pair_tokens.copy())
 
     @override
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
         if token_in.identifier == self.first_token.identifier:
             (in_reserve_before, out_reserve_before) = (
                 self.first_token_reserves, self.second_token_reserves)
@@ -185,18 +214,23 @@ class OneDexConstantProductPool(ConstantProductPool):
             fee_input_token = False
 
         if fee_input_token:
-            amount_in_with_fee = amount_in * \
-                (10_000 - self.fees_percent_base_pts)
+            fee = (amount_in * self.fees_percent_base_pts) // 10_000
+            amount_in_with_fee = amount_in - fee
             numerator = amount_in_with_fee * out_reserve_before
             denominator = (in_reserve_before * 10_000) + amount_in_with_fee
+            net_amount_out = numerator // denominator
 
-            return numerator // denominator
+            return net_amount_out, 0, 0
         else:
             amount_out_without_fee = (
                 amount_in * out_reserve_before) // (in_reserve_before + amount_in)
 
-            return amount_out_without_fee * \
-                (10_000 - self.fees_percent_base_pts) // 10_000
+            fee = (amount_out_without_fee *
+                   self.fees_percent_base_pts) // 10_000
+
+            net_amount_out = amount_out_without_fee - fee
+
+            return net_amount_out, 0, 0
 
 
 @dataclass
@@ -218,7 +252,7 @@ class JexConstantProductPool(ConstantProductPool):
                                       platform_fees_percent_base_pts=self.platform_fees_percent_base_pts)
 
     @override
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
         if token_in.identifier == self.first_token.identifier:
             (in_reserve_before, out_reserve_before) = (
                 self.first_token_reserves, self.second_token_reserves)
@@ -241,7 +275,7 @@ class JexConstantProductPool(ConstantProductPool):
         if amount_out > out_reserve_before:
             raise ValueError(f'Amount to swap to big {amount_in}')
 
-        return net_amount_out
+        return net_amount_out, 0, platform_fees
 
     @override
     def estimated_gas(self) -> int:
@@ -255,7 +289,7 @@ class JexConstantProductDepositPool(ConstantProductPool):
     """
 
     @override
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
         if token_in.identifier == self.first_token.identifier:
             (in_reserve, _) = \
                 (self.first_token_reserves, self.second_token_reserves)
@@ -268,7 +302,7 @@ class JexConstantProductDepositPool(ConstantProductPool):
         lp_amount = (amount_in * self.lp_token_supply) / (in_reserve * 2)
         lp_amount = int(lp_amount)
 
-        return int(lp_amount)
+        return int(lp_amount), 0, 0
 
     @override
     def estimated_gas(self) -> int:
@@ -349,12 +383,12 @@ class AshSwapPoolV2(ConstantProductPool):
                              xp=self.xp.copy())
 
     @override
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
         """
         Return (fee, amount_out)
         """
         if amount_in == 0:
-            return 0
+            return 0, 0, 0
 
         precisions = [10**(18-t.decimals) for t in self.tokens]
         price_scale = self.price_scale * precisions[1]
@@ -402,7 +436,7 @@ class AshSwapPoolV2(ConstantProductPool):
         fee = (dy * self._fee(xp)) // 1e10
         dy = dy - fee
 
-        return int(dy)
+        return int(dy), 0, fee // 3
 
     @override
     def estimated_gas(self) -> int:
@@ -461,6 +495,12 @@ class AshSwapPoolV2(ConstantProductPool):
 
         return f
 
+    def __str__(self) -> str:
+        return f'AshSwapPoolV2({self.first_token_reserves/10**self.first_token.decimals:.4f} \
+ {self.first_token.identifier} + \
+ {self.second_token_reserves/10**self.second_token.decimals:.4f} \
+ {self.second_token.identifier})'
+
 
 @dataclass
 class ConstantPricePool(AbstractPool):
@@ -486,7 +526,7 @@ class ConstantPricePool(AbstractPool):
                                  token_out_reserve=self.token_out_reserve)
 
     @override
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
         if token_in.identifier != self.token_in.identifier:
             raise ValueError(f'Invalid token in: {token_in.identifier}')
         if token_out.identifier != self.token_out.identifier:
@@ -502,14 +542,16 @@ class ConstantPricePool(AbstractPool):
             raise ValueError(
                 f'Amount to swap to big {amount_out} {token_in.name} (max={self.token_out_reserve})')
 
-        return int(amount_out)
+        return int(amount_out), 0, 0
 
     @override
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
         # same as normal swap
-        return self.estimate_amount_out(token_in,
-                                        amount_in,
-                                        token_out)
+        net_amount_out, _, _ = self.estimate_amount_out(token_in,
+                                                        amount_in,
+                                                        token_out)
+
+        return net_amount_out
 
     @override
     def estimated_gas(self) -> int:
@@ -569,7 +611,7 @@ class StableSwapPool(AbstractPool):
                               lp_token_supply=self.lp_token_supply)
 
     @override
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
         i_token_in, _ = find(lambda x: x.identifier ==
                              token_in.identifier, self.tokens)
         i_token_out, _ = find(lambda x: x.identifier ==
@@ -585,7 +627,7 @@ class StableSwapPool(AbstractPool):
 
         fee = (amount_out * self.fees_percent_base_pts) // 10_000
 
-        return int(amount_out - fee)
+        return int(amount_out - fee), 0, 0
 
     @override
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
@@ -668,7 +710,7 @@ class JexStableSwapPoolDeposit(StableSwapPool):
                          lp_token_supply=lp_token_supply)
 
     @override
-    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
         deposits = [self._normalize_amount(amount_in, t) if t.identifier ==
                     token_in.identifier else 0 for t in self.tokens]
 
@@ -684,7 +726,10 @@ class JexStableSwapPoolDeposit(StableSwapPool):
                                                  reserves=self.normalized_reserves,
                                                  underlying_prices=self.underlying_prices)
 
-        return int(amount_out)
+        admin_fee_out = amount_out * \
+            (liquidity_fees_percent_base_pts * 33) // 100
+
+        return int(amount_out), 0, admin_fee_out
 
     @override
     def update_reserves(self,

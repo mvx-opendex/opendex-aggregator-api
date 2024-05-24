@@ -53,9 +53,9 @@ def estimate_offline(token_in: str, amount_in: int, route: SwapRoute) -> Tuple[i
             amount -= fee_amount
             fees_applied = True
 
-        amount = pool.estimate_amount_out(token_in=get_or_fetch_token(token),
-                                          amount_in=amount,
-                                          token_out=get_or_fetch_token(hop.token_out))
+        amount, _, _ = pool.estimate_amount_out(token_in=get_or_fetch_token(token),
+                                                amount_in=amount,
+                                                token_out=get_or_fetch_token(hop.token_out))
         token = hop.token_out
 
         estimated_gas += pool.estimated_gas()

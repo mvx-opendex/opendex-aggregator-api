@@ -69,15 +69,16 @@ def evaluate(route: SwapRoute,
         esdt_out = get_or_fetch_token(hop.token_out)
 
         try:
-            amount_out = pool.estimate_amount_out(esdt_in,
-                                                  amount,
-                                                  esdt_out)
+            amount_out, admin_fee_in, admin_fee_out = pool.estimate_amount_out(esdt_in,
+                                                                               amount,
+                                                                               esdt_out)
 
             if update_reserves:
+                # TODO approximations here: some extra fees may apply and leave the pool (impact on reserves)
                 pool.update_reserves(esdt_in,
-                                     amount,
+                                     amount - admin_fee_in,
                                      esdt_out,
-                                     amount_out)
+                                     amount_out + admin_fee_out)
             amount = amount_out
         except ValueError as e:
             logging.info('Error during estimation -> 0')
@@ -229,11 +230,19 @@ def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                           amount,
                           pools_cache) for r in routes]
 
-        best_eval = sorted(evals,
-                           key=lambda x: x.net_amount_out,
-                           reverse=True)[0]
+        evals = sorted(evals,
+                       key=lambda x: x.net_amount_out,
+                       reverse=True)
 
-        print(best_eval.route.hops)
+        best_eval = next((e for e in evals
+                          if  # first eval
+                          len(amount_per_route) == 0
+                          or  # known route
+                          e.route in amount_per_route
+                          or  # new route (disjointed from known routes)
+                          all((e.route.is_disjointed(r)
+                              for r in amount_per_route.keys()))
+                          ))
 
         total_amount_out += best_eval.net_amount_out
 
@@ -270,6 +279,9 @@ def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
         evals.append(eval)
 
     print(f'Total amount out (verif): {total_amount_out_verif}')
+
+    print(
+        f'Diff: {100 * abs(total_amount_out_verif - total_amount_out) / total_amount_out}%')
 
     return DynamicRoutingSwapEvaluation(amount_in=amount_in,
                                         estimated_gas=sum((e.estimated_gas)

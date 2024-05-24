@@ -24,7 +24,10 @@ def test_ConstantPricePool_estimate_amount_out(price: int, reserve: int, amount_
 
     pool = ConstantPricePool(price, token_in, token_out, reserve)
 
-    assert pool.estimate_amount_out(token_in, amount_in, token_out) == expected
+    net_amount_out, _, _ = pool.estimate_amount_out(
+        token_in, amount_in, token_out)
+
+    assert net_amount_out == expected
 
     assert pool.estimate_theorical_amount_out(token_in,
                                               amount_in,
@@ -52,8 +55,10 @@ def test_ConstantProductPool_estimate_amount_out(reserves: List[int], amount_in:
         second_token=second_token,
         second_token_reserves=reserves[1])
 
-    assert pool.estimate_amount_out(
-        first_token, amount_in, second_token) == expected
+    net_amount_out, _, _ = pool.estimate_amount_out(
+        first_token, amount_in, second_token)
+
+    assert net_amount_out == expected
 
 
 @pytest.mark.parametrize('reserves,amount_in,expected', [
@@ -113,7 +118,10 @@ def test_StableSwapPool_estimate_amount_out(reserves: List[int],
     pool = StableSwapPool(amp_factor=256, fees_percent_base_pts=0, tokens=tokens,
                           reserves=reserves, underlying_prices=underlying_prices, lp_token_supply=0)
 
-    assert pool.estimate_amount_out(token_in, amount_in, token_out) == expected
+    net_amount_out, _, _ = pool.estimate_amount_out(
+        token_in, amount_in, token_out)
+
+    assert net_amount_out == expected
 
 
 @pytest.mark.parametrize('reserves,token_in_identifier,amount_in,token_out_identifier,expected', [
@@ -180,7 +188,10 @@ def test_StableSwapPool_estimate_amount_out_with_underlying_prices(
     pool = StableSwapPool(amp_factor=256, fees_percent_base_pts=0, tokens=[segld, wegld],
                           reserves=reserves, underlying_prices=underlying_prices, lp_token_supply=0)
 
-    assert pool.estimate_amount_out(token_in, amount_in, token_out) == expected
+    net_amount_out, _, _ = pool.estimate_amount_out(
+        token_in, amount_in, token_out)
+
+    assert net_amount_out == expected
 
 
 @pytest.mark.parametrize('reserves,underlying_prices,amount_in,expected', [
