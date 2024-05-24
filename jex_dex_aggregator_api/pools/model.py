@@ -1,7 +1,11 @@
-from typing import List, Optional
 import uuid
+from typing import List, Optional
 
+from multiversx_sdk_core import Address
 from pydantic import BaseModel
+
+from jex_dex_aggregator_api.data.constants import SC_TYPES
+from jex_dex_aggregator_api.utils.convert import int2hex, str2hex
 
 
 class SwapPool(BaseModel):
@@ -17,11 +21,21 @@ class SwapPool(BaseModel):
             and self.tokens_in == other.tokens_in \
             and self.type == other.type
 
+    def sc_type_as_code(self) -> int:
+        return SC_TYPES.index(self.type)
+
 
 class SwapHop(BaseModel):
     pool: SwapPool
     token_in: str
     token_out: str
+
+    def serialize(self) -> str:
+        str_ = Address.from_bech32(self.pool.sc_address).hex()
+        str_ += int2hex(self.pool.sc_type_as_code(), 2)
+        str_ += int2hex(len(self.token_out), 8)
+        str_ += str2hex(self.token_out)
+        return str_
 
 
 class SwapRoute(BaseModel):
@@ -43,8 +57,13 @@ class SwapRoute(BaseModel):
 
         return True
 
-    def serialize(self):
-        raise NotImplementedError()
+    def serialize(self) -> bytes:
+        str_ = int2hex(len(self.token_in), 8)
+        str_ += str2hex(self.token_in)
+        str_ += int2hex(len(self.hops), 8)
+        for hop in self.hops:
+            str_ += hop.serialize()
+        return bytes.fromhex(str_)
 
 
 class SwapEvaluation(BaseModel):

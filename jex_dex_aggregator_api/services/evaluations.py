@@ -1,6 +1,8 @@
 
 import logging
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import List, Mapping, Optional, Tuple
+
+import aiohttp
 
 from jex_dex_aggregator_api.data.constants import (
     SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
@@ -11,10 +13,15 @@ from jex_dex_aggregator_api.data.datastore import get_dex_aggregator_pool
 from jex_dex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
                                                 SwapEvaluation, SwapRoute)
 from jex_dex_aggregator_api.pools.pools import AbstractPool
+from jex_dex_aggregator_api.services.externals import async_sc_query
+from jex_dex_aggregator_api.services.parsers.routing import \
+    parse_evaluate_response
 from jex_dex_aggregator_api.services.tokens import (WEGLD_IDENTIFIER,
                                                     get_or_fetch_token)
+from jex_dex_aggregator_api.utils.env import (mvx_gateway_url,
+                                              sc_address_aggregator)
 
-FEE_MULTIPLIER = 0.05
+FEE_MULTIPLIER = 0.0005
 
 NO_FEE_POOL_TYPES = [SC_TYPE_JEXCHANGE_ORDERBOOK,
                      SC_TYPE_JEXCHANGE_LP,
@@ -52,12 +59,14 @@ def evaluate(route: SwapRoute,
         if pool is None:
             pool = get_dex_aggregator_pool(hop.pool.sc_address,
                                            hop.token_in,
-                                           hop.token_out).deep_copy()
-            pools_cache[pool_cache_key] = pool
+                                           hop.token_out)
 
         if pool is None:
             raise ValueError(
                 f'Unknown pool [{hop.pool.sc_address}] [{hop.token_in}] [{hop.token_out}]')
+
+        pool = pool.deep_copy()
+        pools_cache[pool_cache_key] = pool
 
         if should_apply_fee and hop.token_in == WEGLD_IDENTIFIER:
             fee_amount = int(amount * FEE_MULTIPLIER)
@@ -82,9 +91,8 @@ def evaluate(route: SwapRoute,
             amount = amount_out
         except ValueError as e:
             logging.info('Error during estimation -> 0')
-            logging.debug(e)
+            logging.info(e)
             amount = 0
-            break
 
         theorical_amount = pool.estimate_theorical_amount_out(esdt_in,
                                                               theorical_amount,
@@ -110,6 +118,33 @@ def evaluate(route: SwapRoute,
                           net_amount_out=amount,
                           route=route,
                           theorical_amount_out=theorical_amount)
+
+
+async def evaluate_online(amount_in: int,
+                          route: SwapRoute,
+                          http_client: aiohttp.ClientSession) -> Tuple[int, int, int, str]:
+    route_payload = route.serialize()
+    args = [amount_in, route_payload]
+
+    sc_address = sc_address_aggregator()
+
+    logging.info('QUERY: evaluate (evaluate_route)')
+    try:
+        result = await async_sc_query(http_client=http_client,
+                                      sc_address=sc_address,
+                                      function='evaluate',
+                                      args=args)
+    except:
+        logging.exception('Error during evaluation')
+        return (0, 0, 0, '')
+
+    if result is not None and len(result) > 0:
+        net_amount_out, fee, estimated_gas, fee_token = \
+            parse_evaluate_response(result[0])
+
+        return (net_amount_out, fee, estimated_gas, fee_token)
+
+    return (0, 0, 0, '')
 
 
 def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluation],
@@ -212,16 +247,16 @@ def find_best_dynamic_routing_algo2(single_route_evaluations: List[SwapEvaluatio
                                         token_out=first_eval.route.token_out)
 
 
-def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
-                                    amount_in: int) -> Optional[DynamicRoutingSwapEvaluation]:
+async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
+                                          amount_in: int) -> Optional[DynamicRoutingSwapEvaluation]:
+    if len(routes) < 2:
+        return None
 
     amounts = [amount_in // 10] * 9
-    amounts += [amount_in - sum(amounts)]
+    amounts = [amount_in - sum(amounts)] + amounts
     amounts = [a for a in amounts if a > 0]
 
     pools_cache: Mapping[Tuple[str, str, str], AbstractPool] = {}
-
-    total_amount_out = 0
 
     amount_per_route: Mapping[SwapRoute, int] = {}
 
@@ -244,8 +279,6 @@ def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                               for r in amount_per_route.keys()))
                           ))
 
-        total_amount_out += best_eval.net_amount_out
-
         evaluate(best_eval.route,
                  amount,
                  pools_cache,
@@ -257,31 +290,47 @@ def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
         amount_per_route[best_eval.route] = amount_of_route
 
-        print('-----------------------')
-
-    print(f'Total amount out: {total_amount_out}')
-
     pools_cache.clear()
 
     print('-----------------------')
     print('Verifications')
 
-    total_amount_out_verif = 0
+    total_amount_out_verif_offline = 0
+    total_amount_out_verif_online = 0
 
     evals: List[SwapEvaluation] = []
-    for route, amount in amount_per_route.items():
-        print(f'Route: {[h.pool.name for h in route.hops]}')
-        print(f'Amount: {amount}')
 
-        eval = evaluate(route, amount, pools_cache, update_reserves=True)
-        total_amount_out_verif += eval.net_amount_out
+    async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
+        for route, amount in amount_per_route.items():
+            print('++')
+            print(f'Route: {[h.pool.name for h in route.hops]}')
+            print(f'Amount: {amount}')
 
-        evals.append(eval)
+            eval = evaluate(route, amount, {})
 
-    print(f'Total amount out (verif): {total_amount_out_verif}')
+            print(f'Amount out (offline): {eval.net_amount_out}')
+            print(f'Fee (offline): {eval.fee_amount} {eval.fee_token}')
+
+            total_amount_out_verif_offline += eval.net_amount_out
+
+            evals.append(eval)
+
+            net_amount_out, fee, _, fee_token = await evaluate_online(amount,
+                                                                      route,
+                                                                      http_client)
+
+            total_amount_out_verif_online += net_amount_out
+
+            print(f'Amount out (online): {net_amount_out}')
+            print(f'Fee (online): {fee} {fee_token}')
 
     print(
-        f'Diff: {100 * abs(total_amount_out_verif - total_amount_out) / total_amount_out}%')
+        f'Total amount out (verif) (offline): {total_amount_out_verif_offline}')
+    print(
+        f'Total amount out (verif) (online): {total_amount_out_verif_online}')
+
+    print(
+        f'Diff (offline vs online): {100 * abs(total_amount_out_verif_offline - total_amount_out_verif_online) / total_amount_out_verif_online}%')
 
     return DynamicRoutingSwapEvaluation(amount_in=amount_in,
                                         estimated_gas=sum((e.estimated_gas)

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import logging
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from typing_extensions import override
@@ -77,6 +78,7 @@ class ConstantProductPool(AbstractPool):
 
     @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
+        print('estimate_amount_out', self)
         in_reserve_before, out_reserve_before = self._reserves(token_in,
                                                                token_out)
 
@@ -145,24 +147,52 @@ class ConstantProductPool(AbstractPool):
 @dataclass
 class XExchangeConstantProductPool(ConstantProductPool):
 
+    special_fee_percent: int
+
+    def __init__(self,
+                 first_token: Esdt,
+                 first_token_reserves: int,
+                 lp_token_supply: int,
+                 second_token: Esdt,
+                 second_token_reserves: int,
+                 special_fee_percent: int,
+                 total_fee_percent: int):
+        super().__init__(total_fee_percent // 10,
+                         first_token,
+                         first_token_reserves,
+                         lp_token_supply,
+                         second_token,
+                         second_token_reserves)
+        self.special_fee_percent = special_fee_percent
+        self.total_fee_percent = total_fee_percent
+
+    @override
+    def deep_copy(self):
+        return XExchangeConstantProductPool(first_token=self.first_token.model_copy(),
+                                            first_token_reserves=self.first_token_reserves,
+                                            lp_token_supply=self.lp_token_supply,
+                                            second_token=self.second_token.model_copy(),
+                                            second_token_reserves=self.second_token_reserves,
+                                            special_fee_percent=self.special_fee_percent,
+                                            total_fee_percent=self.total_fee_percent)
+
     @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
-        in_reserve_before, out_reserve_before = self._reserves(token_in,
-                                                               token_out)
+        in_reserve, out_reserve = self._reserves(token_in,
+                                                 token_out)
 
-        fee = (amount_in * self.fees_percent_base_pts) // 10_000
+        amount_in_with_fee = amount_in * (100_000 - self.total_fee_percent)
+        num = amount_in_with_fee * out_reserve
+        den = (in_reserve * 100_000) + amount_in_with_fee
 
-        amount_in -= fee
+        amount_out = num // den
 
-        amount_out = (amount_in * out_reserve_before) // \
-            (in_reserve_before + amount_in)
-
-        if amount_out > out_reserve_before:
+        if amount_out > out_reserve:
             raise ValueError(f'Amount to swap to big {amount_in}')
 
-        admin_fee_in = fee // 3
+        special_fee = (amount_in * self.special_fee_percent) // 100_000
 
-        return int(amount_out), admin_fee_in, 0
+        return amount_out, special_fee, 0
 
 
 @dataclass
@@ -262,6 +292,9 @@ class JexConstantProductPool(ConstantProductPool):
         else:
             raise ValueError(
                 f'Invalid token in: {token_in.identifier} for pool {self}')
+
+        if in_reserve_before == 0:
+            return 0, 0, 0
 
         amount_out = (amount_in * out_reserve_before) // \
             (in_reserve_before + amount_in)

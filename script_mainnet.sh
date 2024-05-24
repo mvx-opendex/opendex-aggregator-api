@@ -11,8 +11,8 @@ fi
 export GATEWAY_URL=http://jex-observer-squad:8079
 export MVX_API_URL=https://api.multiversx.com
 export REDIS_HOST=localhost
-export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgqqvs2jvf64wzcz2836er0j98l3ytshpcr5sns997aga
-# export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgqj8kf5z5y4e90heg8u7zf7p4xnyzderpu5snsme3wur
+# export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgqqvs2jvf64wzcz2836er0j98l3ytshpcr5sns997aga
+export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgqj8kf5z5y4e90heg8u7zf7p4xnyzderpu5snsme3wur
 export SC_ADDRESS_HATOM_STAKING=erd1qqqqqqqqqqqqqpgq4gzfcw7kmkjy8zsf04ce6dl0auhtzjx078sslvrf4e
 export SC_ADDRESS_JEX_LP_DEPLOYER=erd1qqqqqqqqqqqqqpgqpz4skj4q0kwndpp0a5n52328xchee6rs6avsqfytay
 export SC_ADDRESS_ONEDEX_SWAP=erd1qqqqqqqqqqqqqpgqqz6vp9y50ep867vnr296mqf3dduh6guvmvlsu3sujc
@@ -59,7 +59,7 @@ then
         do_start
     elif [ $1 = "--dev" ]
     then
-        GATEWAY_URL=https://gateway.multiversx.com \
+        GATEWAY_URL=https://api.multiversx.com \
             uvicorn jex_dex_aggregator_api.main:app --host 0.0.0.0 --port 3001 --log-level debug --reload
     elif [ $1 = "--info" ]
     then

@@ -10,17 +10,29 @@ from jex_dex_aggregator_api.pools.model import SwapRoute
 from jex_dex_aggregator_api.utils.convert import int2hex, str2hex
 
 
-class SwapEvaluationOut(BaseModel):
+class StaticRouteSwapEvaluationOut(BaseModel):
     amount_in: str
     estimated_gas: str
     fee_amount: str
     fee_token: Optional[str]
     net_amount_out: str
     net_human_amount_out: float
-    routes: List[SwapRoute]
+    route: SwapRoute
     slippage_percent: float
     theorical_amount_out: str
     theorical_human_amount_out: float
+
+
+class DynamicRouteSwapEvaluationOut(BaseModel):
+    amount_in: str
+    net_amount_out: str
+    net_human_amount_out: float
+    evals: List[StaticRouteSwapEvaluationOut]
+
+
+class SwapEvaluationOut(BaseModel):
+    dynamic: Optional[DynamicRouteSwapEvaluationOut]
+    static: Optional[StaticRouteSwapEvaluationOut]
 
 
 class SwapPoolOut(BaseModel):

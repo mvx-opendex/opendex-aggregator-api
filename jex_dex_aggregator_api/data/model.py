@@ -115,6 +115,7 @@ class XExchangePoolStatus(BaseModel):
     first_token_reserve: int
     second_token_reserve: int
     lp_token_supply: int
+    special_fee_percent: int
     total_fee_percent: int
 
 

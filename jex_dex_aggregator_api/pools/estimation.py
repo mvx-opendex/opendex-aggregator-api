@@ -66,30 +66,3 @@ def estimate_offline(token_in: str, amount_in: int, route: SwapRoute) -> Tuple[i
         amount -= fee_amount
 
     return (amount, fee_amount, estimated_gas, fee_token)
-
-
-async def estimate_online(amount_in: int,
-                          route: SwapRoute,
-                          http_client: aiohttp.ClientSession) -> Tuple[int, int, int, str]:
-    route_payload = f'0x{route.serialize()}'
-    args = [f'{amount_in}', route_payload]
-
-    sc_address = sc_address_aggregator()
-
-    logging.info('QUERY: evaluate (evaluate_route)')
-    try:
-        result = await async_sc_query(http_client=http_client,
-                                      sc_address=sc_address,
-                                      function='evaluate',
-                                      args=args)
-    except:
-        logging.exception('Error during evaluation')
-        return (0, 0, 0, '')
-
-    if result is not None and len(result) > 0:
-        net_amount_out, fee, estimated_gas, fee_token = \
-            parse_evaluate_response(result[0])
-
-        return (net_amount_out, fee, estimated_gas, fee_token)
-
-    return (0, 0, 0, '')

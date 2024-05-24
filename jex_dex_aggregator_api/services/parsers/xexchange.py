@@ -1,7 +1,8 @@
 
 from jex_dex_aggregator_api.data.model import XExchangePoolStatus
-from jex_dex_aggregator_api.services.parsers.common import (parse_address, parse_amount,
-                                                            parse_token_identifier, parse_uint8, parse_uint32)
+from jex_dex_aggregator_api.services.parsers.common import (
+    parse_address, parse_amount, parse_token_identifier, parse_uint8,
+    parse_uint32, parse_uint64)
 
 
 def parse_xexchange_pool_status(hex_: str) -> XExchangePoolStatus:
@@ -31,6 +32,9 @@ def parse_xexchange_pool_status(hex_: str) -> XExchangePoolStatus:
     total_fee_percent, read = parse_uint32(hex_[offset:])
     offset += read
 
+    special_fee_percent, read = parse_uint64(hex_[offset:])
+    offset += read
+
     return XExchangePoolStatus(sc_address=sc_address.bech32(),
                                state=state,
                                first_token_id=first_token_id,
@@ -38,4 +42,5 @@ def parse_xexchange_pool_status(hex_: str) -> XExchangePoolStatus:
                                first_token_reserve=first_token_reserve,
                                second_token_reserve=second_token_reserve,
                                lp_token_supply=lp_token_supply,
-                               total_fee_percent=total_fee_percent)
+                               total_fee_percent=total_fee_percent,
+                               special_fee_percent=special_fee_percent)

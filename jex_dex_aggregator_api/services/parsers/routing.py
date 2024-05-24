@@ -2,7 +2,8 @@
 
 from typing import Tuple
 
-from services.parsers.common import parse_amount, parse_token_identifier
+from jex_dex_aggregator_api.services.parsers.common import (
+    parse_amount, parse_token_identifier)
 
 
 def parse_evaluate_response(hex_: str) -> Tuple[int, int, int]:
