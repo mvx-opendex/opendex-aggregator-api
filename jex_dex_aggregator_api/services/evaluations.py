@@ -84,8 +84,6 @@ def evaluate(route: SwapRoute,
 
             if update_reserves:
                 # TODO approximations here: some extra fees may apply and leave the pool (impact on reserves)
-                print('before update_reserves', type(amount), type(
-                    amount_out), type(admin_fee_in), type(admin_fee_out), type(pool))
                 pool.update_reserves(esdt_in,
                                      amount - admin_fee_in,
                                      esdt_out,
@@ -96,11 +94,9 @@ def evaluate(route: SwapRoute,
             logging.info(e)
             amount = 0
 
-        print('before', type(theorical_amount))
         theorical_amount = pool.estimate_theorical_amount_out(esdt_in,
                                                               theorical_amount,
                                                               esdt_out)
-        print('after', type(theorical_amount), type(pool))
 
         token = hop.token_out
 
