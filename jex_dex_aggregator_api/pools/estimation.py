@@ -1,16 +1,11 @@
 
 import logging
-import os
 from typing import Tuple
 
-import aiohttp
 from data.datastore import get_dex_aggregator_pool
 from pools.model import SwapRoute
 from pools.pools import JexConstantProductPool, JexStableSwapPool
-from services.externals import async_sc_query
-from services.parsers.routing import parse_evaluate_response
 from services.tokens import get_or_fetch_token
-from utils.env import sc_address_aggregator
 
 from jex_dex_aggregator_api.data.constants import (
     SC_TYPE_ASHSWAP_STABLEPOOL_DEPOSIT, SC_TYPE_ASHSWAP_STABLEPOOL_WITHDRAW,

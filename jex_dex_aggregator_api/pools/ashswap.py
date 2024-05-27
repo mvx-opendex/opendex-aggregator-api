@@ -1,5 +1,4 @@
 
-from functools import reduce
 from typing import List
 
 A_MULTIPLIER = 10_000

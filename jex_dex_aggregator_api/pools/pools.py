@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import logging
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from typing_extensions import override

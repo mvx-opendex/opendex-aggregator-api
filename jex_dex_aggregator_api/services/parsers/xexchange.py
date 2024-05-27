@@ -1,4 +1,3 @@
-
 from jex_dex_aggregator_api.data.model import XExchangePoolStatus
 from jex_dex_aggregator_api.services.parsers.common import (
     parse_address, parse_amount, parse_token_identifier, parse_uint8,

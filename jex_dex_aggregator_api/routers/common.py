@@ -1,9 +1,7 @@
 from datetime import timedelta
-import logging
 from typing import List
 
 from jex_dex_aggregator_api.pools.model import SwapRoute
-
 from jex_dex_aggregator_api.services import routes as routes_svc
 from jex_dex_aggregator_api.utils.redis_utils import redis_get_or_set_cache
 
