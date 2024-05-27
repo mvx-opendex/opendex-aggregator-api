@@ -28,6 +28,7 @@ from jex_dex_aggregator_api.pools.pools import (AshSwapPoolV2,
                                                 JexStableSwapPoolDeposit,
                                                 OneDexConstantProductPool,
                                                 StableSwapPool,
+                                                VestaDexConstantProductPool,
                                                 XExchangeConstantProductPool)
 from jex_dex_aggregator_api.services.externals import async_sc_query
 from jex_dex_aggregator_api.services.parsers.ashswap import (
@@ -98,17 +99,17 @@ def loop():
 
 async def _sync_all_pools():
     functions = [
-        # _sync_onedex_pools,
-        # _sync_xexchange_pools,
+        _sync_onedex_pools,
+        _sync_xexchange_pools,
         _sync_ashswap_stable_pools,
         _sync_ashswap_v2_pools,
-        # _sync_jex_cp_pools,
-        # _sync_jex_stablepools,
-        # _sync_exrond_pools,
-        # _sync_vestadex_pools,
-        # _sync_vestax_staking_pool,
-        # _sync_hatom_staking_pool,
-        # _sync_hatom_money_markets
+        _sync_jex_cp_pools,
+        _sync_jex_stablepools,
+        _sync_exrond_pools,
+        _sync_vestadex_pools,
+        _sync_vestax_staking_pool,
+        _sync_hatom_staking_pool,
+        _sync_hatom_money_markets
     ]
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
@@ -739,20 +740,22 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
 
     for pair in pairs:
 
-        fees_percent_base_pts = pair.total_fee_percentage // 100
         first_token = get_or_fetch_token(pair.first_token_id)
         second_token = get_or_fetch_token(pair.second_token_id)
 
         if first_token is None or second_token is None:
             continue
 
-        pool = ConstantProductPool(fees_percent_base_pts=fees_percent_base_pts,
-                                   lp_token_supply=int(pair.lp_token_supply),
-                                   first_token=first_token,
-                                   first_token_reserves=int(
-                                       pair.first_token_reserve),
-                                   second_token=second_token,
-                                   second_token_reserves=int(pair.second_token_reserve))
+        pool = VestaDexConstantProductPool(first_token=first_token,
+                                           first_token_reserves=int(
+                                               pair.first_token_reserve),
+                                           lp_token_supply=int(
+                                               pair.lp_token_supply),
+                                           second_token=second_token,
+                                           second_token_reserves=int(
+                                               pair.second_token_reserve),
+                                           special_fee_percent=pair.special_fee_percentage,
+                                           total_fee_percent=pair.total_fee_percentage)
 
         swap_pools.append(SwapPool(name=f'VestaDex: {first_token.name}/{second_token.name}',
                                    sc_address=pair.pool_address,

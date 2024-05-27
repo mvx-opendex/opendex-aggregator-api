@@ -346,6 +346,25 @@ class JexConstantProductDepositPool(ConstantProductPool):
 
 
 @dataclass
+class VestaDexConstantProductPool(XExchangeConstantProductPool):
+    def __init__(self,
+                 first_token: Esdt,
+                 first_token_reserves: int,
+                 lp_token_supply: int,
+                 second_token: Esdt,
+                 second_token_reserves: int,
+                 special_fee_percent: int,
+                 total_fee_percent: int):
+        super().__init__(first_token,
+                         first_token_reserves,
+                         lp_token_supply,
+                         second_token,
+                         second_token_reserves,
+                         special_fee_percent // 10,
+                         total_fee_percent // 10)
+
+
+@dataclass
 class AshSwapPoolV2(ConstantProductPool):
 
     PRECISION = 10**18

@@ -1,0 +1,9 @@
+http://localhost:3001/evaluate?token_in=WEGLD-bd4d79&token_out=SEGLD-3ad2d0&max_hops=3&amount_in=200_000000000000000000
+http://localhost:3001/evaluate?token_in=WEGLD-bd4d79&token_out=JEX-9040ca&max_hops=4&amount_in=10_000000000000000000
+http://localhost:3001/evaluate?token_in=WEGLD-bd4d79&token_out=ONE-f9954f&max_hops=4&amount_in=1_000000000000000000
+http://localhost:3001/evaluate?token_in=USDT-f8c08c&token_out=USDC-c76f1f&max_hops=4&amount_in=100_000000
+http://localhost:3001/evaluate?token_in=USDC-c76f1f&token_out=WEGLD-bd4d79&max_hops=4&amount_in=100_000000
+http://localhost:3001/evaluate?token_in=WBTC-5349b3&token_out=WETH-b4ca29&max_hops=2&amount_in=1000000
+http://localhost:3001/evaluate?token_in=USDC-c76f1f&token_out=WETH-b4ca29&max_hops=3&amount_in=100_000000
+http://localhost:3001/evaluate?token_in=USDC-c76f1f&token_out=WBTC-5349b3&max_hops=4&amount_in=100_000000
+http://localhost:3001/evaluate?token_in=WEGLD-bd4d79&token_out=WBTC-5349b3&max_hops=4&amount_in=1_000000000000000000
