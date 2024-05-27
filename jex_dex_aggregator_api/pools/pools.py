@@ -78,7 +78,6 @@ class ConstantProductPool(AbstractPool):
 
     @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
-        print('estimate_amount_out', self)
         in_reserve_before, out_reserve_before = self._reserves(token_in,
                                                                token_out)
 
@@ -227,15 +226,8 @@ class OneDexConstantProductPool(ConstantProductPool):
 
     @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
-        if token_in.identifier == self.first_token.identifier:
-            (in_reserve_before, out_reserve_before) = (
-                self.first_token_reserves, self.second_token_reserves)
-        elif token_in.identifier == self.second_token.identifier:
-            (in_reserve_before, out_reserve_before) = (
-                self.second_token_reserves, self.first_token_reserves)
-        else:
-            raise ValueError(
-                f'Invalid token in: {token_in.identifier} for pool {self}')
+        in_reserve, out_reserve = self._reserves(token_in,
+                                                 token_out)
 
         try:
             self.main_pair_tokens.index(token_in.identifier)
@@ -244,16 +236,16 @@ class OneDexConstantProductPool(ConstantProductPool):
             fee_input_token = False
 
         if fee_input_token:
-            fee = (amount_in * self.fees_percent_base_pts) // 10_000
-            amount_in_with_fee = amount_in - fee
-            numerator = amount_in_with_fee * out_reserve_before
-            denominator = (in_reserve_before * 10_000) + amount_in_with_fee
-            net_amount_out = numerator // denominator
+            amount_in_with_fee = amount_in * \
+                (10_000 - self.fees_percent_base_pts)
+            num = amount_in_with_fee * out_reserve
+            den = (in_reserve * 10_000) + amount_in_with_fee
+            net_amount_out = num // den
 
             return net_amount_out, 0, 0
         else:
             amount_out_without_fee = (
-                amount_in * out_reserve_before) // (in_reserve_before + amount_in)
+                amount_in * out_reserve) // (in_reserve + amount_in)
 
             fee = (amount_out_without_fee *
                    self.fees_percent_base_pts) // 10_000
