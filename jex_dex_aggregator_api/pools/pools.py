@@ -415,7 +415,7 @@ class AshSwapPoolV2(ConstantProductPool):
         if amount_in == 0:
             return 0, 0, 0
 
-        precisions = [10**(18-t.decimals) for t in self.tokens]
+        precisions: List[int] = [10**(18-t.decimals) for t in self.tokens]
         price_scale = self.price_scale * precisions[1]
 
         xp = self.reserves.copy()
@@ -458,10 +458,11 @@ class AshSwapPoolV2(ConstantProductPool):
         else:
             dy = dy // precisions[0]
 
-        fee = (dy * self._fee(xp)) // 1e10
+        fee = (dy * self._fee(xp)) // 10**10
+
         dy = dy - fee
 
-        return int(dy), 0, fee // 3
+        return dy, 0, fee // 3
 
     @override
     def estimated_gas(self) -> int:
@@ -509,8 +510,8 @@ class AshSwapPoolV2(ConstantProductPool):
 
         f_num = self.fee_gamma * self.PRECISION
 
-        f_den = self.fee_gamma + self.PRECISION -   \
-            (n_coins**n_coins * self.PRECISION * xp[0] // f * xp[1] // f)
+        f_den = int(self.fee_gamma + self.PRECISION -
+                    (n_coins**n_coins * self.PRECISION * xp[0] // f * xp[1] // f))
 
         f = f_num // f_den
 

@@ -99,11 +99,11 @@ def loop():
 async def _sync_all_pools():
     functions = [
         # _sync_onedex_pools,
-        _sync_xexchange_pools,
-        # _sync_ashswap_stable_pools,
-        # _sync_ashswap_v2_pools,
-        _sync_jex_cp_pools,
-        _sync_jex_stablepools,
+        # _sync_xexchange_pools,
+        _sync_ashswap_stable_pools,
+        _sync_ashswap_v2_pools,
+        # _sync_jex_cp_pools,
+        # _sync_jex_stablepools,
         # _sync_exrond_pools,
         # _sync_vestadex_pools,
         # _sync_vestax_staking_pool,
