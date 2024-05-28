@@ -60,7 +60,7 @@ then
     elif [ $1 = "--dev" ]
     then
         GATEWAY_URL=https://api.multiversx.com \
-            uvicorn jex_dex_aggregator_api.main:app --host 0.0.0.0 --port 3001 --log-level debug --reload
+            uvicorn opendex_aggregator_api.main:app --host 0.0.0.0 --port 3001 --log-level debug --reload
     elif [ $1 = "--info" ]
     then
         ps -p $(cat pid)
