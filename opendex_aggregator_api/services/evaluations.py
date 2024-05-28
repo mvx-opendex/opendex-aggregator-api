@@ -4,11 +4,6 @@ from typing import List, Mapping, Optional, Tuple
 
 import aiohttp
 
-from opendex_aggregator_api.data.constants import (
-    SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
-    SC_TYPE_JEXCHANGE_LP_WITHDRAW, SC_TYPE_JEXCHANGE_ORDERBOOK,
-    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
-    SC_TYPE_JEXCHANGE_STABLEPOOL_WITHDRAW)
 from opendex_aggregator_api.data.datastore import get_dex_aggregator_pool
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
                                                 SwapEvaluation, SwapRoute)
@@ -21,24 +16,13 @@ from opendex_aggregator_api.services.tokens import (WEGLD_IDENTIFIER,
 from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_aggregator)
 
-FEE_MULTIPLIER = 0.0005
-
-NO_FEE_POOL_TYPES = [SC_TYPE_JEXCHANGE_ORDERBOOK,
-                     SC_TYPE_JEXCHANGE_LP,
-                     SC_TYPE_JEXCHANGE_LP_DEPOSIT,
-                     SC_TYPE_JEXCHANGE_LP_WITHDRAW,
-                     SC_TYPE_JEXCHANGE_STABLEPOOL,
-                     SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
-                     SC_TYPE_JEXCHANGE_STABLEPOOL_WITHDRAW]
+FEE_MULTIPLIER = 0.0001  # 0.01%
 
 
 def evaluate(route: SwapRoute,
              amount_in: int,
              pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
              update_reserves: bool = False) -> SwapEvaluation:
-
-    should_apply_fee = len(route.hops) > 1 and all(
-        (h.pool.type not in NO_FEE_POOL_TYPES for h in route.hops))
 
     token = route.token_in
     amount = amount_in
@@ -68,7 +52,7 @@ def evaluate(route: SwapRoute,
         pool = pool.deep_copy()
         pools_cache[pool_cache_key] = pool
 
-        if should_apply_fee and hop.token_in == WEGLD_IDENTIFIER:
+        if hop.token_in == WEGLD_IDENTIFIER:
             fee_amount = int(amount * FEE_MULTIPLIER)
             fee_token = WEGLD_IDENTIFIER
             amount -= fee_amount
@@ -87,7 +71,6 @@ def evaluate(route: SwapRoute,
                                                                   esdt_out)
 
             if update_reserves:
-                # TODO approximations here: some extra fees may apply and leave the pool (impact on reserves)
                 pool.update_reserves(esdt_in,
                                      amount - admin_fee_in,
                                      esdt_out,
@@ -106,7 +89,7 @@ def evaluate(route: SwapRoute,
         raise ValueError(
             f'Invalid output token after swaps [{token}] != [{route.token_out}]')
 
-    if should_apply_fee and fee_amount is None:
+    if fee_amount is None:
         fee_amount = int(amount * FEE_MULTIPLIER)
         fee_token = token
         amount -= fee_amount
