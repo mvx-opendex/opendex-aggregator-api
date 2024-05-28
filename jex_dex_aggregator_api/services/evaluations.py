@@ -167,7 +167,7 @@ def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluatio
     amounts = [(amount_in * (100-x) // 100, amount_in * x // 100)
                for x in range(10, 100, 10)]
 
-    best_evals = []
+    best_evals: List[SwapEvaluation] = []
     best_amount_out = first_eval.net_amount_out
 
     for a1, a2 in amounts:

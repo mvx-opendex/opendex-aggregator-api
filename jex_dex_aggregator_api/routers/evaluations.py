@@ -89,6 +89,7 @@ def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluatio
     token_out = get_or_fetch_token(e.evaluations[0].route.token_out)
 
     return DynamicRouteSwapEvaluationOut(amount_in=str(e.amount_in),
+                                         estimated_gas=str(e.estimated_gas),
                                          net_amount_out=str(e.net_amount_out),
                                          net_human_amount_out=e.net_amount_out / 10**token_out.decimals,
                                          evals=[_adapt_static_eval(x)

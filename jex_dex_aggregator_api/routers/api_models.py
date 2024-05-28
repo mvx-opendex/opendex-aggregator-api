@@ -25,6 +25,7 @@ class StaticRouteSwapEvaluationOut(BaseModel):
 
 class DynamicRouteSwapEvaluationOut(BaseModel):
     amount_in: str
+    estimated_gas: str
     net_amount_out: str
     net_human_amount_out: float
     evals: List[StaticRouteSwapEvaluationOut]
