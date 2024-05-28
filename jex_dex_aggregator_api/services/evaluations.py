@@ -82,6 +82,10 @@ def evaluate(route: SwapRoute,
                                                                                amount,
                                                                                esdt_out)
 
+            theorical_amount = pool.estimate_theorical_amount_out(esdt_in,
+                                                                  theorical_amount,
+                                                                  esdt_out)
+
             if update_reserves:
                 # TODO approximations here: some extra fees may apply and leave the pool (impact on reserves)
                 pool.update_reserves(esdt_in,
@@ -93,10 +97,6 @@ def evaluate(route: SwapRoute,
             logging.info('Error during estimation -> 0')
             logging.info(e)
             amount = 0
-
-        theorical_amount = pool.estimate_theorical_amount_out(esdt_in,
-                                                              theorical_amount,
-                                                              esdt_out)
 
         token = hop.token_out
 

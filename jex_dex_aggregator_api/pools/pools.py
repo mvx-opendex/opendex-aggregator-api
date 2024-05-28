@@ -496,11 +496,13 @@ class AshSwapPoolV2(ConstantProductPool):
         in_reserve = self.reserves[i_token_in]
         out_reserve = self.reserves[i_token_out]
 
-        fee = self._fee(self.xp)
+        amount_out = (amount_in * out_reserve) // in_reserve
 
-        amount_in -= fee
+        fee = (amount_out * self._fee(self.xp)) // 10**10
 
-        return (amount_in * out_reserve) // in_reserve
+        amount_out -= fee
+
+        return amount_out
 
     @override
     def update_reserves(self,
