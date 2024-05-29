@@ -15,10 +15,13 @@ class StaticRouteSwapEvaluationOut(BaseModel):
     estimated_gas: str
     fee_amount: str
     fee_token: Optional[str]
+    human_amount_in: float
     net_amount_out: str
     net_human_amount_out: float
     route: SwapRoute
     route_payload: str
+    rate: float
+    rate2: float
     slippage_percent: float
     theorical_amount_out: str
     theorical_human_amount_out: float
@@ -27,9 +30,13 @@ class StaticRouteSwapEvaluationOut(BaseModel):
 class DynamicRouteSwapEvaluationOut(BaseModel):
     amount_in: str
     estimated_gas: str
+    human_amount_in: float
     net_amount_out: str
     net_human_amount_out: float
     evals: List[StaticRouteSwapEvaluationOut]
+    rate: float
+    rate2: float
+    tx_payload: str
 
 
 class SwapEvaluationOut(BaseModel):

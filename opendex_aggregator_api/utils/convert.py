@@ -21,3 +21,12 @@ def int2hex(int_: int, size: Optional[int] = None):
     if size is None:
         size = len_ if len_ % 2 == 0 else len_ + 1
     return hex(int_)[2:].rjust(size, '0')
+
+
+def int2hex_even_size(int_: int) -> str:
+    val = int2hex(int_)
+
+    if len(val) % 2 == 0:
+        return val
+
+    return val.ljust(len(val)+1, '0')

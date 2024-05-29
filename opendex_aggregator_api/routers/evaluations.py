@@ -64,15 +64,21 @@ def _adapt_eval_result(static_eval: Optional[SwapEvaluation],
 
 
 def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
+    token_in = get_or_fetch_token(e.route.token_in)
     token_out = get_or_fetch_token(e.route.token_out)
 
     net_human_amount_out = e.net_amount_out / 10**token_out.decimals
     theorical_human_amount_out = e.theorical_amount_out / 10**token_out.decimals
 
+    human_amount_in = e.amount_in / 10**token_in.decimals
+    rate = human_amount_in / net_human_amount_out
+    rate2 = net_human_amount_out / human_amount_in
+
     slippage_percent = 100 * (net_human_amount_out -
                               theorical_human_amount_out) / theorical_human_amount_out
 
     return StaticRouteSwapEvaluationOut(amount_in=str(e.amount_in),
+                                        human_amount_in=human_amount_in,
                                         estimated_gas=str(e.estimated_gas),
                                         fee_amount=str(e.fee_amount),
                                         fee_token=e.fee_token,
@@ -80,6 +86,8 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
                                         route=e.route,
                                         route_payload=e.route.serialize().hex(),
                                         net_human_amount_out=net_human_amount_out,
+                                        rate=rate,
+                                        rate2=rate2,
                                         slippage_percent=slippage_percent,
                                         theorical_amount_out=str(
                                             e.theorical_amount_out),
@@ -87,11 +95,21 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
 
 
 def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluationOut:
+    token_in = get_or_fetch_token(e.evaluations[0].route.token_in)
     token_out = get_or_fetch_token(e.evaluations[0].route.token_out)
 
+    human_amount_in = e.amount_in / 10**token_in.decimals
+    net_human_amount_out = e.net_amount_out / 10**token_out.decimals
+    rate = human_amount_in / net_human_amount_out
+    rate2 = net_human_amount_out / human_amount_in
+
     return DynamicRouteSwapEvaluationOut(amount_in=str(e.amount_in),
+                                         human_amount_in=human_amount_in,
                                          estimated_gas=str(e.estimated_gas),
                                          net_amount_out=str(e.net_amount_out),
-                                         net_human_amount_out=e.net_amount_out / 10**token_out.decimals,
+                                         net_human_amount_out=net_human_amount_out,
                                          evals=[_adapt_static_eval(x)
-                                                for x in e.evaluations])
+                                                for x in e.evaluations],
+                                         rate=rate,
+                                         rate2=rate2,
+                                         tx_payload=e.build_tx_payload())

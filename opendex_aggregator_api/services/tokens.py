@@ -1,10 +1,11 @@
-
 import logging
 from datetime import timedelta
 from typing import List, Optional
 
 from opendex_aggregator_api.data.model import Esdt
-from opendex_aggregator_api.services.externals import call_mvx_api
+from opendex_aggregator_api.services.externals import sync_sc_query
+from opendex_aggregator_api.utils.convert import hex2str
+from opendex_aggregator_api.utils.env import sc_address_system_tokens
 from opendex_aggregator_api.utils.redis_utils import redis_get_or_set_cache
 
 TOKENS: List[Esdt] = []
@@ -32,14 +33,17 @@ def get_or_fetch_token(identifier: str) -> Esdt:
 def fetch_token(identifier: str) -> Esdt:
 
     def _do():
-        logging.info(f'Fetching token {identifier} from API')
-        path = f"/tokens/{identifier}"
+        logging.info(f'Fetching {identifier} token info from gateway')
 
-        resp = call_mvx_api(path)
+        resp = sync_sc_query(sc_address=sc_address_system_tokens(),
+                             function='getTokenProperties',
+                             args=[identifier])
 
-        return Esdt(decimals=resp['decimals'],
-                    identifier=resp['identifier'],
-                    name=resp['ticker'].split('-')[0],
+        decimals = hex2str(resp[5][24:])
+
+        return Esdt(decimals=decimals,
+                    identifier=identifier,
+                    name=identifier.split('-')[0],
                     is_lp_token=None)
 
     cache_key = f'esdt_{identifier}'

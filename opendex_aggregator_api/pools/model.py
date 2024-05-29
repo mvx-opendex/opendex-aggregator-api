@@ -5,7 +5,8 @@ from multiversx_sdk_core import Address
 from pydantic import BaseModel
 
 from opendex_aggregator_api.data.constants import SC_TYPES
-from opendex_aggregator_api.utils.convert import int2hex, str2hex
+from opendex_aggregator_api.utils.convert import (int2hex, int2hex_even_size,
+                                                  str2hex)
 
 
 class SwapPool(BaseModel):
@@ -93,3 +94,29 @@ class DynamicRoutingSwapEvaluation(BaseModel):
   +--> {e.amount_in} {self.token_in} :: "{' | '.join([h.pool.name for h in e.route.hops])}" :: {e.net_amount_out} {self.token_out} --+
 """
         return s
+
+    def build_tx_payload(self) -> str:
+        if len(self.evaluations) == 0:
+            return ''
+
+        token_in = self.evaluations[0].route.token_in
+        token_out = self.evaluations[0].route.token_out
+
+        tx_payload = 'ESDTTransfer@'
+        tx_payload += str2hex(token_in)
+        tx_payload += '@'
+        tx_payload += int2hex_even_size(self.amount_in)
+        tx_payload += '@'
+        tx_payload += str2hex('aggregate')
+        tx_payload += '@'
+        tx_payload += str2hex(token_out)
+        tx_payload += '@'
+        tx_payload += int2hex_even_size(self.net_amount_out * 9975 // 10_000)
+
+        for e in self.evaluations:
+            tx_payload += '@'
+            tx_payload += int2hex_even_size(e.amount_in)
+            tx_payload += '@'
+            tx_payload += e.route.serialize().hex()
+
+        return tx_payload

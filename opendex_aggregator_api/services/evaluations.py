@@ -17,6 +17,7 @@ from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_aggregator)
 
 FEE_MULTIPLIER = 0.0001  # 0.01%
+FEE_MULTIPLIER = 0
 
 
 def evaluate(route: SwapRoute,
