@@ -13,9 +13,6 @@ def parse_evaluate_response(hex_: str) -> Tuple[int, int, int]:
     fee, read = parse_amount(hex_[idx:])
     idx += read
 
-    estimated_gas, read = parse_amount(hex_[idx:])
-    idx += read
-
     fee_token, _ = parse_token_identifier(hex_[idx:])
 
-    return (net_amount_out, fee, estimated_gas, fee_token)
+    return (net_amount_out, fee, fee_token)

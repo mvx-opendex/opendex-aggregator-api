@@ -78,6 +78,7 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
                                         fee_token=e.fee_token,
                                         net_amount_out=str(e.net_amount_out),
                                         route=e.route,
+                                        route_payload=e.route.serialize().hex(),
                                         net_human_amount_out=net_human_amount_out,
                                         slippage_percent=slippage_percent,
                                         theorical_amount_out=str(

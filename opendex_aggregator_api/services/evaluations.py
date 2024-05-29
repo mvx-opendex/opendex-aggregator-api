@@ -115,19 +115,19 @@ async def evaluate_online(amount_in: int,
     try:
         result = await async_sc_query(http_client=http_client,
                                       sc_address=sc_address,
-                                      function='evaluate',
+                                      function='evaluateRoute',
                                       args=args)
     except:
         logging.exception('Error during evaluation')
-        return (0, 0, 0, '')
+        return (0, 0, '')
 
     if result is not None and len(result) > 0:
-        net_amount_out, fee, estimated_gas, fee_token = \
+        net_amount_out, fee, fee_token = \
             parse_evaluate_response(result[0])
 
-        return (net_amount_out, fee, estimated_gas, fee_token)
+        return (net_amount_out, fee, fee_token)
 
-    return (0, 0, 0, '')
+    return (0, 0, '')
 
 
 def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluation],
@@ -298,9 +298,9 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
             evals.append(eval)
 
-            net_amount_out, fee, _, fee_token = await evaluate_online(amount,
-                                                                      route,
-                                                                      http_client)
+            net_amount_out, fee, fee_token = await evaluate_online(amount,
+                                                                   route,
+                                                                   http_client)
 
             total_amount_out_verif_online += net_amount_out
 

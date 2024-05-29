@@ -18,6 +18,7 @@ class StaticRouteSwapEvaluationOut(BaseModel):
     net_amount_out: str
     net_human_amount_out: float
     route: SwapRoute
+    route_payload: str
     slippage_percent: float
     theorical_amount_out: str
     theorical_human_amount_out: float

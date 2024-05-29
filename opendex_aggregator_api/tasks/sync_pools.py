@@ -12,8 +12,7 @@ from multiversx_sdk_core import Address
 from opendex_aggregator_api.data.constants import (
     SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2, SC_TYPE_EXROND,
     SC_TYPE_HATOM_MONEY_MARKET_MINT, SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
-    SC_TYPE_HATOM_STAKE, SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
-    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
+    SC_TYPE_HATOM_STAKE, SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_STABLEPOOL,
     SC_TYPE_ONEDEX, SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools)
@@ -292,7 +291,7 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
 
         res = await async_sc_query(http_client,
                                    agg_sc,
-                                   'getAllAshSwapStablePools')
+                                   'getAshSwapStablePools')
 
         pools = []
 
@@ -352,7 +351,7 @@ async def _sync_ashswap_v2_pools() -> List[SwapPool]:
 
         res = await async_sc_query(http_client,
                                    agg_sc,
-                                   'getAllAshSwapV2Pools')
+                                   'getAshSwapV2Pools')
 
         if res is not None:
             v2_pools_statuses = [
@@ -488,16 +487,6 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             set_dex_aggregator_pool(lp_status.sc_address, second_token.identifier,
                                     lp_status.lp_token_identifier, deposit_pool)
 
-            swap_pools.append(SwapPool(name=f'JEX: {first_token.name}/{second_token.name} (D)',
-                                       sc_address=lp_status.sc_address,
-                                       tokens_in=[first_token.identifier,
-                                                  second_token.identifier],
-                                       tokens_out=[
-                                           lp_status.lp_token_identifier],
-                                       type=SC_TYPE_JEXCHANGE_LP_DEPOSIT))
-
-            # TODO JexConstantProductWithdrawPool
-
             nb_pools += 1
 
     logging.info(f'JEX CP pools: {nb_pools}')
@@ -572,12 +561,6 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
                                                     lp_token_supply=lp_token_supply,
                                                     reserves=reserves,
                                                     underlying_prices=underlying_prices)
-            swap_pools.append(SwapPool(name=f"JEX: {'/'.join([t.name for t in tokens])} (D)",
-                                       sc_address=lp_status.sc_address,
-                                       tokens_in=token_ids,
-                                       tokens_out=[
-                                           lp_status.lp_token_identifier],
-                                       type=SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT))
 
             for t1, t2 in product(lp_status.tokens, lp_status.tokens):
                 if t1 != t2:
