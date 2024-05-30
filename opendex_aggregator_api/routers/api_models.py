@@ -25,6 +25,7 @@ class StaticRouteSwapEvaluationOut(BaseModel):
     slippage_percent: float
     theorical_amount_out: str
     theorical_human_amount_out: float
+    tx_payload: str
 
 
 class DynamicRouteSwapEvaluationOut(BaseModel):

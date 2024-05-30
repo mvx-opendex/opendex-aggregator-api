@@ -91,7 +91,8 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
                                         slippage_percent=slippage_percent,
                                         theorical_amount_out=str(
                                             e.theorical_amount_out),
-                                        theorical_human_amount_out=theorical_human_amount_out)
+                                        theorical_human_amount_out=theorical_human_amount_out,
+                                        tx_payload=e.build_tx_payload())
 
 
 def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluationOut:

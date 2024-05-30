@@ -76,6 +76,25 @@ class SwapEvaluation(BaseModel):
     route: SwapRoute
     theorical_amount_out: int
 
+    def build_tx_payload(self) -> str:
+
+        tx_payload = 'ESDTTransfer@'
+        tx_payload += str2hex(self.route.token_in)
+        tx_payload += '@'
+        tx_payload += int2hex_even_size(self.amount_in)
+        tx_payload += '@'
+        tx_payload += str2hex('aggregate')
+        tx_payload += '@'
+        tx_payload += str2hex(self.route.token_out)
+        tx_payload += '@'
+        tx_payload += int2hex_even_size(self.net_amount_out * 9975 // 10_000)
+        tx_payload += '@'
+        tx_payload += int2hex_even_size(self.amount_in)
+        tx_payload += '@'
+        tx_payload += self.route.serialize().hex()
+
+        return tx_payload
+
 
 class DynamicRoutingSwapEvaluation(BaseModel):
     amount_in: int
