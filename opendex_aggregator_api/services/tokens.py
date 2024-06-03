@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+import random
 from typing import List, Optional
 
 from opendex_aggregator_api.data.model import Esdt
@@ -47,10 +48,8 @@ def fetch_token(identifier: str) -> Esdt:
                     is_lp_token=None)
 
     cache_key = f'esdt_{identifier}'
-
-    token = redis_get_or_set_cache(cache_key,
-                                   timedelta(days=7),
-                                   _do,
-                                   lambda json_: Esdt.model_validate(json_))
-
-    return token
+    cache_ttl = timedelta(hours=120 + random.randint(0, 72))
+    return redis_get_or_set_cache(cache_key,
+                                  cache_ttl,
+                                  _do,
+                                  lambda json_: Esdt.model_validate(json_))
