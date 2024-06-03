@@ -4,6 +4,7 @@ from typing import List, Mapping, Optional, Tuple
 
 import aiohttp
 
+from opendex_aggregator_api.data.constants import SC_TYPE_JEXCHANGE_ORDERBOOK
 from opendex_aggregator_api.data.datastore import get_dex_aggregator_pool
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
                                                 SwapEvaluation, SwapRoute)
@@ -20,11 +21,25 @@ FEE_MULTIPLIER = 0.0001  # 0.01%
 FEE_MULTIPLIER = 0
 
 
-def evaluate(route: SwapRoute,
-             amount_in: int,
-             pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
-             update_reserves: bool = False) -> SwapEvaluation:
+async def evaluate(route: SwapRoute,
+                   amount_in: int,
+                   pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
+                   http_client: aiohttp.ClientSession) -> SwapEvaluation:
 
+    if _can_evaluate_offline(route):
+        return evaluate_offline(route,
+                                amount_in,
+                                pools_cache)
+    else:
+        return await evaluate_online(amount_in,
+                                     route,
+                                     http_client)
+
+
+def evaluate_offline(route: SwapRoute,
+                     amount_in: int,
+                     pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
+                     update_reserves: bool = False) -> SwapEvaluation:
     token = route.token_in
     amount = amount_in
     fee_amount = 0
@@ -106,7 +121,7 @@ def evaluate(route: SwapRoute,
 
 async def evaluate_online(amount_in: int,
                           route: SwapRoute,
-                          http_client: aiohttp.ClientSession) -> Tuple[int, int, int, str]:
+                          http_client: aiohttp.ClientSession) -> SwapEvaluation:
     route_payload = route.serialize()
     args = [amount_in, route_payload]
 
@@ -120,15 +135,32 @@ async def evaluate_online(amount_in: int,
                                       args=args)
     except:
         logging.exception('Error during evaluation')
-        return (0, 0, '')
+        return SwapEvaluation(amount_in=amount_in,
+                              estimated_gas=0,
+                              fee_amount=0,
+                              net_amount_out=0,
+                              route=route,
+                              theorical_amount_out=0)
 
     if result is not None and len(result) > 0:
         net_amount_out, fee, fee_token = \
             parse_evaluate_response(result[0])
 
-        return (net_amount_out, fee, fee_token)
+        return SwapEvaluation(amount_in=amount_in,
+                              estimated_gas=0,
+                              fee_amount=fee,
+                              fee_token=fee_token,
+                              net_amount_out=net_amount_out,
+                              route=route,
+                              theorical_amount_out=0)
 
-    return (0, 0, '')
+    return SwapEvaluation(amount_in=amount_in,
+                          estimated_gas=0,
+                          fee_amount=0,
+                          fee_token=None,
+                          net_amount_out=0,
+                          route=route,
+                          theorical_amount_out=0)
 
 
 def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluation],
@@ -155,8 +187,8 @@ def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluatio
     best_amount_out = first_eval.net_amount_out
 
     for a1, a2 in amounts:
-        e1 = evaluate(first_route, a1)
-        e2 = evaluate(second_route, a2)
+        e1 = evaluate_offline(first_route, a1)
+        e2 = evaluate_offline(second_route, a2)
 
         amount_out = e1.net_amount_out + e2.net_amount_out
 
@@ -215,8 +247,8 @@ def find_best_dynamic_routing_algo2(single_route_evaluations: List[SwapEvaluatio
     weights = [s / total_slippage
                for s in slippage]
 
-    evals = [evaluate(c.route,
-                      int(amount_in * w))
+    evals = [evaluate_offline(c.route,
+                              int(amount_in * w))
              for c, w in zip(candidates, weights)]
 
     return DynamicRoutingSwapEvaluation(amount_in=amount_in,
@@ -233,7 +265,12 @@ def find_best_dynamic_routing_algo2(single_route_evaluations: List[SwapEvaluatio
 
 async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                                           amount_in: int) -> Optional[DynamicRoutingSwapEvaluation]:
-    if len(routes) < 2:
+
+    offline_routes = [r
+                      for r in routes
+                      if _can_evaluate_offline(r)]
+
+    if len(offline_routes) < 2:
         return None
 
     amounts = [amount_in // 10] * 9
@@ -245,9 +282,9 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
     amount_per_route: Mapping[SwapRoute, int] = {}
 
     for amount in amounts:
-        evals = [evaluate(r,
-                          amount,
-                          pools_cache) for r in routes]
+        evals = [evaluate_offline(r,
+                                  amount,
+                                  pools_cache) for r in offline_routes]
 
         evals = sorted(evals,
                        key=lambda x: x.net_amount_out,
@@ -263,10 +300,10 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                               for r in amount_per_route.keys()))
                           ))
 
-        evaluate(best_eval.route,
-                 amount,
-                 pools_cache,
-                 update_reserves=True)
+        evaluate_offline(best_eval.route,
+                         amount,
+                         pools_cache,
+                         update_reserves=True)
 
         amount_of_route = amount_per_route.get(best_eval.route, 0)
 
@@ -290,7 +327,7 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
             print(f'Route: {[h.pool.name for h in route.hops]}')
             print(f'Amount: {amount}')
 
-            eval = evaluate(route, amount, {})
+            eval = evaluate_offline(route, amount, {})
 
             print(f'Amount out (offline): {eval.net_amount_out}')
             print(f'Fee (offline): {eval.fee_amount} {eval.fee_token}')
@@ -299,14 +336,15 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
             evals.append(eval)
 
-            net_amount_out, fee, fee_token = await evaluate_online(amount,
-                                                                   route,
-                                                                   http_client)
+            online_eval = await evaluate_online(amount,
+                                                route,
+                                                http_client)
 
-            total_amount_out_verif_online += net_amount_out
+            total_amount_out_verif_online += online_eval.net_amount_out
 
-            print(f'Amount out (online): {net_amount_out}')
-            print(f'Fee (online): {fee} {fee_token}')
+            print(f'Amount out (online): {online_eval.net_amount_out}')
+            print(
+                f'Fee (online): {online_eval.fee_amount} {online_eval.fee_token}')
 
     print(
         f'Total amount out (verif) (offline): {total_amount_out_verif_offline}')
@@ -326,3 +364,8 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                                                                   for e in evals)),
                                         token_in=evals[0].route.token_in,
                                         token_out=evals[0].route.token_out)
+
+
+def _can_evaluate_offline(route: SwapRoute):
+    return all((h.pool.type not in [SC_TYPE_JEXCHANGE_ORDERBOOK]
+                for h in route.hops))

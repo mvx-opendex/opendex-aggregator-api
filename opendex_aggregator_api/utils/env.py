@@ -5,6 +5,10 @@ def mvx_gateway_url():
     return os.environ['GATEWAY_URL']
 
 
+def router_pools_dir():
+    return os.environ.get('ROUTER_POOLS_DIR', None)
+
+
 def sc_address_aggregator():
     return os.environ['SC_ADDRESS_AGGREGATOR']
 

@@ -1,5 +1,6 @@
 
 import asyncio
+import json
 import logging
 from datetime import datetime, timedelta
 from itertools import product
@@ -47,7 +48,7 @@ from opendex_aggregator_api.services.tokens import (JEX_IDENTIFIER,
                                                     WEGLD_IDENTIFIER,
                                                     get_or_fetch_token)
 from opendex_aggregator_api.utils.convert import hex2dec, hex2str
-from opendex_aggregator_api.utils.env import (mvx_gateway_url,
+from opendex_aggregator_api.utils.env import (mvx_gateway_url, router_pools_dir,
                                               sc_address_aggregator,
                                               sc_address_hatom_staking,
                                               sc_address_jex_lp_deployer,
@@ -105,6 +106,7 @@ async def _sync_all_pools():
         _sync_jex_cp_pools,
         _sync_jex_stablepools,
         _sync_exrond_pools,
+        _sync_other_router_pools,
         _sync_vestadex_pools,
         _sync_vestax_staking_pool,
         _sync_hatom_staking_pool,
@@ -941,6 +943,28 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
     logging.info(f'Hatom money markets: {nb_mms}')
 
     logging.info('Loading Hatom MM pools - done')
+
+    return swap_pools
+
+
+async def _sync_other_router_pools() -> List[SwapPool]:
+    logging.info('Loading pools from jex-router-pools')
+
+    dir = router_pools_dir()
+
+    if dir is None:
+        logging.info('ROUTER_POOLS_DIR not set -> skip')
+        return []
+
+    swap_pools = []
+
+    for filename in ['pools_jexchange.json']:
+        path = f'{dir}/{filename}'
+        with open(path, 'rt') as f:
+            pools = json.load(f)
+            swap_pools.extend([SwapPool.model_validate(x) for x in pools])
+
+    logging.info('Loading pools from jex-router-pools - done')
 
     return swap_pools
 

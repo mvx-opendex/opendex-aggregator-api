@@ -2,6 +2,7 @@
 import logging
 from typing import List
 
+from opendex_aggregator_api.data.constants import SC_TYPE_JEXCHANGE_ORDERBOOK
 from opendex_aggregator_api.data.datastore import get_swap_pools
 from opendex_aggregator_api.pools.model import SwapHop, SwapPool, SwapRoute
 
@@ -36,7 +37,16 @@ def find_routes(token_in: str,
 
 def sort_routes(routes: List[SwapRoute]) -> List[SwapRoute]:
 
-    return sorted(routes, key=lambda x: len(x.hops))
+    def _hop_penalty(h: SwapHop):
+        if h.pool.type == SC_TYPE_JEXCHANGE_ORDERBOOK:
+            return 10
+
+        return 1
+
+    def _route_penalty(r: SwapRoute):
+        return sum((_hop_penalty(h) for h in r.hops))
+
+    return sorted(routes, key=lambda x: _route_penalty(x))
 
 
 def _find_routes_inner(token_out: str,

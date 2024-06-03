@@ -10,6 +10,7 @@ fi
 
 export GATEWAY_URL=http://jex-observer-squad:8079
 export REDIS_HOST=localhost
+export ROUTER_POOLS_DIR=${HOME}/jex-router-pools/pools
 export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgq360nakqgsp5zkmguptucpjy6n4n3du7e5snsd2swzq
 export SC_ADDRESS_HATOM_STAKING=erd1qqqqqqqqqqqqqpgq4gzfcw7kmkjy8zsf04ce6dl0auhtzjx078sslvrf4e
 export SC_ADDRESS_JEX_LP_DEPLOYER=erd1qqqqqqqqqqqqqpgqpz4skj4q0kwndpp0a5n52328xchee6rs6avsqfytay

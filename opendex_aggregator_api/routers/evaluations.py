@@ -1,5 +1,7 @@
+import asyncio
 from typing import Optional
 
+import aiohttp
 from fastapi import APIRouter, Query, Response
 
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
@@ -10,6 +12,7 @@ from opendex_aggregator_api.routers.api_models import (
 from opendex_aggregator_api.routers.common import get_or_find_sorted_routes
 from opendex_aggregator_api.services import evaluations as eval_svc
 from opendex_aggregator_api.services.tokens import get_or_fetch_token
+from opendex_aggregator_api.utils.env import mvx_gateway_url
 
 router = APIRouter()
 
@@ -32,8 +35,9 @@ async def do_evaluate(response: Response,
 
     pools_cache = {}
 
-    evals = [eval_svc.evaluate(r, amount_in, pools_cache)
-             for r in routes[:100]]
+    async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
+        evals = await asyncio.gather(*[eval_svc.evaluate(r, amount_in, pools_cache, http_client)
+                                       for r in routes[:100]])
 
     evals = sorted(evals,
                    key=lambda x: x.net_amount_out,
@@ -71,11 +75,14 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
     theorical_human_amount_out = e.theorical_amount_out / 10**token_out.decimals
 
     human_amount_in = e.amount_in / 10**token_in.decimals
-    rate = human_amount_in / net_human_amount_out
+    rate = human_amount_in / net_human_amount_out if net_human_amount_out else 0
     rate2 = net_human_amount_out / human_amount_in
 
-    slippage_percent = 100 * (net_human_amount_out -
-                              theorical_human_amount_out) / theorical_human_amount_out
+    if theorical_human_amount_out > 0:
+        slippage_percent = 100 * (net_human_amount_out -
+                                  theorical_human_amount_out) / theorical_human_amount_out
+    else:
+        slippage_percent = 0
 
     return StaticRouteSwapEvaluationOut(amount_in=str(e.amount_in),
                                         human_amount_in=human_amount_in,
