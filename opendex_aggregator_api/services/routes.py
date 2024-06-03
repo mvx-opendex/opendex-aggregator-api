@@ -8,7 +8,14 @@ from opendex_aggregator_api.pools.model import SwapHop, SwapPool, SwapRoute
 
 def find_routes(token_in: str,
                 token_out: str,
-                max_hops: int) -> List[SwapRoute]:
+                max_hops: int,
+                max_hops2: int) -> List[SwapRoute]:
+    '''
+    Find routes between token_in and token_out.
+
+    :max_hops2: will be used if no routes are found with max_hops
+    '''
+
     logging.info(f'Find routes {token_in} -> {token_out}')
 
     results = []
@@ -18,6 +25,7 @@ def find_routes(token_in: str,
     _find_routes_inner(token_out,
                        all_pools,
                        max_hops,
+                       max_hops2,
                        [SwapRoute(hops=[],
                                   token_in=token_in,
                                   token_out='')],
@@ -34,10 +42,14 @@ def sort_routes(routes: List[SwapRoute]) -> List[SwapRoute]:
 def _find_routes_inner(token_out: str,
                        all_pools: List[SwapPool],
                        max_hops: int,
+                       max_hops2: int,
                        candidates: List[SwapRoute],
                        results: List[SwapRoute]):
 
-    if max_hops == 0:
+    if max_hops == 0 and len(results) > 0:
+        return
+
+    if max_hops2 == 0:
         return
 
     new_candidates = []
@@ -71,6 +83,7 @@ def _find_routes_inner(token_out: str,
     if len(new_candidates) > 0:
         _find_routes_inner(token_out,
                            all_pools,
-                           max_hops-1,
+                           max(max_hops-1, 0),
+                           max(max_hops2-1, 0),
                            new_candidates,
                            results)
