@@ -19,7 +19,7 @@ jex_out = resp.json()[0]['net_amount_out']
 print(f'JEXchange: {jex_out}')
 
 resp = requests.get(
-    f'http://localhost:3001/evaluate?token_in={token_in}&token_out={token_out}&amount_in={amount_in}')
+    f'http://localhost:3002/evaluate?token_in={token_in}&token_out={token_out}&amount_in={amount_in}')
 eval = resp.json().get('dynamic', resp.json().get('static', {}))
 agg_out = eval.get('net_amount_out', 0)
 

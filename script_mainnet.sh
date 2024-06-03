@@ -32,7 +32,7 @@ do_start() {
 
     gunicorn -k uvicorn.workers.UvicornWorker main:app \
         --workers ${NB_WORKERS} \
-        --bind 0.0.0.0:3001 \
+        --bind 0.0.0.0:3002 \
         --log-level error \
         --log-file log_mainnet \
         --access-logfile log_mainnet \
@@ -60,8 +60,8 @@ then
     elif [ $1 = "--dev" ]
     then
         GATEWAY_URL=https://api.multiversx.com \
-            uvicorn opendex_aggregator_api.main:app --host 0.0.0.0 --port 3001 --log-level debug --reload
-    elif [ $1 = "--info" ]
+            uvicorn opendex_aggregator_api.main:app --host 0.0.0.0 --port 3002 --log-level debug --reload
+    elif [ $1 = "--info" ] || [ $1 = "--status" ]
     then
         ps -p $(cat pid)
     else
@@ -69,5 +69,5 @@ then
         exit 1
     fi
 else
-    echo "Usage: $0 {--start|--reload|--restart|--info|--stop}"
+    echo "Usage: $0 {--start|--reload|--restart|--info|--status|--stop}"
 fi
