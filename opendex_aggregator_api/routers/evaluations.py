@@ -1,4 +1,6 @@
 import asyncio
+import logging
+from time import time
 from typing import Optional
 
 import aiohttp
@@ -33,6 +35,8 @@ async def do_evaluate(response: Response,
     if len(routes) == 0:
         return _adapt_eval_result(None, None)
 
+    start = time()
+
     pools_cache = {}
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
@@ -45,6 +49,11 @@ async def do_evaluate(response: Response,
 
     dyn_routing_eval = await eval_svc.find_best_dynamic_routing_algo3(routes,
                                                                       amount_in)
+
+    end = time()
+
+    logging.info(
+        f'{token_in} -> {token_out} :: evaluations computed in {end-start} seconds')
 
     print('Static route')
     print([h.pool.name for h in evals[0].route.hops])
