@@ -11,7 +11,8 @@ from opendex_aggregator_api.pools.model import SwapHop, SwapPool, SwapRoute
 def find_routes(token_in: str,
                 token_out: str,
                 max_hops: int,
-                max_hops2: int) -> List[SwapRoute]:
+                max_hops2: int,
+                max_routes: int = 500) -> List[SwapRoute]:
     '''
     Find routes between token_in and token_out.
 
@@ -30,6 +31,7 @@ def find_routes(token_in: str,
                        all_pools,
                        max_hops,
                        max_hops2,
+                       max_routes,
                        [SwapRoute(hops=[],
                                   token_in=token_in,
                                   token_out='')],
@@ -61,6 +63,7 @@ def _find_routes_inner(token_out: str,
                        all_pools: List[SwapPool],
                        max_hops: int,
                        max_hops2: int,
+                       max_routes: int,
                        candidates: List[SwapRoute],
                        results: List[SwapRoute]):
 
@@ -94,14 +97,16 @@ def _find_routes_inner(token_out: str,
                                        token_out=next_hop.token_out)
 
                 if next_route.token_out == token_out:
-                    results.append(next_route)
+                    if len(results) < max_routes:
+                        results.append(next_route)
                 elif max_hops > 0:
                     new_candidates.append(next_route)
 
-    if len(new_candidates) > 0:
+    if len(new_candidates) > 0 and len(results) < max_routes:
         _find_routes_inner(token_out,
                            all_pools,
                            max(max_hops-1, 0),
                            max(max_hops2-1, 0),
+                           max_routes,
                            new_candidates,
                            results)

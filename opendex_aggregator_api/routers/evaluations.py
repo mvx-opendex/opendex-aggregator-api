@@ -41,7 +41,7 @@ async def do_evaluate(response: Response,
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
         evals = await asyncio.gather(*[eval_svc.evaluate(r, amount_in, pools_cache, http_client)
-                                       for r in routes[:100]])
+                                       for r in routes[:50]])
 
     evals = sorted(evals,
                    key=lambda x: x.net_amount_out,
