@@ -1,5 +1,6 @@
 
 import logging
+from time import time
 from typing import List
 
 from opendex_aggregator_api.data.constants import SC_TYPE_JEXCHANGE_ORDERBOOK
@@ -19,6 +20,8 @@ def find_routes(token_in: str,
 
     logging.info(f'Find routes {token_in} -> {token_out}')
 
+    start = time()
+
     results = []
 
     all_pools = get_swap_pools()
@@ -31,6 +34,11 @@ def find_routes(token_in: str,
                                   token_in=token_in,
                                   token_out='')],
                        results)
+
+    end = time()
+
+    logging.info(
+        f'{token_in} -> {token_out} :: {len(results)} routes found in {end-start} seconds')
 
     return results
 
