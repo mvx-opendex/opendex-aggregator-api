@@ -9,6 +9,7 @@ else
 fi
 
 export GATEWAY_URL=http://jex-observer-squad:8079
+export PUBLIC_GATEWAY_URL=https://gateway.multiversx.com
 export REDIS_HOST=localhost
 export ROUTER_POOLS_DIR=${HOME}/jex-router-pools/pools
 export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgq360nakqgsp5zkmguptucpjy6n4n3du7e5snsd2swzq
@@ -30,7 +31,7 @@ do_kill() {
 do_start() {
     rm -f pid
 
-    gunicorn -k uvicorn.workers.UvicornWorker main:app \
+    gunicorn -k uvicorn.workers.UvicornWorker opendex_aggregator_api.main:app \
         --workers ${NB_WORKERS} \
         --bind 0.0.0.0:3002 \
         --log-level error \

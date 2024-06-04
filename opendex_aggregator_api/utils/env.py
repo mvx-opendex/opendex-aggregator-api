@@ -5,6 +5,10 @@ def mvx_gateway_url():
     return os.environ['GATEWAY_URL']
 
 
+def mvx_public_gateway_url():
+    return os.environ['PUBLIC_GATEWAY_URL']
+
+
 def router_pools_dir():
     return os.environ.get('ROUTER_POOLS_DIR', None)
 

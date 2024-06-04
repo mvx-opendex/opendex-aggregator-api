@@ -7,7 +7,8 @@ import aiohttp
 import requests
 from multiversx_sdk_core.serializer import args_to_strings
 
-from opendex_aggregator_api.utils.env import mvx_gateway_url
+from opendex_aggregator_api.utils.env import (mvx_gateway_url,
+                                              mvx_public_gateway_url)
 
 
 async def async_sc_query(http_client: aiohttp.ClientSession,
@@ -33,10 +34,14 @@ async def async_sc_query(http_client: aiohttp.ClientSession,
 
 def sync_sc_query(sc_address: str,
                   function: str,
-                  args: List[Any] = []) -> Optional[List[str]]:
+                  args: List[Any] = [],
+                  use_public_gw: bool = False) -> Optional[List[str]]:
     query = _prepare_query(sc_address, function, args)
 
-    url = f'{mvx_gateway_url()}/vm-values/query'
+    if use_public_gw:
+        url = f'{mvx_public_gateway_url()}/vm-values/query'
+    else:
+        url = f'{mvx_gateway_url()}/vm-values/query'
 
     try:
         json_ = requests.post(url,

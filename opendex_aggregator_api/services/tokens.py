@@ -1,6 +1,7 @@
 import logging
-from datetime import timedelta
 import random
+from datetime import timedelta
+from time import sleep
 from typing import List, Optional
 
 from opendex_aggregator_api.data.model import Esdt
@@ -25,22 +26,27 @@ def get_or_fetch_token(identifier: str) -> Esdt:
     token = token_from_identifier(identifier)
 
     if token is None:
-        token = fetch_token(identifier)
+        token = fetch_token(identifier,
+                            cooldown_fetch=timedelta(seconds=0.25))
         TOKENS.append(token)
 
     return token
 
 
-def fetch_token(identifier: str) -> Esdt:
+def fetch_token(identifier: str,
+                cooldown_fetch: timedelta) -> Esdt:
 
     def _do():
         logging.info(f'Fetching {identifier} token info from gateway')
 
         resp = sync_sc_query(sc_address=sc_address_system_tokens(),
                              function='getTokenProperties',
-                             args=[identifier])
+                             args=[identifier],
+                             use_public_gw=True)
 
         decimals = hex2str(resp[5][24:])
+
+        sleep(cooldown_fetch.total_seconds())
 
         return Esdt(decimals=decimals,
                     identifier=identifier,

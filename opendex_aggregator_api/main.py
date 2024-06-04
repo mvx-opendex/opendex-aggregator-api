@@ -19,7 +19,10 @@ async def lifespan(app: FastAPI):
 
         THREAD_SYNC_DEX_AGGREGATOR.start()
 
-    yield
+    try:
+        yield
+    except:
+        pass
 
     if not no_task:
         sync_pools.stop()
