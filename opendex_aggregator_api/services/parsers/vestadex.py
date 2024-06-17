@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 from opendex_aggregator_api.data.model import VestaDexPool
 from opendex_aggregator_api.services.parsers.common import (
-    parse_address, parse_amount, parse_token_identifier, parse_uint8,
+    parse_address, parse_amount, parse_nested_str, parse_token_identifier, parse_uint8,
     parse_uint32, parse_uint64)
 
 
@@ -60,11 +60,10 @@ def parse_vestadex_pool(hex_: str) -> Tuple[VestaDexPool, int]:
 
     nb_fee_collector_addresses, read = parse_uint32(hex_[offset:])
     offset += read
-    offset += nb_fee_collector_addresses * 64  # skip addresses
 
-    nb_fee_collector_percentages, read = parse_uint32(hex_[offset:])
-    offset += read
-    offset += nb_fee_collector_percentages * 16  # skip u64's
+    for _ in range(0, nb_fee_collector_addresses):
+        _, read = parse_fee_receiver(hex_[offset:])
+        offset += read
 
     is_router_address, read = parse_uint8(hex_[offset:])
     offset += read
@@ -87,3 +86,24 @@ def parse_vestadex_pool(hex_: str) -> Tuple[VestaDexPool, int]:
                         fee_token_id=fee_token_id,
                         total_fee_percentage=total_fee_percentage,
                         special_fee_percentage=special_fee_percentage), offset
+
+
+def parse_fee_receiver(hex_: str):
+    offset = 0
+
+    address, read = parse_address(hex_[offset:])
+    offset += read
+
+    shares, read = parse_uint64(hex_[offset:])
+    offset += read
+
+    is_method, read = parse_uint8(hex_[offset:])
+    offset += read
+
+    if is_method == 1:
+        method, read = parse_nested_str(hex_[offset:])
+        offset += read
+    else:
+        method = None
+
+    return (address, shares), offset
