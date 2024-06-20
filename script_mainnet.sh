@@ -25,7 +25,7 @@ if [ -z "${NB_WORKERS}" ]; then export NB_WORKERS=2; fi
 echo "Nb workers: $NB_WORKERS"
 
 do_kill() {
-    killall -9 gunicorn
+    ps aux | grep gunicorn | grep opendex-aggregator-api | awk '{print $2}' | xargs kill -9
 }
 
 do_start() {
