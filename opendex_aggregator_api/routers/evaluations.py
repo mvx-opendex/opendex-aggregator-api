@@ -25,7 +25,8 @@ async def do_evaluate(response: Response,
                       token_in: str,
                       amount_in: int,
                       token_out: str,
-                      max_hops: int = Query(default=3, ge=1, le=4)) -> SwapEvaluationOut:
+                      max_hops: int = Query(default=3, ge=1, le=4),
+                      with_dyn_routing: Optional[bool] = False) -> SwapEvaluationOut:
     response.headers['Access-Control-Allow-Origin'] = '*'
 
     routes = get_or_find_sorted_routes(token_in,
@@ -47,8 +48,10 @@ async def do_evaluate(response: Response,
                    key=lambda x: x.net_amount_out,
                    reverse=True)
 
-    dyn_routing_eval = await eval_svc.find_best_dynamic_routing_algo3(routes,
-                                                                      amount_in)
+    if with_dyn_routing:
+
+        dyn_routing_eval = await eval_svc.find_best_dynamic_routing_algo3(routes,
+                                                                          amount_in)
 
     end = time()
 
