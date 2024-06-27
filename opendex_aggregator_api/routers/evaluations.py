@@ -51,7 +51,8 @@ async def do_evaluate(response: Response,
     if with_dyn_routing:
 
         dyn_routing_eval = await eval_svc.find_best_dynamic_routing_algo3(routes,
-                                                                          amount_in)
+                                                                          amount_in,
+                                                                          max_routes=3)
 
     end = time()
 

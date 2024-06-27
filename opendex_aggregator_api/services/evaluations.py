@@ -264,7 +264,8 @@ def find_best_dynamic_routing_algo2(single_route_evaluations: List[SwapEvaluatio
 
 
 async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
-                                          amount_in: int) -> Optional[DynamicRoutingSwapEvaluation]:
+                                          amount_in: int,
+                                          max_routes: int) -> Optional[DynamicRoutingSwapEvaluation]:
 
     offline_routes = [r
                       for r in routes
@@ -282,9 +283,14 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
     amount_per_route: Mapping[SwapRoute, int] = {}
 
     for amount in amounts:
+        if len(amount_per_route) >= max_routes:
+            route_candidates = offline_routes
+        else:
+            route_candidates = amount_per_route.keys()
+
         evals = [evaluate_offline(r,
                                   amount,
-                                  pools_cache) for r in offline_routes]
+                                  pools_cache) for r in route_candidates]
 
         evals = sorted(evals,
                        key=lambda x: x.net_amount_out,
