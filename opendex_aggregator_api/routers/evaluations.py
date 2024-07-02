@@ -13,6 +13,7 @@ from opendex_aggregator_api.routers.api_models import (
     SwapEvaluationOut)
 from opendex_aggregator_api.routers.common import get_or_find_sorted_routes
 from opendex_aggregator_api.services import evaluations as eval_svc
+from opendex_aggregator_api.services import gas as gas_svc
 from opendex_aggregator_api.services.tokens import get_or_fetch_token
 from opendex_aggregator_api.utils.env import mvx_gateway_url
 
@@ -49,10 +50,11 @@ async def do_evaluate(response: Response,
                    reverse=True)
 
     if with_dyn_routing:
-
         dyn_routing_eval = await eval_svc.find_best_dynamic_routing_algo3(routes,
                                                                           amount_in,
                                                                           max_routes=3)
+    else:
+        dyn_routing_eval = None
 
     end = time()
 
@@ -97,9 +99,16 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
     else:
         slippage_percent = 0
 
+    tx_payload = e.build_tx_payload()
+
+    estimated_tx_fee_egld = gas_svc.calculate_tx_fee_egld(data=tx_payload,
+                                                          estimated_gas=e.estimated_gas)
+
     return StaticRouteSwapEvaluationOut(amount_in=str(e.amount_in),
                                         human_amount_in=human_amount_in,
                                         estimated_gas=str(e.estimated_gas),
+                                        estimated_tx_fee_egld=str(
+                                            estimated_tx_fee_egld),
                                         fee_amount=str(e.fee_amount),
                                         fee_token=e.fee_token,
                                         net_amount_out=str(e.net_amount_out),
@@ -112,7 +121,7 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
                                         theorical_amount_out=str(
                                             e.theorical_amount_out),
                                         theorical_human_amount_out=theorical_human_amount_out,
-                                        tx_payload=e.build_tx_payload())
+                                        tx_payload=tx_payload)
 
 
 def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluationOut:
@@ -124,13 +133,20 @@ def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluatio
     rate = human_amount_in / net_human_amount_out
     rate2 = net_human_amount_out / human_amount_in
 
+    tx_payload = e.build_tx_payload()
+
+    estimated_tx_fee_egld = gas_svc.calculate_tx_fee_egld(data=tx_payload,
+                                                          estimated_gas=e.estimated_gas)
+
     return DynamicRouteSwapEvaluationOut(amount_in=str(e.amount_in),
                                          human_amount_in=human_amount_in,
                                          estimated_gas=str(e.estimated_gas),
+                                         estimated_tx_fee_egld=str(
+                                             estimated_tx_fee_egld),
                                          net_amount_out=str(e.net_amount_out),
                                          net_human_amount_out=net_human_amount_out,
                                          evals=[_adapt_static_eval(x)
                                                 for x in e.evaluations],
                                          rate=rate,
                                          rate2=rate2,
-                                         tx_payload=e.build_tx_payload())
+                                         tx_payload=tx_payload)

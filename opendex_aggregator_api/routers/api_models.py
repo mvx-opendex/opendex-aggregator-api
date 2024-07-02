@@ -13,6 +13,7 @@ from opendex_aggregator_api.utils.convert import int2hex, str2hex
 class StaticRouteSwapEvaluationOut(BaseModel):
     amount_in: str
     estimated_gas: str
+    estimated_tx_fee_egld: str
     fee_amount: str
     fee_token: Optional[str]
     human_amount_in: float
@@ -31,6 +32,7 @@ class StaticRouteSwapEvaluationOut(BaseModel):
 class DynamicRouteSwapEvaluationOut(BaseModel):
     amount_in: str
     estimated_gas: str
+    estimated_tx_fee_egld: str
     human_amount_in: float
     net_amount_out: str
     net_human_amount_out: float

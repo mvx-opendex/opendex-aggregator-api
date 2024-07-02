@@ -284,9 +284,9 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
     for amount in amounts:
         if len(amount_per_route) >= max_routes:
-            route_candidates = offline_routes
-        else:
             route_candidates = amount_per_route.keys()
+        else:
+            route_candidates = offline_routes
 
         evals = [evaluate_offline(r,
                                   amount,
