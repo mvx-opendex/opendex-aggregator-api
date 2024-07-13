@@ -85,6 +85,7 @@ class OneDexPair(BaseModel):
     lp_token_decimals: int
     second_token_identifier: str
     second_token_reserve: int
+    total_fee_percentage: int
 
 
 class VestaDexPool(BaseModel):

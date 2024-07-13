@@ -1,8 +1,8 @@
-from typing import List
 
 from opendex_aggregator_api.data.model import OneDexPair
 from opendex_aggregator_api.services.parsers.common import (
-    parse_amount, parse_token_identifier, parse_uint8, parse_uint32)
+    parse_amount, parse_token_identifier, parse_uint8, parse_uint32,
+    parse_uint64)
 
 
 def parse_onedex_pair(hex_: str) -> OneDexPair:
@@ -38,6 +38,12 @@ def parse_onedex_pair(hex_: str) -> OneDexPair:
     lp_supply, read = parse_amount(hex_[offset:])
     offset += read
 
+    _, read = parse_uint8(hex_[offset:])
+    offset += read
+
+    total_fee_percentage, read = parse_uint64(hex_[offset:])
+    offset += read
+
     return OneDexPair(id_=id_,
                       state=state,
                       first_token_identifier=first_token_identifier,
@@ -46,4 +52,5 @@ def parse_onedex_pair(hex_: str) -> OneDexPair:
                       lp_token_decimals=lp_token_decimals,
                       lp_token_identifier=lp_token_identifier,
                       second_token_identifier=second_token_identifier,
-                      second_token_reserve=second_token_reserve)
+                      second_token_reserve=second_token_reserve,
+                      total_fee_percentage=total_fee_percentage)

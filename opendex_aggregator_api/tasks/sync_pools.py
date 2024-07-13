@@ -210,16 +210,6 @@ async def _sync_onedex_pools() -> List[SwapPool]:
 
         res = await async_sc_query(http_client,
                                    sc_address,
-                                   function='getTotalFeePercent',
-                                   args=[])
-        if res:
-            total_fee_percent = hex2dec(res[0])
-        else:
-            logging.error('Error calling "getTotalFeePercent" from OneDex SC')
-            return []
-
-        res = await async_sc_query(http_client,
-                                   sc_address,
                                    function='getMainPairTokens',
                                    args=[])
         if res is not None:
@@ -228,16 +218,24 @@ async def _sync_onedex_pools() -> List[SwapPool]:
             logging.error('Error calling "getMainPairTokens" from OneDex SC')
             return []
 
-        res = await async_sc_query(http_client,
-                                   sc_address,
-                                   function='viewPairs',
-                                   args=[])
+        all_pairs = []
+        done = False
+        from_ = 0
+        size = 500
 
-        if res is not None:
-            pairs = [parse_onedex_pair(r) for r in res]
-        else:
-            logging.error('Error calling "viewPairs" from OneDex SC')
-            return []
+        while not done:
+            res = await async_sc_query(http_client,
+                                       sc_address,
+                                       function='viewPairsPaginated',
+                                       args=[from_, size])
+
+            if res is not None:
+                pairs = [parse_onedex_pair(r) for r in res]
+                all_pairs.extend(pairs)
+            else:
+                logging.error(
+                    f'Error calling "viewPairsPaginated" ({from_}, {size}) from OneDex SC')
+                done = True
 
         logging.info(f'OneDex: pairs before {len(pairs)}')
 
@@ -256,7 +254,7 @@ async def _sync_onedex_pools() -> List[SwapPool]:
         if first_token is None or second_token is None:
             continue
 
-        pool = OneDexConstantProductPool(fees_percent_base_pts=total_fee_percent,
+        pool = OneDexConstantProductPool(fees_percent_base_pts=pair.total_fee_percentage,
                                          first_token=first_token,
                                          first_token_reserves=pair.first_token_reserve,
                                          lp_token_supply=pair.lp_supply,
