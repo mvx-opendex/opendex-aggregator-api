@@ -10,8 +10,8 @@ SC_TYPE_HATOM_STAKE = 'hatom_stake'
 SC_TYPE_HATOM_MONEY_MARKET_MINT = 'hatom_money_market_mint'
 SC_TYPE_HATOM_MONEY_MARKET_REDEEM = 'hatom_money_market_redeem'
 SC_TYPE_JEXCHANGE_STABLEPOOL = 'jexchange_stablepool'
-
 SC_TYPE_JEXCHANGE_ORDERBOOK = 'jexchange'
+SC_TYPE_JEXCHANGE_LP_DEPOSIT = 'jexchange_lp_deposit'
 
 SC_TYPES = [None,
             SC_TYPE_ASHSWAP_STABLEPOOL,
@@ -26,4 +26,5 @@ SC_TYPES = [None,
             SC_TYPE_HATOM_MONEY_MARKET_MINT,
             SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
             SC_TYPE_JEXCHANGE_STABLEPOOL,
-            SC_TYPE_JEXCHANGE_ORDERBOOK]
+            SC_TYPE_JEXCHANGE_ORDERBOOK,
+            SC_TYPE_JEXCHANGE_LP_DEPOSIT]

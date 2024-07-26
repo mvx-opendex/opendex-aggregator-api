@@ -94,7 +94,7 @@ def evaluate_offline(route: SwapRoute,
             amount = amount_out
         except ValueError as e:
             logging.info('Error during estimation -> 0')
-            logging.info(e)
+            logging.exception(e)
             amount = 0
 
         token = hop.token_out

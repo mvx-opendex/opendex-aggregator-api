@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 
@@ -133,6 +134,18 @@ class ConstantProductPool(AbstractPool):
 
         raise ValueError(
             f'Invalid in/out tokens [{token_in.identifier}-{token_out.identifier}] for pool {self}')
+
+    def _zap_optimal_swap_amount(self,
+                                 reserve: int,
+                                 amount_in: int,
+                                 fee: int,
+                                 max_fee: int) -> int:
+        num = int(math.sqrt((reserve * (max_fee * 2 - fee))**2 + (amount_in * reserve *
+                                                                  4 * max_fee * (max_fee - fee)))) - reserve * (2 * max_fee - fee)
+
+        den = 2 * (max_fee - fee)
+
+        return num // den
 
     def __str__(self) -> str:
         return f'ConstantProductPool({self.first_token_reserves/10**self.first_token.decimals:.4f} \
@@ -307,30 +320,87 @@ class JexConstantProductPool(ConstantProductPool):
 
 
 @dataclass
-class JexConstantProductDepositPool(ConstantProductPool):
+class JexConstantProductDepositPool(JexConstantProductPool):
     """
     Special pool for deposits in JEX constant product pools.
     """
 
     @override
+    def deep_copy(self):
+        return JexConstantProductDepositPool(fees_percent_base_pts=self.fees_percent_base_pts,
+                                             platform_fees_percent_base_pts=self.platform_fees_percent_base_pts,
+                                             first_token=self.first_token.model_copy(),
+                                             first_token_reserves=self.first_token_reserves,
+                                             lp_token_supply=self.lp_token_supply,
+                                             second_token=self.second_token.model_copy(),
+                                             second_token_reserves=self.second_token_reserves)
+
+    @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
-        if token_in.identifier == self.first_token.identifier:
-            (in_reserve, _) = \
-                (self.first_token_reserves, self.second_token_reserves)
-        elif token_in.identifier == self.second_token.identifier:
-            (in_reserve, _) = \
-                (self.second_token_reserves, self.first_token_reserves)
+        first_token_reserve = self.first_token_reserves
+        second_token_reserve = self.second_token_reserves
+
+        if token_in == self.first_token:
+            reserve_in = first_token_reserve
+            reserve_out = second_token_reserve
         else:
-            raise ValueError(f'Invalid token in: {token_in.identifier}')
+            reserve_in = second_token_reserve
+            reserve_out = first_token_reserve
 
-        lp_amount = (amount_in * self.lp_token_supply) / (in_reserve * 2)
-        lp_amount = int(lp_amount)
+        max_fee = 10_000
 
-        return int(lp_amount), 0, 0
+        swap_amount = self._zap_optimal_swap_amount(reserve_in,
+                                                    amount_in,
+                                                    self.fees_percent_base_pts + self.platform_fees_percent_base_pts,
+                                                    max_fee)
+
+        other_amount = (
+            swap_amount * reserve_out) // (reserve_in + swap_amount)
+
+        lp_fee = other_amount * self.fees_percent_base_pts // max_fee
+        platform_fee = other_amount * self.platform_fees_percent_base_pts // max_fee
+
+        other_amount = other_amount - lp_fee - platform_fee
+
+        if token_in == self.first_token:
+            first_token_amount = amount_in - swap_amount
+            second_token_amount = other_amount
+            first_token_reserve += swap_amount
+            second_token_reserve = second_token_reserve - other_amount - platform_fee
+        else:
+            first_token_amount = other_amount
+            second_token_amount = amount_in - swap_amount
+            second_token_reserve += swap_amount
+            first_token_reserve = first_token_reserve - other_amount - platform_fee
+
+        exact_second_token_amount = first_token_amount * \
+            second_token_reserve // first_token_reserve
+
+        if exact_second_token_amount <= second_token_amount:
+            added_first_token = first_token_amount
+        else:
+            added_first_token = second_token_amount * \
+                first_token_reserve // second_token_reserve
+
+        amount_out = added_first_token * self.lp_token_supply // first_token_reserve
+
+        return amount_out, 0, platform_fee
+
+    @override
+    def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+        if self.first_token.identifier == token_in.identifier:
+            in_reserve_before = self.first_token_reserves
+        elif self.second_token.identifier == token_in.identifier:
+            in_reserve_before = self.second_token_reserves
+        else:
+            raise ValueError(
+                f'Invalid input tokens [{token_in.identifier}] for pool {self}')
+
+        return amount_in * in_reserve_before // (2 * self.lp_token_supply)
 
     @override
     def estimated_gas(self) -> int:
-        return 10_000_000
+        return 30_000_000
 
     @override
     def update_reserves(self,

@@ -13,8 +13,9 @@ from multiversx_sdk_core import Address
 from opendex_aggregator_api.data.constants import (
     SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2, SC_TYPE_EXROND,
     SC_TYPE_HATOM_MONEY_MARKET_MINT, SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
-    SC_TYPE_HATOM_STAKE, SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_STABLEPOOL,
-    SC_TYPE_ONEDEX, SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
+    SC_TYPE_HATOM_STAKE, SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
+    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_ONEDEX, SC_TYPE_VESTADEX,
+    SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools)
 from opendex_aggregator_api.data.model import VestaDexPool
@@ -48,7 +49,8 @@ from opendex_aggregator_api.services.tokens import (JEX_IDENTIFIER,
                                                     WEGLD_IDENTIFIER,
                                                     get_or_fetch_token)
 from opendex_aggregator_api.utils.convert import hex2dec, hex2str
-from opendex_aggregator_api.utils.env import (mvx_gateway_url, router_pools_dir,
+from opendex_aggregator_api.utils.env import (mvx_gateway_url,
+                                              router_pools_dir,
                                               sc_address_aggregator,
                                               sc_address_hatom_staking,
                                               sc_address_jex_lp_deployer,
@@ -99,18 +101,18 @@ def loop():
 
 async def _sync_all_pools():
     functions = [
-        _sync_onedex_pools,
-        _sync_xexchange_pools,
-        _sync_ashswap_stable_pools,
-        _sync_ashswap_v2_pools,
+        # _sync_onedex_pools,
+        # _sync_xexchange_pools,
+        # _sync_ashswap_stable_pools,
+        # _sync_ashswap_v2_pools,
         _sync_jex_cp_pools,
-        _sync_jex_stablepools,
-        _sync_exrond_pools,
-        _sync_other_router_pools,
-        _sync_vestadex_pools,
-        _sync_vestax_staking_pool,
-        _sync_hatom_staking_pool,
-        _sync_hatom_money_markets
+        # _sync_jex_stablepools,
+        # _sync_exrond_pools,
+        # _sync_other_router_pools,
+        # _sync_vestadex_pools,
+        # _sync_vestax_staking_pool,
+        # _sync_hatom_staking_pool,
+        # _sync_hatom_money_markets
     ]
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
@@ -120,6 +122,9 @@ async def _sync_all_pools():
     swap_pools = []
 
     for task, result in zip(tasks, results):
+        if result is None:
+            logging.info(f'{task.get_name()} -> failed')
+
         logging.info(f'{task.get_name()} -> {len(result)} swap pools')
 
         swap_pools.extend(result)
@@ -476,16 +481,26 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
                                                    second_token.identifier],
                                        type=SC_TYPE_JEXCHANGE_LP))
 
-            deposit_pool = JexConstantProductDepositPool(fees_percent_base_pts=0,
-                                                         first_token=first_token,
-                                                         first_token_reserves=first_token_reserves,
-                                                         lp_token_supply=lp_token_supply,
-                                                         second_token=second_token,
-                                                         second_token_reserves=second_token_reserves)
+            deposit_pool = JexConstantProductDepositPool(
+                fees_percent_base_pts=lp_fees_percent_base_pts,
+                platform_fees_percent_base_pts=platform_fees_percent_base_pts,
+                first_token=first_token,
+                first_token_reserves=first_token_reserves,
+                lp_token_supply=lp_token_supply,
+                second_token=second_token,
+                second_token_reserves=second_token_reserves)
+
             set_dex_aggregator_pool(lp_status.sc_address, first_token.identifier,
                                     lp_status.lp_token_identifier, deposit_pool)
             set_dex_aggregator_pool(lp_status.sc_address, second_token.identifier,
                                     lp_status.lp_token_identifier, deposit_pool)
+
+            swap_pools.append(SwapPool(name=f'JEX: {first_token.name}/{second_token.name} (D)',
+                                       sc_address=lp_status.sc_address,
+                                       tokens_in=[first_token.identifier,
+                                                  second_token.identifier],
+                                       tokens_out=[lp_token.identifier],
+                                       type=SC_TYPE_JEXCHANGE_LP_DEPOSIT))
 
             nb_pools += 1
 
