@@ -432,6 +432,16 @@ class VestaDexConstantProductPool(XExchangeConstantProductPool):
                          special_fee_percent // 10,
                          total_fee_percent // 10)
 
+    @override
+    def deep_copy(self):
+        return VestaDexConstantProductPool(first_token=self.first_token,
+                                           first_token_reserves=self.first_token_reserves,
+                                           lp_token_supply=self.lp_token_supply,
+                                           second_token=self.second_token,
+                                           second_token_reserves=self.second_token_reserves,
+                                           special_fee_percent=self.special_fee_percent,
+                                           total_fee_percent=self.total_fee_percent)
+
 
 @dataclass
 class AshSwapPoolV2(ConstantProductPool):
