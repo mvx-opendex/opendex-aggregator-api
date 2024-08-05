@@ -46,6 +46,21 @@ def test_estimate_deposit(reserves: List[int],
                             liquidity_fees_percent_base_pts=187) == expected
 
 
+@pytest.mark.parametrize('reserves,underlying_prices,deposits,lp_total_supply,expected', [
+    ([57029637408868858510691, 21177174423902697615022],
+     [1054372717511654654, 10**18],
+     [10_000000000000000000, 10_000000000000000000],
+     78047_505004762717119399, 19_745695365935295373)
+])
+def test_estimate_deposit_underlying_prices(reserves: List[int], underlying_prices: List[int], deposits: List[int], lp_total_supply: int, expected: int):
+    assert estimate_deposit(deposits,
+                            reserves,
+                            underlying_prices,
+                            lp_total_supply,
+                            amp=256,
+                            liquidity_fees_percent_base_pts=250) == expected
+
+
 @pytest.mark.parametrize('reserves,underlying_prices,removed_shares,lp_total_supply,expected', [
     ([50_000000000_000000000, 100_000000000_000000000],
      [2_000000000_000000000, 10**18],

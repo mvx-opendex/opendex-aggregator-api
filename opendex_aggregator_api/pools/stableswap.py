@@ -99,7 +99,10 @@ def estimate_deposit(deposits: List[int],
     if lp_total_supply > 0:
         d0 = curve.D(amp, old_xs)
 
-    new_xs = [x+d for x, d in zip(old_xs, deposits)]
+    scaled_deposits = [(d*p)//UNDERLYING_PRICE_PRECISION for (d, p)
+                       in zip(deposits, underlying_prices)]
+
+    new_xs = [x+d for x, d in zip(old_xs, scaled_deposits)]
 
     d1 = curve.D(amp, new_xs)
     if d1 <= d0:
