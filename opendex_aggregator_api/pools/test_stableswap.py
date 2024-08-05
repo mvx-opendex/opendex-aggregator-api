@@ -1,7 +1,7 @@
 
 from typing import List
 import pytest
-from .stableswap import estimate_amount_out, estimate_deposit
+from .stableswap import estimate_amount_out, estimate_deposit, estimate_withdraw_one_token
 
 
 @pytest.mark.parametrize('reserves,underlying_prices,amount_in,expected', [
@@ -33,10 +33,36 @@ def test_estimate_amount_out(reserves: List[int], underlying_prices: List[int], 
     ([514_710_000_000, 392_730_000_000, 495_510_000_000], [
         10**18]*3, [0, 0, 100_000_000_000], 1_398_807_409_000, 99_635_003_939)
 ])
-def test_estimate_deposit(reserves: List[int], underlying_prices: List[int], deposits: List[int], lp_total_supply: int, expected: int):
+def test_estimate_deposit(reserves: List[int],
+                          underlying_prices: List[int],
+                          deposits: List[int],
+                          lp_total_supply: int,
+                          expected: int):
     assert estimate_deposit(deposits,
                             reserves,
                             underlying_prices,
                             lp_total_supply,
                             amp=256,
                             liquidity_fees_percent_base_pts=187) == expected
+
+
+@pytest.mark.parametrize('reserves,underlying_prices,removed_shares,lp_total_supply,expected', [
+    ([50_000000000_000000000, 100_000000000_000000000],
+     [2_000000000_000000000, 10**18],
+     1_000000000_000000000,
+     200_000000000_000000000,
+     499995111_718601387)])
+def test_estimate_withdraw_one_token(reserves: List[int],
+                                     underlying_prices: List[int],
+                                     removed_shares: int,
+                                     lp_total_supply: int,
+                                     expected: int):
+    amount, _ = estimate_withdraw_one_token(removed_shares,
+                                            i_token_out=0,
+                                            amp=256,
+                                            total_supply=lp_total_supply,
+                                            reserves=reserves,
+                                            underlying_prices=underlying_prices,
+                                            liquidity_fees_percent_base_pts=0)
+
+    assert amount == expected

@@ -72,7 +72,9 @@ def estimate_withdraw_one_token(shares: int,
     y1 = curve.y_D(amp, xp, i_token_out, d1)
 
     # - 1 to round down
-    dy = (xp[i_token_out] - y1 - 1)
+    dy = (xp[i_token_out] - y1 - 1) * \
+        UNDERLYING_PRICE_PRECISION // underlying_prices[i_token_out]
+
     fee = dy0 - dy
 
     return (dy, fee)
