@@ -43,7 +43,8 @@ def test_estimate_deposit(reserves: List[int],
                             underlying_prices,
                             lp_total_supply,
                             amp=256,
-                            liquidity_fees_percent_base_pts=187) == expected
+                            liquidity_fees=187,
+                            max_fees=1_000_000) == expected
 
 
 @pytest.mark.parametrize('reserves,underlying_prices,deposits,lp_total_supply,expected', [
@@ -58,7 +59,8 @@ def test_estimate_deposit_underlying_prices(reserves: List[int], underlying_pric
                             underlying_prices,
                             lp_total_supply,
                             amp=256,
-                            liquidity_fees_percent_base_pts=250) == expected
+                            liquidity_fees=250,
+                            max_fees=1_000_000) == expected
 
 
 @pytest.mark.parametrize('reserves,underlying_prices,removed_shares,lp_total_supply,expected', [
@@ -78,6 +80,7 @@ def test_estimate_withdraw_one_token(reserves: List[int],
                                             total_supply=lp_total_supply,
                                             reserves=reserves,
                                             underlying_prices=underlying_prices,
-                                            liquidity_fees_percent_base_pts=0)
+                                            liquidity_fees=0,
+                                            max_fees=1_000_000)
 
     assert amount == expected

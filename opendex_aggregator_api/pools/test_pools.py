@@ -115,8 +115,13 @@ def test_StableSwapPool_estimate_amount_out(reserves: List[int],
     token_out = filter(lambda x: x.identifier ==
                        token_out_identifier, tokens).__next__()
 
-    pool = StableSwapPool(amp_factor=256, fees_percent_base_pts=0, tokens=tokens,
-                          reserves=reserves, underlying_prices=underlying_prices, lp_token_supply=0)
+    pool = StableSwapPool(amp_factor=256,
+                          total_fees=0,
+                          max_fees=1_000_000,
+                          tokens=tokens,
+                          reserves=reserves,
+                          underlying_prices=underlying_prices,
+                          lp_token_supply=0)
 
     net_amount_out, _, _ = pool.estimate_amount_out(
         token_in, amount_in, token_out)
@@ -153,7 +158,8 @@ def test_StableSwapPool_estimate_theorical_amount_out(reserves: List[int],
                        token_out_identifier, tokens).__next__()
 
     pool = StableSwapPool(amp_factor=256,
-                          fees_percent_base_pts=0,
+                          total_fees=0,
+                          max_fees=1_000_000,
                           tokens=tokens,
                           reserves=reserves,
                           underlying_prices=[10**18]*len(tokens),
@@ -185,8 +191,13 @@ def test_StableSwapPool_estimate_amount_out_with_underlying_prices(
     token_in = wegld
     token_out = segld
 
-    pool = StableSwapPool(amp_factor=256, fees_percent_base_pts=0, tokens=[segld, wegld],
-                          reserves=reserves, underlying_prices=underlying_prices, lp_token_supply=0)
+    pool = StableSwapPool(amp_factor=256,
+                          total_fees=0,
+                          max_fees=1_000_000,
+                          tokens=[segld, wegld],
+                          reserves=reserves,
+                          underlying_prices=underlying_prices,
+                          lp_token_supply=0)
 
     net_amount_out, _, _ = pool.estimate_amount_out(
         token_in, amount_in, token_out)
@@ -217,7 +228,8 @@ def test_StableSwapPool_estimate_theorical_amount_out_with_underlying_prices(
     token_out = segld
 
     pool = StableSwapPool(amp_factor=256,
-                          fees_percent_base_pts=0,
+                          total_fees=0,
+                          max_fees=1_000_000,
                           tokens=[segld, wegld],
                           reserves=reserves,
                           underlying_prices=underlying_prices,

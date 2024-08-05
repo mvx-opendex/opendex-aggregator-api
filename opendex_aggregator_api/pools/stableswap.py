@@ -43,7 +43,8 @@ def estimate_withdraw_one_token(shares: int,
                                 amp: int, total_supply: int,
                                 reserves: List[int],
                                 underlying_prices: List[int],
-                                liquidity_fees_percent_base_pts: int):
+                                liquidity_fees: int,
+                                max_fees: int):
     N = len(reserves)
     xp = [(r*p)//UNDERLYING_PRICE_PRECISION for (r, p)
           in zip(reserves, underlying_prices)]
@@ -66,7 +67,7 @@ def estimate_withdraw_one_token(shares: int,
             # d1 / d0 <= 1
             dx = xp[j] - (xp[j] * d1) // d0
 
-        xp[j] -= (liquidity_fees_percent_base_pts * dx) // 10_000
+        xp[j] -= (liquidity_fees * dx) // max_fees
 
     # Recalculate y with xp including imbalance fees
     y1 = curve.y_D(amp, xp, i_token_out, d1)
@@ -85,7 +86,8 @@ def estimate_deposit(deposits: List[int],
                      underlying_prices: List[int],
                      lp_total_supply: int,
                      amp: int,
-                     liquidity_fees_percent_base_pts: int) -> int:
+                     liquidity_fees: int,
+                     max_fees: int) -> int:
     """
     Estimate deposit in a stable pool (mint).
 
@@ -114,7 +116,7 @@ def estimate_deposit(deposits: List[int],
         for i in range(len(old_xs)):
             ideal_balance = (old_xs[i] * d1) // d0
             diff = abs(new_xs[i] - ideal_balance)
-            fee = (diff * liquidity_fees_percent_base_pts) // 1_000_000
+            fee = (diff * liquidity_fees) // max_fees
             new_xi = new_xs[i] - fee
             new_xs2[i] = new_xi
 

@@ -101,18 +101,18 @@ def loop():
 
 async def _sync_all_pools():
     functions = [
-        # _sync_onedex_pools,
-        # _sync_xexchange_pools,
-        # _sync_ashswap_stable_pools,
-        # _sync_ashswap_v2_pools,
+        _sync_onedex_pools,
+        _sync_xexchange_pools,
+        _sync_ashswap_stable_pools,
+        _sync_ashswap_v2_pools,
         _sync_jex_cp_pools,
-        # _sync_jex_stablepools,
-        # _sync_exrond_pools,
-        # _sync_other_router_pools,
-        # _sync_vestadex_pools,
-        # _sync_vestax_staking_pool,
-        # _sync_hatom_staking_pool,
-        # _sync_hatom_money_markets
+        _sync_jex_stablepools,
+        _sync_exrond_pools,
+        _sync_other_router_pools,
+        _sync_vestadex_pools,
+        _sync_vestax_staking_pool,
+        _sync_hatom_staking_pool,
+        _sync_hatom_money_markets
     ]
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
@@ -316,7 +316,8 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
                     continue
 
                 pool = StableSwapPool(amp_factor=status.amp_factor,
-                                      fees_percent_base_pts=status.swap_fee_percent // 10,
+                                      total_fees=status.swap_fee_percent,
+                                      max_fees=100_000,
                                       lp_token_supply=status.lp_token_supply,
                                       tokens=tokens,
                                       reserves=status.reserves,
@@ -557,7 +558,8 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
             lp_token_supply = int(lp_status.lp_token_supply)
 
             pool = JexStableSwapPool(amp_factor=lp_status.amp_factor,
-                                     fees_percent_base_pts=lp_status.swap_fee / 100,
+                                     total_fees=lp_status.swap_fee,
+                                     max_fees=1_000_000,
                                      lp_token_supply=lp_token_supply,
                                      tokens=tokens,
                                      reserves=reserves,
@@ -571,15 +573,24 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
                                        type=SC_TYPE_JEXCHANGE_STABLEPOOL))
 
             deposit_pool = JexStableSwapPoolDeposit(amp_factor=lp_status.amp_factor,
-                                                    fees_percent_base_pts=lp_status.swap_fee,
+                                                    total_fees=lp_status.swap_fee,
+                                                    max_fees=1_000_000,
                                                     tokens=tokens,
                                                     lp_token_supply=lp_token_supply,
                                                     reserves=reserves,
                                                     underlying_prices=underlying_prices)
 
+            swap_pools.append(SwapPool(name=f"JEX: {'/'.join([t.name for t in tokens])} (D)",
+                                       sc_address=lp_status.sc_address,
+                                       tokens_in=token_ids,
+                                       tokens_out=[
+                                           lp_status.lp_token_identifier],
+                                       type=SC_TYPE_JEXCHANGE_STABLEPOOL))
+
             for t1, t2 in product(lp_status.tokens, lp_status.tokens):
                 if t1 != t2:
                     set_dex_aggregator_pool(sc_address, t1, t2, pool)
+
             for t in lp_status.tokens:
                 set_dex_aggregator_pool(sc_address,
                                         t,

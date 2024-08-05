@@ -702,8 +702,8 @@ class StableSwapPool(AbstractPool):
 
     amp_factor: int
 
-    fees_percent_base_pts: int
-    """ Fees percent basis points (1 = 0.01%) """
+    total_fees: int
+    max_fees: int
 
     lp_token_supply: int
     tokens: List[Esdt]
@@ -713,13 +713,15 @@ class StableSwapPool(AbstractPool):
 
     def __init__(self,
                  amp_factor: int,
-                 fees_percent_base_pts: int,
+                 total_fees: int,
+                 max_fees: int,
                  tokens: List[Esdt],
                  reserves: List[int],
                  underlying_prices: List[int],
                  lp_token_supply: int):
         self.amp_factor = amp_factor
-        self.fees_percent_base_pts = fees_percent_base_pts
+        self.total_fees = total_fees
+        self.max_fees = max_fees
         self.tokens = tokens
         self.reserves = reserves
         self.underlying_prices = underlying_prices
@@ -730,7 +732,8 @@ class StableSwapPool(AbstractPool):
     @override
     def deep_copy(self):
         return StableSwapPool(amp_factor=self.amp_factor,
-                              fees_percent_base_pts=self.fees_percent_base_pts,
+                              total_fees=self.total_fees,
+                              max_fees=self.max_fees,
                               tokens=[t.model_copy() for t in self.tokens],
                               reserves=self.reserves.copy(),
                               underlying_prices=self.underlying_prices.copy(),
@@ -751,7 +754,7 @@ class StableSwapPool(AbstractPool):
 
         amount_out = self._denormalize_amount(normalized_amount_out, token_out)
 
-        fee = (amount_out * self.fees_percent_base_pts) // 10_000
+        fee = (amount_out * self.total_fees) // self.max_fees
 
         return int(amount_out - fee), 0, 0
 
@@ -769,7 +772,7 @@ class StableSwapPool(AbstractPool):
 
         amount = amount_num // amount_den
 
-        fee = (amount * self.fees_percent_base_pts) // 10_000
+        fee = (amount * self.total_fees) // self.max_fees
 
         return self._denormalize_amount(amount - fee, token_out)
 
@@ -805,17 +808,29 @@ class JexStableSwapPool(StableSwapPool):
 
     def __init__(self,
                  amp_factor: int,
-                 fees_percent_base_pts: int,
+                 total_fees: int,
+                 max_fees: int,
                  tokens: List[Esdt],
                  reserves: List[int],
                  underlying_prices: List[int],
                  lp_token_supply: int):
         super().__init__(amp_factor=amp_factor,
-                         fees_percent_base_pts=fees_percent_base_pts,
+                         total_fees=total_fees,
+                         max_fees=max_fees,
                          tokens=tokens,
                          reserves=reserves,
                          underlying_prices=underlying_prices,
                          lp_token_supply=lp_token_supply)
+
+    @override
+    def deep_copy(self):
+        return JexStableSwapPool(amp_factor=self.amp_factor,
+                                 total_fees=self.total_fees,
+                                 max_fees=self.max_fees,
+                                 tokens=[t.model_copy() for t in self.tokens],
+                                 reserves=self.reserves.copy(),
+                                 underlying_prices=self.underlying_prices.copy(),
+                                 lp_token_supply=self.lp_token_supply)
 
 
 @dataclass
@@ -823,13 +838,15 @@ class JexStableSwapPoolDeposit(StableSwapPool):
 
     def __init__(self,
                  amp_factor: int,
-                 fees_percent_base_pts: int,
+                 total_fees: int,
+                 max_fees: int,
                  tokens: List[Esdt],
                  reserves: List[int],
                  underlying_prices: List[int],
                  lp_token_supply: int):
         super().__init__(amp_factor=amp_factor,
-                         fees_percent_base_pts=fees_percent_base_pts,
+                         total_fees=total_fees,
+                         max_fees=max_fees,
                          tokens=tokens,
                          reserves=reserves,
                          underlying_prices=underlying_prices,
@@ -842,18 +859,18 @@ class JexStableSwapPoolDeposit(StableSwapPool):
 
         nb_tokens = len(self.tokens)
 
-        liquidity_fees_percent_base_pts = (
-            self.fees_percent_base_pts * nb_tokens) // (4 * (nb_tokens - 1))
+        liquidity_fees = (
+            self.total_fees * nb_tokens) // (4 * (nb_tokens - 1))
 
         amount_out = stableswap.estimate_deposit(deposits=deposits,
                                                  amp=self.amp_factor,
-                                                 liquidity_fees_percent_base_pts=liquidity_fees_percent_base_pts,
+                                                 liquidity_fees=liquidity_fees,
+                                                 max_fees=self.max_fees,
                                                  lp_total_supply=self.lp_token_supply,
                                                  reserves=self.normalized_reserves,
                                                  underlying_prices=self.underlying_prices)
 
-        admin_fee_out = amount_out * \
-            (liquidity_fees_percent_base_pts * 33) // 100
+        admin_fee_out = amount_out * (liquidity_fees * 33) // 100
 
         return int(amount_out), 0, admin_fee_out
 
