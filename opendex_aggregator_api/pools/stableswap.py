@@ -2,6 +2,8 @@ from typing import List
 
 from opendex_aggregator_api.pools import curve
 
+UNDERLYING_PRICE_PRECISION = 10**18
+
 
 def estimate_amount_out(amp: int,
                         reserves: List[int],
@@ -15,7 +17,8 @@ def estimate_amount_out(amp: int,
     Note that +reserves+ and +amount_in+ must be normalized (same number of decimals)
     """
 
-    reserves = [(r*p)//10**18 for (r, p) in zip(reserves, underlying_prices)]
+    reserves = [(r*p)//UNDERLYING_PRICE_PRECISION for (r, p)
+                in zip(reserves, underlying_prices)]
 
     in_reserve = reserves[i_token_in]
     out_reserve = reserves[i_token_out]
@@ -23,15 +26,16 @@ def estimate_amount_out(amp: int,
     if amount_in == 0 or in_reserve == 0 or out_reserve == 0:
         return 0
 
+    dx = amount_in * \
+        underlying_prices[i_token_in] // UNDERLYING_PRICE_PRECISION
+
     out_reserve_after = curve.y(
-        amp, reserves, i_token_in, i_token_out, amount_in)
+        amp, reserves, i_token_in, i_token_out, dx)
 
-    dy = out_reserve - out_reserve_after
+    dy = (out_reserve - out_reserve_after) * \
+        UNDERLYING_PRICE_PRECISION // underlying_prices[i_token_out]
 
-    amount_out = dy * \
-        underlying_prices[i_token_in] // underlying_prices[i_token_out]
-
-    return amount_out
+    return dy
 
 
 def estimate_withdraw_one_token(shares: int,
@@ -41,7 +45,8 @@ def estimate_withdraw_one_token(shares: int,
                                 underlying_prices: List[int],
                                 liquidity_fees_percent_base_pts: int):
     N = len(reserves)
-    xp = [(r*p)//10**18 for (r, p) in zip(reserves, underlying_prices)]
+    xp = [(r*p)//UNDERLYING_PRICE_PRECISION for (r, p)
+          in zip(reserves, underlying_prices)]
 
     # Calculate d0 and d1
     d0 = curve.D(amp, xp)
@@ -85,7 +90,8 @@ def estimate_deposit(deposits: List[int],
     Note that +reserves+ and +deposits+ must be normalized (same number of decimals)
     """
 
-    old_xs = [(r*p)//10**18 for (r, p) in zip(reserves, underlying_prices)]
+    old_xs = [(r*p)//UNDERLYING_PRICE_PRECISION for (r, p)
+              in zip(reserves, underlying_prices)]
 
     d0 = 0
     if lp_total_supply > 0:
