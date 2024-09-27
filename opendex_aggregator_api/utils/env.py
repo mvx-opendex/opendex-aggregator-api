@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 
 def mvx_gateway_url():
@@ -27,6 +28,17 @@ def sc_address_hatom_staking():
 
 def sc_address_onedex_swap():
     return os.environ.get('SC_ADDRESS_ONEDEX_SWAP', None)
+
+
+def sc_addresses_opendex_deployers() -> List[str]:
+    value = os.environ.get('SC_ADDRESSES_OPENDEX_DEPLOYERS', None)
+
+    addresses = []
+
+    if value:
+        addresses.extend(value.split(','))
+
+    return addresses
 
 
 def sc_address_system_tokens():

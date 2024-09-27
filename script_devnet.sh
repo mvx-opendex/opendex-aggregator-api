@@ -8,18 +8,18 @@ else
     exit 1
 fi
 
-export GATEWAY_URL=http://jex-observer-squad:8079
-export PUBLIC_GATEWAY_URL=https://gateway.multiversx.com
+export GATEWAY_URL=https://devnet-gateway.multiversx.com
+export PUBLIC_GATEWAY_URL=https://devnet-gateway.multiversx.com
 export REDIS_HOST=localhost
-export ROUTER_POOLS_DIR=${HOME}/jex-router-pools/pools
-export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgq360nakqgsp5zkmguptucpjy6n4n3du7e5snsd2swzq
-export SC_ADDRESS_HATOM_STAKING=erd1qqqqqqqqqqqqqpgq4gzfcw7kmkjy8zsf04ce6dl0auhtzjx078sslvrf4e
-export SC_ADDRESS_JEX_LP_DEPLOYER=erd1qqqqqqqqqqqqqpgqpz4skj4q0kwndpp0a5n52328xchee6rs6avsqfytay
-export SC_ADDRESS_ONEDEX_SWAP=erd1qqqqqqqqqqqqqpgqqz6vp9y50ep867vnr296mqf3dduh6guvmvlsu3sujc
+export ROUTER_POOLS_DIR=
+export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgqqjyq5g07fsh7a5wsvc4fugu8n2v9vcer6avsr4s62v
+export SC_ADDRESS_HATOM_STAKING=
+export SC_ADDRESS_JEX_LP_DEPLOYER=
+export SC_ADDRESS_ONEDEX_SWAP=
 export SC_ADDRESS_SYSTEM_TOKENS=erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
-export SC_ADDRESS_VESTADEX_ROUTER=erd1qqqqqqqqqqqqqpgq8vem4kq208phuhny9gfy9qza47np63gq0a0s7edevj
-export SC_ADDRESS_VESTAX_STAKING=erd1qqqqqqqqqqqqqpgqawus4zu5w2frmhh9rscjqnu9x6msfjya2d2sfw7tsn
-export SC_ADDRESSES_OPENDEX_DEPLOYERS=
+export SC_ADDRESS_VESTADEX_ROUTER=
+export SC_ADDRESS_VESTAX_STAKING=
+export SC_ADDRESSES_OPENDEX_DEPLOYERS=erd1qqqqqqqqqqqqqpgquenuwz852khuxcau49md27wk2qp03v4s6avsdvmxkc
 
 if [ -z "${NB_WORKERS}" ]; then export NB_WORKERS=2; fi
 
@@ -36,8 +36,8 @@ do_start() {
         --workers ${NB_WORKERS} \
         --bind 0.0.0.0:3002 \
         --log-level error \
-        --log-file log_mainnet \
-        --access-logfile log_mainnet \
+        --log-file log_devnet \
+        --access-logfile log_devnet \
         --capture-output \
         --daemon --pid pid
 }
@@ -61,7 +61,7 @@ then
         do_start
     elif [ $1 = "--dev" ]
     then
-        GATEWAY_URL=https://api.multiversx.com \
+        GATEWAY_URL=https://devnet-api.multiversx.com \
             uvicorn opendex_aggregator_api.main:app --host 0.0.0.0 --port 3002 --log-level debug --reload
     elif [ $1 = "--info" ] || [ $1 = "--status" ]
     then

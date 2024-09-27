@@ -14,11 +14,11 @@ from opendex_aggregator_api.data.constants import (
     SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2, SC_TYPE_EXROND,
     SC_TYPE_HATOM_MONEY_MARKET_MINT, SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
     SC_TYPE_HATOM_STAKE, SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
-    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_ONEDEX, SC_TYPE_VESTADEX,
-    SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
+    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_ONEDEX, SC_TYPE_OPENDEX_LP,
+    SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools)
-from opendex_aggregator_api.data.model import VestaDexPool
+from opendex_aggregator_api.data.model import OpendexPair, VestaDexPool
 from opendex_aggregator_api.pools.model import SwapPool
 from opendex_aggregator_api.pools.pools import (AshSwapPoolV2,
                                                 ConstantPricePool,
@@ -28,6 +28,7 @@ from opendex_aggregator_api.pools.pools import (AshSwapPoolV2,
                                                 JexStableSwapPool,
                                                 JexStableSwapPoolDeposit,
                                                 OneDexConstantProductPool,
+                                                OpendexConstantProductPool,
                                                 StableSwapPool,
                                                 VestaDexConstantProductPool,
                                                 XExchangeConstantProductPool)
@@ -40,6 +41,7 @@ from opendex_aggregator_api.services.parsers.jexchange import (
     parse_jex_cp_lp_status, parse_jex_deployed_contract,
     parse_jex_stablepool_status)
 from opendex_aggregator_api.services.parsers.onedex import parse_onedex_pair
+from opendex_aggregator_api.services.parsers.opendex import parse_opendex_pool
 from opendex_aggregator_api.services.parsers.vestadex import \
     parse_vestadex_view_pools
 from opendex_aggregator_api.services.parsers.xexchange import \
@@ -56,7 +58,8 @@ from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_jex_lp_deployer,
                                               sc_address_onedex_swap,
                                               sc_address_vestadex_router,
-                                              sc_address_vestax_staking)
+                                              sc_address_vestax_staking,
+                                              sc_addresses_opendex_deployers)
 from opendex_aggregator_api.utils.redis_utils import redis_lock_and_do
 
 _must_stop = False
@@ -101,18 +104,19 @@ def loop():
 
 async def _sync_all_pools():
     functions = [
-        _sync_onedex_pools,
-        _sync_xexchange_pools,
-        _sync_ashswap_stable_pools,
-        _sync_ashswap_v2_pools,
-        _sync_jex_cp_pools,
-        _sync_jex_stablepools,
-        _sync_exrond_pools,
-        _sync_other_router_pools,
-        _sync_vestadex_pools,
-        _sync_vestax_staking_pool,
-        _sync_hatom_staking_pool,
-        _sync_hatom_money_markets
+        # _sync_onedex_pools,
+        # _sync_xexchange_pools,
+        # _sync_ashswap_stable_pools,
+        # _sync_ashswap_v2_pools,
+        # _sync_jex_cp_pools,
+        # _sync_jex_stablepools,
+        # _sync_exrond_pools,
+        # _sync_other_router_pools,
+        # _sync_vestadex_pools,
+        # _sync_vestax_staking_pool,
+        # _sync_hatom_staking_pool,
+        # _sync_hatom_money_markets,
+        _sync_opendex_pools
     ]
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
@@ -124,6 +128,7 @@ async def _sync_all_pools():
     for task, result in zip(tasks, results):
         if result is None:
             logging.info(f'{task.get_name()} -> failed')
+            continue
 
         logging.info(f'{task.get_name()} -> {len(result)} swap pools')
 
@@ -989,6 +994,108 @@ async def _sync_other_router_pools() -> List[SwapPool]:
             swap_pools.extend([SwapPool.model_validate(x) for x in pools])
 
     logging.info('Loading pools from jex-router-pools - done')
+
+    return swap_pools
+
+
+async def _sync_opendex_pools() -> List[SwapPool]:
+    logging.info('Loading pools from opendex instances')
+
+    deployer_sc_addresses = sc_addresses_opendex_deployers()
+    if len(deployer_sc_addresses) == 0:
+        logging.info('Opendex deployers not set -> skip')
+        return []
+
+    swap_pools = []
+
+    results = await asyncio.gather(*[_sync_opendex_pools_from_deployer(x)
+                                     for x in deployer_sc_addresses])
+
+    for deployer_sc_address, result in zip(deployer_sc_addresses, results):
+        if result is None:
+            logging.info(
+                f'Loading Opendex pools from {deployer_sc_address} -> failed')
+
+        logging.info(
+            f'Opendex {deployer_sc_address} -> {len(result)} swap pools')
+
+        swap_pools.extend(result)
+
+    return swap_pools
+
+
+async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[SwapPool]:
+
+    swap_pools = []
+
+    op_pairs: List[OpendexPair] = []
+
+    async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
+
+        from_ = 0
+        size = 100
+        done = False
+
+        while not done:
+            res = await async_sc_query(http_client,
+                                       deployer_sc_address,
+                                       function='getPairs',
+                                       args=[from_, size])
+
+            if res is None:
+                logging.error(
+                    f'Error fetching Opendex pools ({deployer_sc_address})')
+                done = True
+                break
+
+            opendex_pairs = [parse_opendex_pool(x) for x in res]
+
+            op_pairs.extend(opendex_pairs)
+
+            if len(opendex_pairs) < size:
+                done = True
+
+    logging.info(f'Opendex: pairs before filter {len(op_pairs)}')
+
+    op_pairs = [p for p in op_pairs
+                if not p.paused
+                and _is_pair_valid([(p.first_token_id, p.first_token_reserve),
+                                    (p.second_token_id, p.second_token_reserve)])]
+
+    logging.info(f'Opendex: pairs after filter {len(op_pairs)}')
+
+    for pair in op_pairs:
+
+        token_ids = [pair.first_token_id, pair.second_token_id]
+
+        first_token = get_or_fetch_token(pair.first_token_id)
+
+        second_token = get_or_fetch_token(pair.second_token_id)
+
+        if pair.fee_token_id:
+            fee_token = get_or_fetch_token(pair.fee_token_id)
+        else:
+            fee_token = None
+
+        pool = OpendexConstantProductPool(first_token=first_token,
+                                          first_token_reserves=pair.first_token_reserve,
+                                          lp_token_supply=pair.lp_token_supply,
+                                          second_token=second_token,
+                                          second_token_reserves=pair.second_token_reserve,
+                                          total_fee_percent=pair.total_fee_percent,
+                                          platform_fee_percent=pair.platform_fee_percent,
+                                          fee_token=fee_token)
+
+        swap_pools.append(SwapPool(name=f'Opendex',
+                                   sc_address=pair.sc_address,
+                                   tokens_in=token_ids,
+                                   tokens_out=token_ids,
+                                   type=SC_TYPE_OPENDEX_LP))
+
+        set_dex_aggregator_pool(
+            pair.sc_address, first_token.identifier, second_token.identifier, pool)
+        set_dex_aggregator_pool(
+            pair.sc_address, second_token.identifier, first_token.identifier, pool)
 
     return swap_pools
 

@@ -88,6 +88,23 @@ class OneDexPair(BaseModel):
     total_fee_percentage: int
 
 
+class OpendexPair(BaseModel):
+    sc_address: str
+    owner: str
+    paused: bool
+    first_token_id: str
+    first_token_reserve: int
+    second_token_id: str
+    second_token_reserve: int
+    lp_token_id: str
+    lp_token_mint_burn_enabled: bool
+    lp_token_supply: int
+    total_fee_percent: int
+    platform_fee_percent: int
+    platform_fee_receiver: str
+    fee_token_id: Optional[str]
+
+
 class VestaDexPool(BaseModel):
     first_token_id: str
     first_token_reserve: str
