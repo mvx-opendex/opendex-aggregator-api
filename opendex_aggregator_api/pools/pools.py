@@ -687,7 +687,7 @@ class OpendexConstantProductPool(ConstantProductPool):
         platform_fee_in = 0
         platform_fee_out = 0
 
-        if self.fee_token and token_in.identifier == self.fee_token:
+        if self.fee_token and token_in.identifier == self.fee_token.identifier:
             lp_fee, platform_fee_in = self._calculate_fees(amount_in)
 
             amount_in_less_fees = amount_in - lp_fee - platform_fee_in
@@ -695,15 +695,12 @@ class OpendexConstantProductPool(ConstantProductPool):
             net_amount_out = (
                 amount_in_less_fees * out_reserve_before) // (in_reserve_before + amount_in_less_fees)
         else:
-            amount_out = (amount_in * out_reserve_before) / \
+            amount_out = (amount_in * out_reserve_before) // \
                 (in_reserve_before + amount_in)
 
             lp_fee, platform_fee_out = self._calculate_fees(amount_out)
 
             net_amount_out = amount_out - lp_fee - platform_fee_out
-
-        if amount_out > out_reserve_before:
-            raise ValueError(f'Amount to swap to big {amount_in}')
 
         return net_amount_out, platform_fee_in, platform_fee_out
 
