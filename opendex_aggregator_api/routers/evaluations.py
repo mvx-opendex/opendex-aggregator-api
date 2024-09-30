@@ -99,9 +99,9 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
     else:
         slippage_percent = 0
 
-    tx_payload = e.build_tx_payload()
+    amounts_and_routes_payload = e.build_amounts_and_routes_payload()
 
-    estimated_tx_fee_egld = gas_svc.calculate_tx_fee_egld(data=tx_payload,
+    estimated_tx_fee_egld = gas_svc.calculate_tx_fee_egld(data=amounts_and_routes_payload,
                                                           estimated_gas=e.estimated_gas)
 
     return StaticRouteSwapEvaluationOut(amount_in=str(e.amount_in),
@@ -121,7 +121,7 @@ def _adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
                                         theorical_amount_out=str(
                                             e.theorical_amount_out),
                                         theorical_human_amount_out=theorical_human_amount_out,
-                                        tx_payload=tx_payload)
+                                        amounts_and_routes_payload=amounts_and_routes_payload)
 
 
 def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluationOut:
@@ -133,9 +133,9 @@ def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluatio
     rate = human_amount_in / net_human_amount_out
     rate2 = net_human_amount_out / human_amount_in
 
-    tx_payload = e.build_tx_payload()
+    amounts_and_routes_payload = e.build_amounts_and_routes_payload()
 
-    estimated_tx_fee_egld = gas_svc.calculate_tx_fee_egld(data=tx_payload,
+    estimated_tx_fee_egld = gas_svc.calculate_tx_fee_egld(data=amounts_and_routes_payload,
                                                           estimated_gas=e.estimated_gas)
 
     return DynamicRouteSwapEvaluationOut(amount_in=str(e.amount_in),
@@ -149,4 +149,4 @@ def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluatio
                                                 for x in e.evaluations],
                                          rate=rate,
                                          rate2=rate2,
-                                         tx_payload=tx_payload)
+                                         amounts_and_routes_payload=amounts_and_routes_payload)

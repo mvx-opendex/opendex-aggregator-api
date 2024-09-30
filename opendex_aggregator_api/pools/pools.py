@@ -17,7 +17,7 @@ def find(function_: Callable[[Any], bool], iter_: Iterable[Any]) -> Tuple[int, O
 
 class AbstractPool:
 
-    def deep_copy(self):
+    def deep_copy(self) -> 'AbstractPool':
         raise NotImplementedError()
 
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:

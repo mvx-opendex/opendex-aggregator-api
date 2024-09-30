@@ -76,24 +76,13 @@ class SwapEvaluation(BaseModel):
     route: SwapRoute
     theorical_amount_out: int
 
-    def build_tx_payload(self) -> str:
+    def build_amounts_and_routes_payload(self) -> str:
 
-        tx_payload = 'ESDTTransfer@'
-        tx_payload += str2hex(self.route.token_in)
-        tx_payload += '@'
-        tx_payload += int2hex_even_size(self.amount_in)
-        tx_payload += '@'
-        tx_payload += str2hex('aggregate')
-        tx_payload += '@'
-        tx_payload += str2hex(self.route.token_out)
-        tx_payload += '@'
-        tx_payload += int2hex_even_size(self.net_amount_out * 9975 // 10_000)
-        tx_payload += '@'
-        tx_payload += int2hex_even_size(self.amount_in)
-        tx_payload += '@'
-        tx_payload += self.route.serialize().hex()
+        amounts_and_routes_payload = int2hex_even_size(self.amount_in)
+        amounts_and_routes_payload += '@'
+        amounts_and_routes_payload += self.route.serialize().hex()
 
-        return tx_payload
+        return amounts_and_routes_payload
 
 
 class DynamicRoutingSwapEvaluation(BaseModel):
@@ -114,28 +103,16 @@ class DynamicRoutingSwapEvaluation(BaseModel):
 """
         return s
 
-    def build_tx_payload(self) -> str:
+    def build_amounts_and_routes_payload(self) -> str:
         if len(self.evaluations) == 0:
             return ''
 
-        token_in = self.evaluations[0].route.token_in
-        token_out = self.evaluations[0].route.token_out
-
-        tx_payload = 'ESDTTransfer@'
-        tx_payload += str2hex(token_in)
-        tx_payload += '@'
-        tx_payload += int2hex_even_size(self.amount_in)
-        tx_payload += '@'
-        tx_payload += str2hex('aggregate')
-        tx_payload += '@'
-        tx_payload += str2hex(token_out)
-        tx_payload += '@'
-        tx_payload += int2hex_even_size(self.net_amount_out * 9975 // 10_000)
+        amounts_and_routes_payload = ''
 
         for e in self.evaluations:
-            tx_payload += '@'
-            tx_payload += int2hex_even_size(e.amount_in)
-            tx_payload += '@'
-            tx_payload += e.route.serialize().hex()
+            amounts_and_routes_payload += int2hex_even_size(e.amount_in)
+            amounts_and_routes_payload += '@'
+            amounts_and_routes_payload += e.route.serialize().hex()
+            amounts_and_routes_payload += '@'
 
-        return tx_payload
+        return amounts_and_routes_payload

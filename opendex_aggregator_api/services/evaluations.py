@@ -17,8 +17,8 @@ from opendex_aggregator_api.services.tokens import (WEGLD_IDENTIFIER,
 from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_aggregator)
 
-FEE_MULTIPLIER = 0.0001  # 0.01%
-FEE_MULTIPLIER = 0
+FEE_MULTIPLIER = 5  # 0.005%
+MAX_FEE = 100_000
 
 
 async def evaluate(route: SwapRoute,
@@ -68,9 +68,9 @@ def evaluate_offline(route: SwapRoute,
         pool = pool.deep_copy()
         pools_cache[pool_cache_key] = pool
 
-        if hop.token_in == WEGLD_IDENTIFIER:
-            fee_amount = int(amount * FEE_MULTIPLIER)
-            fee_token = WEGLD_IDENTIFIER
+        if hop.token_in.startswith('WEGLD-'):
+            fee_amount = amount * FEE_MULTIPLIER // MAX_FEE
+            fee_token = hop.token_in
             amount -= fee_amount
             theorical_amount -= fee_amount
 
@@ -105,8 +105,8 @@ def evaluate_offline(route: SwapRoute,
         raise ValueError(
             f'Invalid output token after swaps [{token}] != [{route.token_out}]')
 
-    if fee_amount is None:
-        fee_amount = int(amount * FEE_MULTIPLIER)
+    if fee_amount == 0:
+        fee_amount = amount * FEE_MULTIPLIER // MAX_FEE
         fee_token = token
         amount -= fee_amount
 
