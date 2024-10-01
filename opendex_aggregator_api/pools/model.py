@@ -107,12 +107,5 @@ class DynamicRoutingSwapEvaluation(BaseModel):
         if len(self.evaluations) == 0:
             return ''
 
-        amounts_and_routes_payload = ''
-
-        for e in self.evaluations:
-            amounts_and_routes_payload += int2hex_even_size(e.amount_in)
-            amounts_and_routes_payload += '@'
-            amounts_and_routes_payload += e.route.serialize().hex()
-            amounts_and_routes_payload += '@'
-
-        return amounts_and_routes_payload
+        return '@'.join((int2hex_even_size(e.amount_in) + '@' + e.route.serialize().hex()
+                        for e in self.evaluations))
