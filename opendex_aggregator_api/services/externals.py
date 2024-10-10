@@ -65,6 +65,8 @@ def _decode_json(json_) -> Optional[List[str]]:
                 res = None
             else:
                 res = [base64.b64decode(x).hex() for x in rdata]
+                if res == []:
+                    print(json_)
         else:
             res = None
     except:
