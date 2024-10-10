@@ -234,6 +234,7 @@ async def _sync_onedex_pools() -> List[SwapPool]:
         size = 500
 
         while not done:
+            print('viewPairsPaginated', from_, size)
             res = await async_sc_query(http_client,
                                        sc_address,
                                        function='viewPairsPaginated',
