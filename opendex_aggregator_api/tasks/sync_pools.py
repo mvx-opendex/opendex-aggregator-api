@@ -231,7 +231,7 @@ async def _sync_onedex_pools() -> List[SwapPool]:
         all_pairs = []
         done = False
         from_ = 0
-        size = 500
+        size = 100
 
         while not done:
             res = await async_sc_query(http_client,
