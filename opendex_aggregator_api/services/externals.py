@@ -57,7 +57,6 @@ def sync_sc_query(sc_address: str,
 
 def _decode_json(json_) -> Optional[List[str]]:
     try:
-        print(json_)
         code = json_['code']
 
         if code == 'successful':
