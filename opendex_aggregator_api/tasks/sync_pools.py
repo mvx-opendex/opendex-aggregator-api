@@ -522,7 +522,7 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
 
     sc_deployer = sc_address_jex_lp_deployer()
     if sc_deployer is None:
-        logging.info('OneDex swap SC address not set -> skip')
+        logging.info('JEX LP deployer SC address not set -> skip')
         return []
 
     swap_pools = []
@@ -531,11 +531,14 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
 
         res = await async_sc_query(http_client, sc_deployer, 'getAllContracts')
 
-        if res is not None:
-            contracts = [parse_jex_deployed_contract(r) for r in res]
-            sc_addresses = [x.sc_address
-                            for x in contracts
-                            if x.sc_type == 1]
+        if res is None:
+            logging.error('Error fetching JEX stable pools')
+            return []
+
+        contracts = [parse_jex_deployed_contract(r) for r in res]
+        sc_addresses = [x.sc_address
+                        for x in contracts
+                        if x.sc_type == 1]
 
         nb_pools = 0
 
