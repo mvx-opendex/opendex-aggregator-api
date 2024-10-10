@@ -239,9 +239,8 @@ async def _sync_onedex_pools() -> List[SwapPool]:
                                        sc_address,
                                        function='viewPairsPaginated',
                                        args=[from_, size])
-            print('res', res)
 
-            if res is not None:
+            if res is not None and len(res) > 0:
                 pairs = [parse_onedex_pair(r) for r in res]
                 all_pairs.extend(pairs)
             else:
