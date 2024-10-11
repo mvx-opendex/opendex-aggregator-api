@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from multiversx_sdk_core import Address
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from opendex_aggregator_api.data.constants import SC_TYPES
 from opendex_aggregator_api.pools.model import SwapRoute
@@ -81,3 +81,10 @@ class SwapRouteOut(BaseModel):
         for hop in self.hops:
             str_ += hop.serialize()
         return str_
+
+
+class TokenOut(BaseModel):
+    decimals: int
+    identifier: str
+    is_lp_token: Optional[bool] = Field(..., serialization_alias='isLpToken')
+    name: str

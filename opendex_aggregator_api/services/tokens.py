@@ -10,16 +10,18 @@ from opendex_aggregator_api.utils.convert import hex2str
 from opendex_aggregator_api.utils.env import sc_address_system_tokens
 from opendex_aggregator_api.utils.redis_utils import redis_get_or_set_cache
 
-TOKENS: List[Esdt] = []
-
 JEX_IDENTIFIER = 'JEX-9040ca'
 USDC_IDENTIFIER = 'USDC-c76f1f'
 WEGLD_IDENTIFIER = 'WEGLD-bd4d79'
 
+_LOCAL_CACHE = {}
+
 
 def token_from_identifier(token_identifier) -> Optional[Esdt]:
-    return next((x for x in TOKENS
-                 if x.identifier == token_identifier), None)
+    if token_identifier in _LOCAL_CACHE:
+        return _LOCAL_CACHE[token_identifier]
+    else:
+        return None
 
 
 def get_or_fetch_token(identifier: str) -> Esdt:
@@ -28,7 +30,6 @@ def get_or_fetch_token(identifier: str) -> Esdt:
     if token is None:
         token = fetch_token(identifier,
                             cooldown_fetch=timedelta(seconds=0.25))
-        TOKENS.append(token)
 
     return token
 

@@ -3,8 +3,9 @@ import base64
 import json
 import pickle
 from datetime import timedelta
-from typing import List
+from typing import List, Optional
 
+from opendex_aggregator_api.data.model import Esdt
 from opendex_aggregator_api.pools.model import SwapPool
 from opendex_aggregator_api.pools.pools import AbstractPool
 from opendex_aggregator_api.utils.redis_utils import redis_get, redis_set
@@ -34,3 +35,14 @@ def set_dex_aggregator_pool(sc_address: str, token_in: str, token_out: str, pool
     redis_set(key,
               base64.b64encode(pickle.dumps(pool)),
               timedelta(seconds=60))
+
+
+def get_tokens() -> Optional[List[Esdt]]:
+    return redis_get('tokens',
+                     lambda json_: [Esdt.model_validate(x) for x in json_])
+
+
+def set_tokens(tokens: List[Esdt]):
+    redis_set('tokens',
+              tokens,
+              timedelta(hours=6))
