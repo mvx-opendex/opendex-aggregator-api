@@ -38,6 +38,9 @@ class Esdt(BaseModel):
     name: str
     is_lp_token: Optional[bool]
 
+    def __hash__(self):
+        return hash(self.identifier)
+
 
 class JexCpLpStatus(BaseModel):
     sc_address: str

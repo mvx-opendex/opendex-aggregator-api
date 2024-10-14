@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from itertools import product
 from time import sleep
-from typing import Callable, List, Tuple
+from typing import Callable, List, Set, Tuple
 
 import aiohttp
 from multiversx_sdk_core import Address
@@ -64,7 +64,7 @@ from opendex_aggregator_api.utils.redis_utils import redis_lock_and_do
 
 _must_stop = False
 _ready = False
-_all_tokens: List[Esdt] = []
+_all_tokens: Set[Esdt] = set()
 
 
 def is_ready() -> bool:
@@ -138,7 +138,7 @@ async def _sync_all_pools():
         swap_pools.extend(result)
 
     set_swap_pools(swap_pools)
-    set_tokens(_all_tokens)
+    set_tokens([x for x in _all_tokens])
 
     _all_tokens.clear()
 
@@ -183,8 +183,8 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
         first_token = get_or_fetch_token(lp_status.first_token_id)
         second_token = get_or_fetch_token(lp_status.second_token_id)
 
-        _all_tokens.append(first_token)
-        _all_tokens.append(second_token)
+        _all_tokens.add(first_token)
+        _all_tokens.add(second_token)
 
         if first_token is None or second_token is None:
             continue
@@ -273,8 +273,8 @@ async def _sync_onedex_pools() -> List[SwapPool]:
         first_token = get_or_fetch_token(pair.first_token_identifier)
         second_token = get_or_fetch_token(pair.second_token_identifier)
 
-        _all_tokens.append(first_token)
-        _all_tokens.append(second_token)
+        _all_tokens.add(first_token)
+        _all_tokens.add(second_token)
 
         if first_token is None or second_token is None:
             continue
@@ -332,7 +332,7 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
                 tokens = [get_or_fetch_token(x)
                           for x in status.tokens]
 
-                _all_tokens.extend(tokens)
+                _all_tokens.update(tokens)
 
                 if tokens.count(None) > 0:
                     continue
@@ -393,7 +393,7 @@ async def _sync_ashswap_v2_pools() -> List[SwapPool]:
                 tokens = [get_or_fetch_token(x)
                           for x in status.tokens]
 
-                _all_tokens.extend(tokens)
+                _all_tokens.update(tokens)
 
                 if tokens.count(None) > 0:
                     continue
@@ -484,9 +484,9 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             lp_token = get_or_fetch_token(lp_status.lp_token_identifier)
             lp_token.is_lp_token = True
 
-            _all_tokens.append(first_token)
-            _all_tokens.append(second_token)
-            _all_tokens.append(lp_token)
+            _all_tokens.add(first_token)
+            _all_tokens.add(second_token)
+            _all_tokens.add(lp_token)
 
             pool = JexConstantProductPool(
                 fees_percent_base_pts=lp_fees_percent_base_pts,
@@ -586,8 +586,8 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
             lp_token = get_or_fetch_token(lp_status.lp_token_identifier)
             lp_token.is_lp_token = True
 
-            _all_tokens.extend(tokens)
-            _all_tokens.append(lp_token)
+            _all_tokens.update(tokens)
+            _all_tokens.add(lp_token)
 
             lp_token_supply = int(lp_status.lp_token_supply)
 
@@ -696,8 +696,8 @@ async def _sync_exrond_pools() -> List[SwapPool]:
                 pair['secondToken']['identifier'])
             lp_token_identifier: str = pair['liquidityPoolToken']['identifier']
 
-            _all_tokens.append(first_token)
-            _all_tokens.append(second_token)
+            _all_tokens.add(first_token)
+            _all_tokens.add(second_token)
 
             if first_token is None or second_token is None:
                 continue
@@ -789,8 +789,8 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
         first_token = get_or_fetch_token(pair.first_token_id)
         second_token = get_or_fetch_token(pair.second_token_id)
 
-        _all_tokens.append(first_token)
-        _all_tokens.append(second_token)
+        _all_tokens.add(first_token)
+        _all_tokens.add(second_token)
 
         if first_token is None or second_token is None:
             continue
@@ -849,8 +849,8 @@ async def _sync_vestax_staking_pool() -> List[SwapPool]:
         token_in = get_or_fetch_token(WEGLD_IDENTIFIER)
         token_out = get_or_fetch_token('VEGLD-2b9319')
 
-        _all_tokens.append(token_in)
-        _all_tokens.append(token_out)
+        _all_tokens.add(token_in)
+        _all_tokens.add(token_out)
 
         pool = ConstantPricePool(egld_price,
                                  token_in=token_in,
@@ -897,8 +897,8 @@ async def _sync_hatom_staking_pool() -> List[SwapPool]:
         token_in = get_or_fetch_token(WEGLD_IDENTIFIER)
         token_out = get_or_fetch_token('SEGLD-3ad2d0')
 
-        _all_tokens.append(token_in)
-        _all_tokens.append(token_out)
+        _all_tokens.add(token_in)
+        _all_tokens.add(token_out)
 
         pool = ConstantPricePool(egld_price, token_in=token_in, token_out=token_out,
                                  token_out_reserve=999*10**token_out.decimals)
@@ -964,8 +964,8 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
                 if mm.underlying_id == 'EGLD' \
                 else get_or_fetch_token(mm.underlying_id)
 
-            _all_tokens.append(h_token)
-            _all_tokens.append(underlying_token)
+            _all_tokens.add(h_token)
+            _all_tokens.add(underlying_token)
 
             if h_token is None or underlying_token is None:
                 continue
@@ -1115,8 +1115,8 @@ async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[Sw
         first_token = get_or_fetch_token(pair.first_token_id)
         second_token = get_or_fetch_token(pair.second_token_id)
 
-        _all_tokens.append(first_token)
-        _all_tokens.append(second_token)
+        _all_tokens.add(first_token)
+        _all_tokens.add(second_token)
 
         if pair.fee_token_id:
             fee_token = get_or_fetch_token(pair.fee_token_id)
