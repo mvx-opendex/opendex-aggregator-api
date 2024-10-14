@@ -140,9 +140,10 @@ async def _sync_all_pools():
     set_swap_pools(swap_pools)
     set_tokens([x for x in _all_tokens])
 
-    _all_tokens.clear()
-
     logging.info(f'Nb swap pools: {len(swap_pools)} (total)')
+    logging.info(f'Nb tokens: {len(_all_tokens)} (total)')
+
+    _all_tokens.clear()
 
 
 async def _safely_do(function_: Callable[..., None]) -> List[SwapPool]:
