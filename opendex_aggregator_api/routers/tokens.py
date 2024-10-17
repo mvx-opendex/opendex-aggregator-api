@@ -22,4 +22,5 @@ def _adapt_token(x: Esdt) -> TokenOut:
     return TokenOut(decimals=x.decimals,
                     identifier=x.identifier,
                     name=x.name,
-                    is_lp_token=x.is_lp_token)
+                    is_lp_token=x.is_lp_token,
+                    exchange=x.exchange)

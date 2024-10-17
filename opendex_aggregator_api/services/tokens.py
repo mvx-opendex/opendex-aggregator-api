@@ -24,17 +24,23 @@ def token_from_identifier(token_identifier) -> Optional[Esdt]:
         return None
 
 
-def get_or_fetch_token(identifier: str) -> Esdt:
+def get_or_fetch_token(identifier: str,
+                       is_lp_token: bool = False,
+                       exchange: Optional[str] = None) -> Esdt:
     token = token_from_identifier(identifier)
 
     if token is None:
         token = fetch_token(identifier,
+                            is_lp_token,
+                            exchange,
                             cooldown_fetch=timedelta(seconds=0.25))
 
     return token
 
 
 def fetch_token(identifier: str,
+                is_lp_token: bool,
+                exchange: Optional[str],
                 cooldown_fetch: timedelta) -> Esdt:
 
     def _do():
@@ -52,7 +58,8 @@ def fetch_token(identifier: str,
         return Esdt(decimals=decimals,
                     identifier=identifier,
                     name=identifier.split('-')[0],
-                    is_lp_token=None)
+                    is_lp_token=is_lp_token,
+                    exchange=exchange)
 
     cache_key = f'esdt_{identifier}'
     cache_ttl = timedelta(hours=120 + random.randint(0, 72))

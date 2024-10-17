@@ -37,6 +37,7 @@ class Esdt(BaseModel):
     identifier: str
     name: str
     is_lp_token: Optional[bool]
+    exchange: Optional[str]
 
     def __hash__(self):
         return hash(self.identifier)

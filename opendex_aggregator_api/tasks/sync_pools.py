@@ -482,8 +482,9 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             second_token_reserves = int(lp_status.second_token_reserve)
             lp_token_supply = int(lp_status.lp_token_supply)
 
-            lp_token = get_or_fetch_token(lp_status.lp_token_identifier)
-            lp_token.is_lp_token = True
+            lp_token = get_or_fetch_token(lp_status.lp_token_identifier,
+                                          is_lp_token=True,
+                                          exchange='jexchange')
 
             _all_tokens.add(first_token)
             _all_tokens.add(second_token)
@@ -584,8 +585,9 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
             reserves = [int(x) for x in lp_status.reserves]
             underlying_prices = [int(x) for x in lp_status.underlying_prices]
 
-            lp_token = get_or_fetch_token(lp_status.lp_token_identifier)
-            lp_token.is_lp_token = True
+            lp_token = get_or_fetch_token(lp_status.lp_token_identifier,
+                                          is_lp_token=True,
+                                          exchange='jexchange')
 
             _all_tokens.update(tokens)
             _all_tokens.add(lp_token)

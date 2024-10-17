@@ -88,3 +88,4 @@ class TokenOut(BaseModel):
     identifier: str
     is_lp_token: Optional[bool] = Field(..., serialization_alias='isLpToken')
     name: str
+    exchange: Optional[str]
