@@ -21,6 +21,7 @@ async def get_tokens(response: Response) -> List[TokenOut]:
 def _adapt_token(x: Esdt) -> TokenOut:
     return TokenOut(decimals=x.decimals,
                     identifier=x.identifier,
+                    ticker=x.ticker,
                     name=x.name,
                     is_lp_token=x.is_lp_token,
                     exchange=x.exchange)

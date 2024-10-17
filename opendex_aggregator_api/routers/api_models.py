@@ -86,6 +86,7 @@ class SwapRouteOut(BaseModel):
 class TokenOut(BaseModel):
     decimals: int
     identifier: str
+    ticker: str
     is_lp_token: Optional[bool] = Field(..., serialization_alias='isLpToken')
     name: str
     exchange: Optional[str]
