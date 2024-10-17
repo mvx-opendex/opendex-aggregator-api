@@ -35,6 +35,7 @@ class AshSwapV2PoolStatus(BaseModel):
 class Esdt(BaseModel):
     decimals: int
     identifier: str
+    ticker: str
     name: str
     is_lp_token: Optional[bool]
     exchange: Optional[str]

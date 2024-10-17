@@ -26,13 +26,15 @@ def token_from_identifier(token_identifier) -> Optional[Esdt]:
 
 def get_or_fetch_token(identifier: str,
                        is_lp_token: bool = False,
-                       exchange: Optional[str] = None) -> Esdt:
+                       exchange: Optional[str] = None,
+                       custom_name: Optional[str] = None) -> Esdt:
     token = token_from_identifier(identifier)
 
     if token is None:
         token = fetch_token(identifier,
                             is_lp_token,
                             exchange,
+                            custom_name,
                             cooldown_fetch=timedelta(seconds=0.25))
 
     return token
@@ -41,6 +43,7 @@ def get_or_fetch_token(identifier: str,
 def fetch_token(identifier: str,
                 is_lp_token: bool,
                 exchange: Optional[str],
+                custom_name: Optional[str],
                 cooldown_fetch: timedelta) -> Esdt:
 
     def _do():
@@ -55,9 +58,12 @@ def fetch_token(identifier: str,
 
         sleep(cooldown_fetch.total_seconds())
 
+        ticker = identifier.split('-')[0]
+
         return Esdt(decimals=decimals,
                     identifier=identifier,
-                    name=identifier.split('-')[0],
+                    ticker=ticker,
+                    name=custom_name or ticker,
                     is_lp_token=is_lp_token,
                     exchange=exchange)
 
