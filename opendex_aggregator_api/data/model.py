@@ -149,3 +149,17 @@ class HatomMoneyMarket(BaseModel):
     cash: int
     ratio_tokens_to_underlying: int
     ratio_underlying_to_tokens: int
+
+
+class ExchangeRate(BaseModel):
+    base_token_id: str
+    quote_token_id: str
+    rate: float
+    rate2: float
+    source: str
+    sc_address: str
+    base_token_liquidity: int
+    quote_token_liquidity: int
+
+    def __hash__(self):
+        return hash(f'{self.base_token_id}::{self.quote_token_id}::{self.sc_address}')

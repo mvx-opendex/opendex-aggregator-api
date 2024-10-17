@@ -18,7 +18,7 @@ from opendex_aggregator_api.data.constants import (
     SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools, set_tokens)
-from opendex_aggregator_api.data.model import Esdt, OpendexPair, VestaDexPool
+from opendex_aggregator_api.data.model import Esdt, ExchangeRate, OpendexPair, VestaDexPool
 from opendex_aggregator_api.pools.model import SwapPool
 from opendex_aggregator_api.pools.pools import (AshSwapPoolV2,
                                                 ConstantPricePool,
@@ -65,6 +65,7 @@ from opendex_aggregator_api.utils.redis_utils import redis_lock_and_do
 _must_stop = False
 _ready = False
 _all_tokens: Set[Esdt] = set()
+_all_rates: Set[ExchangeRate] = set()
 
 
 def is_ready() -> bool:
@@ -105,6 +106,7 @@ def loop():
 
 async def _sync_all_pools():
     _all_tokens.clear()
+    _all_rates.clear()
 
     functions = [
         _sync_onedex_pools,
@@ -112,10 +114,10 @@ async def _sync_all_pools():
         _sync_ashswap_stable_pools,
         _sync_ashswap_v2_pools,
         _sync_jex_cp_pools,
-        _sync_jex_stablepools,
+        # _sync_jex_stablepools,
         # _sync_exrond_pools,
         # _sync_other_router_pools,
-        # _sync_vestadex_pools,
+        _sync_vestadex_pools,
         # _sync_vestax_staking_pool,
         # _sync_hatom_staking_pool,
         # _sync_hatom_money_markets,
@@ -142,6 +144,12 @@ async def _sync_all_pools():
 
     logging.info(f'Nb swap pools: {len(swap_pools)} (total)')
     logging.info(f'Nb tokens: {len(_all_tokens)} (total)')
+    logging.info(f'Nb exchange rates: {len(_all_rates)} (total)')
+
+    print([r
+           for r in _all_rates
+           if r.base_token_id.startswith('JEX-')
+           and r.quote_token_id.startswith('WEGLD-')])
 
     _all_tokens.clear()
 
@@ -197,6 +205,8 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
                                             second_token_reserves=lp_status.second_token_reserve,
                                             total_fee_percent=lp_status.total_fee_percent,
                                             special_fee_percent=lp_status.special_fee_percent)
+
+        _all_rates.update(pool.exchange_rates(sc_address=lp_status.sc_address))
 
         swap_pools.append(SwapPool(name=f'xExchange: {first_token.name}/{second_token.name}',
                                    sc_address=lp_status.sc_address,
@@ -287,6 +297,8 @@ async def _sync_onedex_pools() -> List[SwapPool]:
                                          second_token=second_token,
                                          second_token_reserves=pair.second_token_reserve,
                                          main_pair_tokens=main_pair_tokens)
+
+        _all_rates.update(pool.exchange_rates(sc_address=sc_address))
 
         swap_pools.append(SwapPool(name=f'OneDex: {first_token.name}/{second_token.name}',
                                    sc_address=sc_address,
@@ -412,6 +424,9 @@ async def _sync_ashswap_v2_pools() -> List[SwapPool]:
                                      xp=status.xp)
                 pools.append(pool)
 
+                _all_rates.update(pool.exchange_rates(
+                    sc_address=status.sc_address))
+
                 token_ids = [t.identifier for t in tokens]
                 swap_pools.append(SwapPool(name=f"AshSwap: {'/'.join([t.name for t in tokens])}",
                                            sc_address=status.sc_address,
@@ -499,6 +514,9 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
                 lp_token_supply=lp_token_supply,
                 second_token=second_token,
                 second_token_reserves=second_token_reserves)
+
+            _all_rates.update(pool.exchange_rates(
+                sc_address=lp_status.sc_address))
 
             set_dex_aggregator_pool(
                 lp_status.sc_address, first_token.identifier, second_token.identifier, pool)
@@ -723,6 +741,8 @@ async def _sync_exrond_pools() -> List[SwapPool]:
                                        second_token_reserves=second_token_reserves,
                                        lp_token_supply=0)
 
+            _all_rates.update(pool.exchange_rates(sc_address=sc_address))
+
             swap_pools.append(SwapPool(name=f'Exrond: {first_token.name}/{second_token.name}',
                                        sc_address=sc_address,
                                        tokens_in=[first_token.identifier,
@@ -811,6 +831,8 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
                                                pair.second_token_reserve),
                                            special_fee_percent=pair.special_fee_percentage,
                                            total_fee_percent=pair.total_fee_percentage)
+
+        _all_rates.update(pool.exchange_rates(sc_address=pair.pool_address))
 
         swap_pools.append(SwapPool(name=f'VestaDex: {first_token.name}/{second_token.name}',
                                    sc_address=pair.pool_address,
@@ -1137,6 +1159,8 @@ async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[Sw
                                           total_fee_percent=pair.total_fee_percent,
                                           platform_fee_percent=pair.platform_fee_percent,
                                           fee_token=fee_token)
+
+        _all_rates.update(pool.exchange_rates(sc_address=pair.sc_address))
 
         swap_pools.append(SwapPool(name=f'Opendex',
                                    sc_address=pair.sc_address,

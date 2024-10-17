@@ -4,7 +4,7 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from typing_extensions import override
 
-from opendex_aggregator_api.data.model import Esdt
+from opendex_aggregator_api.data.model import Esdt, ExchangeRate
 from opendex_aggregator_api.pools import ashswap, stableswap
 
 
@@ -33,6 +33,9 @@ class AbstractPool:
         raise NotImplementedError()
 
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+        raise NotImplementedError()
+
+    def exchange_rates(self) -> List[ExchangeRate]:
         raise NotImplementedError()
 
     def update_reserves(self,
@@ -111,6 +114,26 @@ class ConstantProductPool(AbstractPool):
         return 20_000_000
 
     @override
+    def exchange_rates(self, sc_address: str) -> List[ExchangeRate]:
+        rate_num = (self.second_token_reserves * 10**self.first_token.decimals)
+        rate_den = (self.first_token_reserves * 10**self.second_token.decimals)
+
+        if rate_den == 0 or rate_num == 0:
+            return []
+
+        rate = rate_num / rate_den
+        rate2 = rate_den / rate_num
+
+        return [ExchangeRate(base_token_id=self.first_token.identifier,
+                             base_token_liquidity=self.first_token_reserves,
+                             quote_token_id=self.second_token.identifier,
+                             quote_token_liquidity=self.second_token_reserves,
+                             sc_address=sc_address,
+                             source=self._source(),
+                             rate=rate,
+                             rate2=rate2)]
+
+    @override
     def update_reserves(self,
                         token_in: Esdt,
                         amount_in: int,
@@ -134,6 +157,9 @@ class ConstantProductPool(AbstractPool):
 
         raise ValueError(
             f'Invalid in/out tokens [{token_in.identifier}-{token_out.identifier}] for pool {self}')
+
+    def _source(self) -> str:
+        raise NotImplementedError()
 
     def _zap_optimal_swap_amount(self,
                                  reserve: int,
@@ -205,6 +231,10 @@ class XExchangeConstantProductPool(ConstantProductPool):
 
         return amount_out, special_fee, 0
 
+    @override
+    def _source(self) -> str:
+        return 'xexchange'
+
 
 @dataclass
 class OneDexConstantProductPool(ConstantProductPool):
@@ -270,6 +300,10 @@ class OneDexConstantProductPool(ConstantProductPool):
 
             return net_amount_out, 0, 0
 
+    @override
+    def _source(self) -> str:
+        return 'onedex'
+
 
 @dataclass
 class JexConstantProductPool(ConstantProductPool):
@@ -321,6 +355,10 @@ class JexConstantProductPool(ConstantProductPool):
     @override
     def estimated_gas(self) -> int:
         return 20_000_000
+
+    @override
+    def _source(self) -> str:
+        return 'jexchange'
 
 
 @dataclass
@@ -445,6 +483,10 @@ class VestaDexConstantProductPool(XExchangeConstantProductPool):
                                            second_token_reserves=self.second_token_reserves,
                                            special_fee_percent=self.special_fee_percent,
                                            total_fee_percent=self.total_fee_percent)
+
+    @override
+    def _source(self) -> str:
+        return 'vestadex'
 
 
 @dataclass
@@ -625,6 +667,10 @@ class AshSwapPoolV2(ConstantProductPool):
 
         return f
 
+    @override
+    def _source(self) -> str:
+        return 'ashswap'
+
     def __str__(self) -> str:
         return f'AshSwapPoolV2({self.first_token_reserves/10**self.first_token.decimals:.4f} \
  {self.first_token.identifier} + \
@@ -714,6 +760,10 @@ class OpendexConstantProductPool(ConstantProductPool):
         lp_fee = total_fee - platform_fee
 
         return (lp_fee, platform_fee)
+
+    @override
+    def _source(self) -> str:
+        return 'opendex'
 
 
 @dataclass
