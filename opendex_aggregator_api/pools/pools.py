@@ -636,10 +636,6 @@ class AshSwapPoolV2(ConstantProductPool):
                         amount_in: int,
                         token_out: Esdt,
                         amount_out: int):
-        super().update_reserves(token_in,
-                                amount_in,
-                                token_out,
-                                amount_out)
 
         i_token_in, _ = find(lambda x: x.identifier ==
                              token_in.identifier, self.tokens)
