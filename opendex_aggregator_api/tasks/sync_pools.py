@@ -146,11 +146,6 @@ async def _sync_all_pools():
     logging.info(f'Nb tokens: {len(_all_tokens)} (total)')
     logging.info(f'Nb exchange rates: {len(_all_rates)} (total)')
 
-    print([r
-           for r in _all_rates
-           if r.base_token_id.startswith('JEX-')
-           and r.quote_token_id.startswith('WEGLD-')])
-
     _all_tokens.clear()
 
 
