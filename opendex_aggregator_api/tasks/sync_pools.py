@@ -20,7 +20,7 @@ from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools, set_tokens)
 from opendex_aggregator_api.data.model import (Esdt, ExchangeRate, OpendexPair,
                                                VestaDexPool)
-from opendex_aggregator_api.pools.ashswap import AshSwapPoolV2
+from opendex_aggregator_api.pools.ashswap import AshSwapPoolV2, AshSwapStableSwapPool
 from opendex_aggregator_api.pools.jexchange import (
     JexConstantProductDepositPool, JexConstantProductPool, JexStableSwapPool,
     JexStableSwapPoolDeposit)
@@ -345,13 +345,12 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
                 if tokens.count(None) > 0:
                     continue
 
-                pool = StableSwapPool(amp_factor=status.amp_factor,
-                                      swap_fee=status.swap_fee_percent,
-                                      max_fee=100_000,
-                                      lp_token_supply=status.lp_token_supply,
-                                      tokens=tokens,
-                                      reserves=status.reserves,
-                                      underlying_prices=status.underlying_prices)
+                pool = AshSwapStableSwapPool(amp_factor=status.amp_factor,
+                                             swap_fee=status.swap_fee_percent,
+                                             tokens=tokens,
+                                             reserves=status.reserves,
+                                             underlying_prices=status.underlying_prices,
+                                             lp_token_supply=status.lp_token_supply)
                 pools.append(pool)
 
                 token_ids = [t.identifier for t in tokens]

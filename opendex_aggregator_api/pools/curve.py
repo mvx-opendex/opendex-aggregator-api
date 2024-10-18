@@ -4,6 +4,10 @@ from typing import List
 MAX_ITERS = 128
 
 
+class DidNotConvergeException(Exception):
+    pass
+
+
 def D(amp: int, amounts: List[int]) -> int:
     """
     Compute the stable swap invariant
@@ -37,7 +41,7 @@ def D(amp: int, amounts: List[int]) -> int:
         if abs(d_prev - d) <= 1:
             return d
 
-    raise ValueError("D didn't converge")
+    raise DidNotConvergeException("D didn't converge")
 
 
 def y(amp: int, amounts: List[int], i_token_in: int, i_token_out: int, amount_in: int):
@@ -77,7 +81,7 @@ def y(amp: int, amounts: List[int], i_token_in: int, i_token_out: int, amount_in
         if abs(y_prev - y) <= 1:
             return y
 
-    raise ValueError("y didn't converge")
+    raise DidNotConvergeException("y didn't converge")
 
 
 def y_D(amp: int, amounts: List[int], i: int, _D: int):

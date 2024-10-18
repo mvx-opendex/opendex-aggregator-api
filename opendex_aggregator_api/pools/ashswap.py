@@ -5,7 +5,7 @@ from typing import List, Tuple
 from typing_extensions import override
 
 from opendex_aggregator_api.data.model import Esdt
-from opendex_aggregator_api.pools.pools import ConstantProductPool, find
+from opendex_aggregator_api.pools.pools import ConstantProductPool, StableSwapPool, find
 
 A_MULTIPLIER = 10_000
 MIN_GAMMA = 10**10
@@ -198,6 +198,28 @@ class AshSwapPoolV2(ConstantProductPool):
  {self.first_token.identifier} + \
  {self.second_token_reserves/10**self.second_token.decimals:.4f} \
  {self.second_token.identifier})'
+
+
+@dataclass
+class AshSwapStableSwapPool(StableSwapPool):
+    def __init__(self,
+                 amp_factor: int,
+                 swap_fee: int,
+                 tokens: List[Esdt],
+                 reserves: List[int],
+                 underlying_prices: List[int],
+                 lp_token_supply: int):
+        super().__init__(amp_factor=amp_factor,
+                         swap_fee=swap_fee,
+                         max_fee=1_000_000,
+                         tokens=tokens,
+                         reserves=reserves,
+                         underlying_prices=underlying_prices,
+                         lp_token_supply=lp_token_supply)
+
+    @override
+    def _source(self) -> str:
+        return 'ashswap'
 
 
 class DidNotConvergeException(Exception):

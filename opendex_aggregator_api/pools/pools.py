@@ -54,6 +54,9 @@ class AbstractPool:
 
         return int(num // den)
 
+    def _source(self) -> str:
+        raise NotImplementedError()
+
 
 @dataclass
 class ConstantProductPool(AbstractPool):
@@ -158,9 +161,6 @@ class ConstantProductPool(AbstractPool):
 
         raise ValueError(
             f'Invalid in/out tokens [{token_in.identifier}-{token_out.identifier}] for pool {self}')
-
-    def _source(self) -> str:
-        raise NotImplementedError()
 
     def _zap_optimal_swap_amount(self,
                                  reserve: int,
