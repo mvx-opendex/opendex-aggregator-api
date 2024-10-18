@@ -801,7 +801,9 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
     pairs = [p for p in pairs
              if p.pool_state == 1
              and _is_pair_valid([(p.first_token_id, p.first_token_reserve),
-                                (p.second_token_id, p.second_token_reserve)])]
+                                (p.second_token_id, p.second_token_reserve)])
+             # frozen pool
+             and p.pool_address != 'erd1qqqqqqqqqqqqqpgq8fsfc5jesw83ug9x09rx4wzg7rxxcnyl0a0stftt9c']
 
     logging.info(f'VestaDex: pairs after filter {len(pairs)}')
 
