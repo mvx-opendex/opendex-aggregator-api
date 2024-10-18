@@ -5,7 +5,7 @@ import pytest
 
 from opendex_aggregator_api.data.model import Esdt
 
-from .pools import ConstantPricePool, ConstantProductPool, OpendexConstantProductPool, StableSwapPool
+from .pools import ConstantPricePool, ConstantProductPool, OpendexConstantProductPool, StableSwapPool, VestaDexConstantProductPool
 
 
 @pytest.mark.parametrize('price,reserve,amount_in,expected', [
@@ -15,12 +15,16 @@ from .pools import ConstantPricePool, ConstantProductPool, OpendexConstantProduc
 def test_ConstantPricePool_estimate_amount_out(price: int, reserve: int, amount_in: int, expected: int):
     token_in = Esdt(decimals=18,
                     identifier='IN-000000',
+                    ticker='IN',
                     name='IN',
-                    is_lp_token=False)
+                    is_lp_token=False,
+                    exchange='x')
     token_out = Esdt(decimals=18,
                      identifier='OUT-000000',
+                     ticker='OUT',
                      name='OUT',
-                     is_lp_token=False)
+                     is_lp_token=False,
+                     exchange='x')
 
     pool = ConstantPricePool(price, token_in, token_out, reserve)
 
@@ -40,12 +44,16 @@ def test_ConstantPricePool_estimate_amount_out(price: int, reserve: int, amount_
 def test_ConstantProductPool_estimate_amount_out(reserves: List[int], amount_in: int, expected: int):
     first_token = Esdt(decimals=18,
                        identifier='IN-000000',
+                       ticker='IN',
                        name='IN',
-                       is_lp_token=False)
+                       is_lp_token=False,
+                       exchange='x')
     second_token = Esdt(decimals=6,
                         identifier='OUT-000000',
+                        ticker='OUT',
                         name='OUT',
-                        is_lp_token=False)
+                        is_lp_token=False,
+                        exchange='x')
 
     pool = ConstantProductPool(
         fees_percent_base_pts=0,
@@ -67,12 +75,16 @@ def test_ConstantProductPool_estimate_amount_out(reserves: List[int], amount_in:
 def test_ConstantProductPool_estimate_theorical_amount_out(reserves: List[int], amount_in: int, expected: int):
     first_token = Esdt(decimals=18,
                        identifier='IN-000000',
+                       ticker='IN',
                        name='IN',
-                       is_lp_token=False)
+                       is_lp_token=False,
+                       exchange='x')
     second_token = Esdt(decimals=6,
                         identifier='OUT-000000',
+                        ticker='OUT',
                         name='OUT',
-                        is_lp_token=False)
+                        is_lp_token=False,
+                        exchange='x')
 
     pool = ConstantProductPool(
         fees_percent_base_pts=0,
@@ -93,12 +105,16 @@ def test_ConstantProductPool_estimate_theorical_amount_out(reserves: List[int], 
 def test_OpendexConstantProductPool_estimate_amount_out(reserves: List[int], amount_in: int, expected: int):
     first_token = Esdt(decimals=18,
                        identifier='IN-000000',
+                       ticker='IN',
                        name='IN',
-                       is_lp_token=False)
+                       is_lp_token=False,
+                       exchange='x')
     second_token = Esdt(decimals=18,
                         identifier='OUT-000000',
+                        ticker='OUT',
                         name='OUT',
-                        is_lp_token=False)
+                        is_lp_token=False,
+                        exchange='x')
 
     pool = OpendexConstantProductPool(
         first_token=first_token,
@@ -125,12 +141,16 @@ def test_OpendexConstantProductPool_estimate_amount_out_fee_in(reserves: List[in
                                                                expected: int):
     first_token = Esdt(decimals=18,
                        identifier='OUT-000000',
+                       ticker='OUT',
                        name='OUT',
-                       is_lp_token=False)
+                       is_lp_token=False,
+                       exchange='x')
     second_token = Esdt(decimals=18,
                         identifier='IN-000000',
+                        ticker='IN',
                         name='IN',
-                        is_lp_token=False)
+                        is_lp_token=False,
+                        exchange='x')
 
     pool = OpendexConstantProductPool(
         first_token=first_token,
@@ -160,16 +180,22 @@ def test_StableSwapPool_estimate_amount_out(reserves: List[int],
                                             expected: int):
     busd = Esdt(decimals=18,
                 identifier='BUSD-40b57e',
+                ticker='BUSD',
                 name='BUSD',
-                is_lp_token=False)
+                is_lp_token=False,
+                exchange='x')
     usdc = Esdt(decimals=6,
                 identifier='USDC-c76f1f',
+                ticker='USDC',
                 name='USDC',
-                is_lp_token=False)
+                is_lp_token=False,
+                exchange='x')
     usdt = Esdt(decimals=6,
                 identifier='USDT-f8c08c',
+                ticker='USDT',
                 name='USDT',
-                is_lp_token=False)
+                is_lp_token=False,
+                exchange='x')
     tokens = [busd, usdc, usdt]
 
     token_in = filter(lambda x: x.identifier ==
@@ -202,16 +228,22 @@ def test_StableSwapPool_estimate_theorical_amount_out(reserves: List[int],
                                                       expected: int):
     busd = Esdt(decimals=18,
                 identifier='BUSD-40b57e',
+                ticker='BUSD',
                 name='BUSD',
-                is_lp_token=False)
+                is_lp_token=False,
+                exchange='x')
     usdc = Esdt(decimals=6,
                 identifier='USDC-c76f1f',
+                ticker='USDC',
                 name='USDC',
-                is_lp_token=False)
+                is_lp_token=False,
+                exchange='x')
     usdt = Esdt(decimals=6,
                 identifier='USDT-f8c08c',
+                ticker='USDT',
                 name='USDT',
-                is_lp_token=False)
+                is_lp_token=False,
+                exchange='x')
     tokens = [busd, usdc, usdt]
 
     token_in = filter(lambda x: x.identifier ==
@@ -243,12 +275,16 @@ def test_StableSwapPool_estimate_amount_out_with_underlying_prices(
         expected: int):
     segld = Esdt(decimals=18,
                  identifier='SEGLD-000000',
+                 ticker='SEGLD',
                  name='SEGLD',
-                 is_lp_token=False)
+                 is_lp_token=False,
+                 exchange='x')
     wegld = Esdt(decimals=18,
                  identifier='WEGLD-000000',
+                 ticker='WEGLD',
                  name='WEGLD',
-                 is_lp_token=False)
+                 is_lp_token=False,
+                 exchange='x')
 
     token_in = wegld
     token_out = segld
@@ -279,12 +315,16 @@ def test_StableSwapPool_estimate_theorical_amount_out_with_underlying_prices(
         expected: int):
     segld = Esdt(decimals=18,
                  identifier='SEGLD-000000',
+                 ticker='SEGLD',
                  name='SEGLD',
-                 is_lp_token=False)
+                 is_lp_token=False,
+                 exchange='x')
     wegld = Esdt(decimals=18,
                  identifier='WEGLD-000000',
+                 ticker='WEGLD',
                  name='WEGLD',
-                 is_lp_token=False)
+                 is_lp_token=False,
+                 exchange='x')
 
     token_in = wegld
     token_out = segld
@@ -300,3 +340,38 @@ def test_StableSwapPool_estimate_theorical_amount_out_with_underlying_prices(
     assert pool.estimate_theorical_amount_out(token_in,
                                               amount_in,
                                               token_out) == expected
+
+
+@pytest.mark.parametrize('reserves,amount_in,expected', [
+    ([3_343_668833240686226569, 1_289_058_540919326440545772],
+     10_000000000000000000, 3652_084564706615454872)])
+def test_VestaDexConstantProductPool_estimate_amount_out(reserves, amount_in, expected):
+    ouro = Esdt(decimals=18,
+                identifier='OURO-000000',
+                name='OURO',
+                ticker='OURO',
+                is_lp_token=False,
+                exchange='vestadex')
+    xlh = Esdt(decimals=18,
+               identifier='XLH-000000',
+               name='XLH',
+               ticker='XLH',
+               is_lp_token=False,
+               exchange='vestadex')
+
+    pool = VestaDexConstantProductPool(first_token=ouro,
+                                       first_token_reserves=reserves[0],
+                                       lp_token_supply=0,
+                                       second_token=xlh,
+                                       second_token_reserves=reserves[1],
+                                       special_fee_percent=42500,
+                                       total_fee_percent=50000,
+                                       fee_token=ouro)
+
+    net_amount_out, admin_fee_in, admin_fee_out = pool.estimate_amount_out(token_in=ouro,
+                                                                           amount_in=amount_in,
+                                                                           token_out=xlh)
+
+    assert net_amount_out == expected
+    assert admin_fee_out == 0
+    assert admin_fee_in == 425000000000000000

@@ -809,6 +809,7 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
 
         first_token = get_or_fetch_token(pair.first_token_id)
         second_token = get_or_fetch_token(pair.second_token_id)
+        fee_token = get_or_fetch_token(pair.fee_token_id)
 
         _all_tokens.add(first_token)
         _all_tokens.add(second_token)
@@ -825,7 +826,8 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
                                            second_token_reserves=int(
                                                pair.second_token_reserve),
                                            special_fee_percent=pair.special_fee_percentage,
-                                           total_fee_percent=pair.total_fee_percentage)
+                                           total_fee_percent=pair.total_fee_percentage,
+                                           fee_token=fee_token)
 
         _all_rates.update(pool.exchange_rates(sc_address=pair.pool_address))
 

@@ -457,39 +457,6 @@ class JexConstantProductDepositPool(JexConstantProductPool):
 
 
 @dataclass
-class VestaDexConstantProductPool(XExchangeConstantProductPool):
-    def __init__(self,
-                 first_token: Esdt,
-                 first_token_reserves: int,
-                 lp_token_supply: int,
-                 second_token: Esdt,
-                 second_token_reserves: int,
-                 special_fee_percent: int,
-                 total_fee_percent: int):
-        super().__init__(first_token,
-                         first_token_reserves,
-                         lp_token_supply,
-                         second_token,
-                         second_token_reserves,
-                         special_fee_percent // 10,
-                         total_fee_percent // 10)
-
-    @override
-    def deep_copy(self):
-        return VestaDexConstantProductPool(first_token=self.first_token,
-                                           first_token_reserves=self.first_token_reserves,
-                                           lp_token_supply=self.lp_token_supply,
-                                           second_token=self.second_token,
-                                           second_token_reserves=self.second_token_reserves,
-                                           special_fee_percent=self.special_fee_percent,
-                                           total_fee_percent=self.total_fee_percent)
-
-    @override
-    def _source(self) -> str:
-        return 'vestadex'
-
-
-@dataclass
 class AshSwapPoolV2(ConstantProductPool):
 
     PRECISION = 10**18
@@ -760,6 +727,54 @@ class OpendexConstantProductPool(ConstantProductPool):
     @override
     def _source(self) -> str:
         return 'opendex'
+
+
+@dataclass
+class VestaDexConstantProductPool(OpendexConstantProductPool):
+    def __init__(self,
+                 first_token: Esdt,
+                 first_token_reserves: int,
+                 lp_token_supply: int,
+                 second_token: Esdt,
+                 second_token_reserves: int,
+                 total_fee_percent: int,
+                 special_fee_percent: int,
+                 fee_token: Esdt):
+        super().__init__(first_token,
+                         first_token_reserves,
+                         lp_token_supply,
+                         second_token,
+                         second_token_reserves,
+                         total_fee_percent=total_fee_percent,
+                         platform_fee_percent=special_fee_percent,
+                         fee_token=fee_token)
+
+    @override
+    def deep_copy(self) -> 'VestaDexConstantProductPool':
+        return VestaDexConstantProductPool(first_token=self.first_token,
+                                           first_token_reserves=self.first_token_reserves,
+                                           lp_token_supply=self.lp_token_supply,
+                                           second_token=self.second_token,
+                                           second_token_reserves=self.second_token_reserves,
+                                           special_fee_percent=self.platform_fee_percent,
+                                           total_fee_percent=self.fees_percent_base_pts,
+                                           fee_token=self.fee_token)
+
+    @override
+    def _calculate_fees(self, amount: int) -> Tuple[int, int]:
+        max_fees = 1_000_000
+
+        total_fee = (amount * self.fees_percent_base_pts) // max_fees
+
+        platform_fee = (amount * self.platform_fee_percent) // max_fees
+
+        lp_fee = total_fee - platform_fee
+
+        return (lp_fee, platform_fee)
+
+    @override
+    def _source(self) -> str:
+        return 'vestadex'
 
 
 @dataclass

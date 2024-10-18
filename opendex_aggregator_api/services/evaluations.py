@@ -17,7 +17,7 @@ from opendex_aggregator_api.services.tokens import (WEGLD_IDENTIFIER,
 from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_aggregator)
 
-FEE_MULTIPLIER = 5  # 0.005%
+FEE_MULTIPLIER = 0  # 5  # 0.005%
 MAX_FEE = 100_000
 
 
@@ -91,6 +91,7 @@ def evaluate_offline(route: SwapRoute,
                                      amount - admin_fee_in,
                                      esdt_out,
                                      amount_out + admin_fee_out)
+
             amount = amount_out
         except ValueError as e:
             logging.info('Error during estimation -> 0')
