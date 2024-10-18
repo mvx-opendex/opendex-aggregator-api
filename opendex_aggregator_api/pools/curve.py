@@ -1,7 +1,7 @@
 from typing import List
 
 
-MAX_ITERS = 20
+MAX_ITERS = 128
 
 
 def D(amp: int, amounts: List[int]) -> int:
@@ -34,7 +34,10 @@ def D(amp: int, amounts: List[int]) -> int:
         d_den = (ann - 1) * d + (n_coins + 1) * d_p
         d = d_num // d_den
 
-    return d
+        if abs(d_prev - d) <= 1:
+            return d
+
+    raise ValueError("D didn't converge")
 
 
 def y(amp: int, amounts: List[int], i_token_in: int, i_token_out: int, amount_in: int):
@@ -71,8 +74,10 @@ def y(amp: int, amounts: List[int], i_token_in: int, i_token_out: int, amount_in
         y_prev = y
         y = (y ** 2 + c) // (2 * y + b)
 
-    amount_out = y
-    return amount_out
+        if abs(y_prev - y) <= 1:
+            return y
+
+    raise ValueError("y didn't converge")
 
 
 def y_D(amp: int, amounts: List[int], i: int, _D: int):

@@ -1,5 +1,11 @@
 
-from typing import List
+from dataclasses import dataclass
+from typing import List, Tuple
+
+from typing_extensions import override
+
+from opendex_aggregator_api.data.model import Esdt
+from opendex_aggregator_api.pools.pools import ConstantProductPool, find
 
 A_MULTIPLIER = 10_000
 MIN_GAMMA = 10**10
@@ -7,6 +13,191 @@ MAX_GAMMA = 2*(10**16)
 PRECISION = 10**18
 
 MAX_ITERATIONS = 255
+
+
+@dataclass
+class AshSwapPoolV2(ConstantProductPool):
+
+    PRECISION = 10**18
+
+    amp: int
+    d: int
+    fee_gamma: int
+    future_a_gamma_time: int
+    gamma: int
+    mid_fee: int
+    out_fee: int
+    price_scale: int
+    reserves: List[int]
+    tokens: List[Esdt]
+    xp: List[int]
+
+    def __init__(self,
+                 amp: int,
+                 d: int,
+                 fee_gamma: int,
+                 future_a_gamma_time: int,
+                 gamma: int,
+                 mid_fee: int,
+                 out_fee: int,
+                 price_scale: int,
+                 reserves: List[int],
+                 tokens: List[Esdt],
+                 xp: List[int]):
+        assert len(tokens) == 2, 'Invalid number of tokens'
+        assert len(reserves) == 2, 'Invalid number of token reserves'
+
+        self.amp = amp
+        self.d = d
+        self.fee_gamma = fee_gamma
+        self.future_a_gamma_time = future_a_gamma_time
+        self.gamma = gamma
+        self.mid_fee = mid_fee
+        self.out_fee = out_fee
+        self.price_scale = price_scale
+        self.reserves = reserves
+        self.tokens = tokens
+        self.xp = xp
+        self.first_token = tokens[0]
+        self.first_token_reserves = reserves[0]
+        self.second_token = tokens[1]
+        self.second_token_reserves = reserves[1]
+
+    @override
+    def deep_copy(self):
+        return AshSwapPoolV2(amp=self.amp,
+                             d=self.d,
+                             fee_gamma=self.fee_gamma,
+                             future_a_gamma_time=self.future_a_gamma_time,
+                             gamma=self.gamma,
+                             mid_fee=self.mid_fee,
+                             out_fee=self.out_fee,
+                             price_scale=self.price_scale,
+                             reserves=self.reserves.copy(),
+                             tokens=[t.model_copy() for t in self.tokens],
+                             xp=self.xp.copy())
+
+    @override
+    def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
+        """
+        Return (fee, amount_out)
+        """
+        if amount_in == 0:
+            return 0, 0, 0
+
+        precisions: List[int] = [10**(18-t.decimals) for t in self.tokens]
+        price_scale = self.price_scale * precisions[1]
+
+        xp = self.reserves.copy()
+
+        d = self.d
+
+        if self.future_a_gamma_time > 0:
+            d = newton_d(
+                self.amp,
+                self.gamma,
+                self.xp.copy(),
+                self.reserves
+            )
+
+        i_token_in, _ = find(lambda x: x.identifier ==
+                             token_in.identifier, self.tokens)
+        i_token_out, _ = find(lambda x: x.identifier ==
+                              token_out.identifier, self.tokens)
+
+        xp[i_token_in] = xp[i_token_in] + amount_in
+        xp = [
+            xp[0] * precisions[0],
+            (xp[1] * price_scale) // self.PRECISION,
+        ]
+
+        y = newton_y(
+            self.amp,
+            self.gamma,
+            xp,
+            d,
+            i_token_out,
+            self.reserves
+        )
+
+        dy = xp[i_token_out] - y - 1
+        xp[i_token_out] = y
+
+        if i_token_out > 0:
+            dy = (dy * self.PRECISION) // price_scale
+        else:
+            dy = dy // precisions[0]
+
+        fee = (dy * self._fee(xp)) // 10**10
+
+        dy = dy - fee
+
+        return dy, 0, fee // 3
+
+    @override
+    def estimated_gas(self) -> int:
+        return 30_000_000
+
+    @override
+    def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
+        i_token_in, _ = find(lambda x: x.identifier ==
+                             token_in.identifier, self.tokens)
+        i_token_out, _ = find(lambda x: x.identifier ==
+                              token_out.identifier, self.tokens)
+
+        in_reserve = self.reserves[i_token_in]
+        out_reserve = self.reserves[i_token_out]
+
+        amount_out = (amount_in * out_reserve) // in_reserve
+
+        fee = (amount_out * self._fee(self.xp)) // 10**10
+
+        amount_out -= fee
+
+        return amount_out
+
+    @override
+    def update_reserves(self,
+                        token_in: Esdt,
+                        amount_in: int,
+                        token_out: Esdt,
+                        amount_out: int):
+
+        i_token_in, _ = find(lambda x: x.identifier ==
+                             token_in.identifier, self.tokens)
+        i_token_out, _ = find(lambda x: x.identifier ==
+                              token_out.identifier, self.tokens)
+
+        self.reserves[i_token_in] += amount_in
+        self.reserves[i_token_out] -= amount_out
+
+    def _fee(self, xp: List[int]) -> int:
+        n_coins = len(self.tokens)
+
+        f = xp[0] + xp[1]
+
+        f_num = self.fee_gamma * self.PRECISION
+
+        f_den = int(self.fee_gamma + self.PRECISION -
+                    (n_coins**n_coins * self.PRECISION * xp[0] // f * xp[1] // f))
+
+        f = f_num // f_den
+
+        f = (self.mid_fee * f) + (self.out_fee * (self.PRECISION-f))
+
+        f = f // self.PRECISION
+
+        return f
+
+    @override
+    def _source(self) -> str:
+        return 'ashswap'
+
+    def __str__(self) -> str:
+        return f'AshSwapPoolV2({self.first_token_reserves/10**self.first_token.decimals:.4f} \
+ {self.first_token.identifier} + \
+ {self.second_token_reserves/10**self.second_token.decimals:.4f} \
+ {self.second_token.identifier})'
 
 
 class DidNotConvergeException(Exception):

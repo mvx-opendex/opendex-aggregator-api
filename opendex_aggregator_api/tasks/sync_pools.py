@@ -18,20 +18,20 @@ from opendex_aggregator_api.data.constants import (
     SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools, set_tokens)
-from opendex_aggregator_api.data.model import Esdt, ExchangeRate, OpendexPair, VestaDexPool
+from opendex_aggregator_api.data.model import (Esdt, ExchangeRate, OpendexPair,
+                                               VestaDexPool)
+from opendex_aggregator_api.pools.ashswap import AshSwapPoolV2
+from opendex_aggregator_api.pools.jexchange import (
+    JexConstantProductDepositPool, JexConstantProductPool, JexStableSwapPool,
+    JexStableSwapPoolDeposit)
 from opendex_aggregator_api.pools.model import SwapPool
-from opendex_aggregator_api.pools.pools import (AshSwapPoolV2,
-                                                ConstantPricePool,
+from opendex_aggregator_api.pools.onedex import OneDexConstantProductPool
+from opendex_aggregator_api.pools.opendex import OpendexConstantProductPool
+from opendex_aggregator_api.pools.pools import (ConstantPricePool,
                                                 ConstantProductPool,
-                                                JexConstantProductDepositPool,
-                                                JexConstantProductPool,
-                                                JexStableSwapPool,
-                                                JexStableSwapPoolDeposit,
-                                                OneDexConstantProductPool,
-                                                OpendexConstantProductPool,
-                                                StableSwapPool,
-                                                VestaDexConstantProductPool,
-                                                XExchangeConstantProductPool)
+                                                StableSwapPool)
+from opendex_aggregator_api.pools.vestadex import VestaDexConstantProductPool
+from opendex_aggregator_api.pools.xexchange import XExchangeConstantProductPool
 from opendex_aggregator_api.services.externals import async_sc_query
 from opendex_aggregator_api.services.parsers.ashswap import (
     parse_ashswap_stablepool_status, parse_ashswap_v2_pool_status)
@@ -198,8 +198,8 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
                                             lp_token_supply=lp_status.lp_token_supply,
                                             second_token=second_token,
                                             second_token_reserves=lp_status.second_token_reserve,
-                                            total_fee_percent=lp_status.total_fee_percent,
-                                            special_fee_percent=lp_status.special_fee_percent)
+                                            total_fee=lp_status.total_fee_percent,
+                                            special_fee=lp_status.special_fee_percent)
 
         _all_rates.update(pool.exchange_rates(sc_address=lp_status.sc_address))
 
@@ -285,13 +285,13 @@ async def _sync_onedex_pools() -> List[SwapPool]:
         if first_token is None or second_token is None:
             continue
 
-        pool = OneDexConstantProductPool(fees_percent_base_pts=pair.total_fee_percentage,
-                                         first_token=first_token,
+        pool = OneDexConstantProductPool(first_token=first_token,
                                          first_token_reserves=pair.first_token_reserve,
                                          lp_token_supply=pair.lp_supply,
                                          second_token=second_token,
                                          second_token_reserves=pair.second_token_reserve,
-                                         main_pair_tokens=main_pair_tokens)
+                                         main_pair_tokens=main_pair_tokens,
+                                         total_fee=pair.total_fee_percentage)
 
         _all_rates.update(pool.exchange_rates(sc_address=sc_address))
 
@@ -346,8 +346,8 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
                     continue
 
                 pool = StableSwapPool(amp_factor=status.amp_factor,
-                                      total_fees=status.swap_fee_percent,
-                                      max_fees=100_000,
+                                      swap_fee=status.swap_fee_percent,
+                                      max_fee=100_000,
                                       lp_token_supply=status.lp_token_supply,
                                       tokens=tokens,
                                       reserves=status.reserves,
@@ -502,8 +502,8 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             _all_tokens.add(lp_token)
 
             pool = JexConstantProductPool(
-                fees_percent_base_pts=lp_fees_percent_base_pts,
-                platform_fees_percent_base_pts=platform_fees_percent_base_pts,
+                lp_fee=lp_fees_percent_base_pts,
+                platform_fee=platform_fees_percent_base_pts,
                 first_token=first_token,
                 first_token_reserves=first_token_reserves,
                 lp_token_supply=lp_token_supply,
@@ -527,8 +527,8 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
                                        type=SC_TYPE_JEXCHANGE_LP))
 
             deposit_pool = JexConstantProductDepositPool(
-                fees_percent_base_pts=lp_fees_percent_base_pts,
-                platform_fees_percent_base_pts=platform_fees_percent_base_pts,
+                lp_fee=lp_fees_percent_base_pts,
+                platform_fee=platform_fees_percent_base_pts,
                 first_token=first_token,
                 first_token_reserves=first_token_reserves,
                 lp_token_supply=lp_token_supply,
@@ -611,8 +611,7 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
             lp_token_supply = int(lp_status.lp_token_supply)
 
             pool = JexStableSwapPool(amp_factor=lp_status.amp_factor,
-                                     total_fees=lp_status.swap_fee,
-                                     max_fees=1_000_000,
+                                     swap_fee=lp_status.swap_fee,
                                      lp_token_supply=lp_token_supply,
                                      tokens=tokens,
                                      reserves=reserves,
@@ -627,7 +626,6 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
 
             deposit_pool = JexStableSwapPoolDeposit(amp_factor=lp_status.amp_factor,
                                                     total_fees=lp_status.swap_fee,
-                                                    max_fees=1_000_000,
                                                     tokens=tokens,
                                                     lp_token_supply=lp_token_supply,
                                                     reserves=reserves,
@@ -827,8 +825,8 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
                                            second_token=second_token,
                                            second_token_reserves=int(
                                                pair.second_token_reserve),
-                                           special_fee_percent=pair.special_fee_percentage,
-                                           total_fee_percent=pair.total_fee_percentage,
+                                           special_fee=pair.special_fee_percentage,
+                                           total_fee=pair.total_fee_percentage,
                                            fee_token=fee_token)
 
         _all_rates.update(pool.exchange_rates(sc_address=pair.pool_address))
@@ -1155,8 +1153,8 @@ async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[Sw
                                           lp_token_supply=pair.lp_token_supply,
                                           second_token=second_token,
                                           second_token_reserves=pair.second_token_reserve,
-                                          total_fee_percent=pair.total_fee_percent,
-                                          platform_fee_percent=pair.platform_fee_percent,
+                                          total_fee=pair.total_fee_percent,
+                                          platform_fee=pair.platform_fee_percent,
                                           fee_token=fee_token)
 
         _all_rates.update(pool.exchange_rates(sc_address=pair.sc_address))

@@ -5,7 +5,7 @@ import pytest
 
 from opendex_aggregator_api.data.model import Esdt
 
-from .pools import ConstantPricePool, ConstantProductPool, OpendexConstantProductPool, StableSwapPool, VestaDexConstantProductPool
+from .pools import ConstantPricePool, ConstantProductPool, StableSwapPool
 
 
 @pytest.mark.parametrize('price,reserve,amount_in,expected', [
@@ -56,7 +56,8 @@ def test_ConstantProductPool_estimate_amount_out(reserves: List[int], amount_in:
                         exchange='x')
 
     pool = ConstantProductPool(
-        fees_percent_base_pts=0,
+        max_fee=10_000,
+        total_fee=0,
         first_token=first_token,
         first_token_reserves=reserves[0],
         lp_token_supply=999,
@@ -87,7 +88,8 @@ def test_ConstantProductPool_estimate_theorical_amount_out(reserves: List[int], 
                         exchange='x')
 
     pool = ConstantProductPool(
-        fees_percent_base_pts=0,
+        max_fee=10_000,
+        total_fee=0,
         first_token=first_token,
         first_token_reserves=reserves[0],
         lp_token_supply=999,
@@ -96,76 +98,6 @@ def test_ConstantProductPool_estimate_theorical_amount_out(reserves: List[int], 
 
     assert pool.estimate_theorical_amount_out(
         first_token, amount_in, second_token) == expected
-
-
-@pytest.mark.parametrize('reserves,amount_in,expected', [
-    ([10000_000000000000000000, 200_000000000000000000],
-     100_000000000000000000, 1_972277227722772278)
-])
-def test_OpendexConstantProductPool_estimate_amount_out(reserves: List[int], amount_in: int, expected: int):
-    first_token = Esdt(decimals=18,
-                       identifier='IN-000000',
-                       ticker='IN',
-                       name='IN',
-                       is_lp_token=False,
-                       exchange='x')
-    second_token = Esdt(decimals=18,
-                        identifier='OUT-000000',
-                        ticker='OUT',
-                        name='OUT',
-                        is_lp_token=False,
-                        exchange='x')
-
-    pool = OpendexConstantProductPool(
-        first_token=first_token,
-        first_token_reserves=reserves[0],
-        lp_token_supply=999,
-        second_token=second_token,
-        second_token_reserves=reserves[1],
-        total_fee_percent=40,
-        platform_fee_percent=10,
-        fee_token=second_token)
-
-    net_amount_out, _, _ = pool.estimate_amount_out(
-        first_token, amount_in, second_token)
-
-    assert net_amount_out == expected
-
-
-@pytest.mark.parametrize('reserves,amount_in,expected', [
-    ([10000_000000000000000000, 200_000000000000000000],
-     1_000000000000000000, 49_553224939799797010)
-])
-def test_OpendexConstantProductPool_estimate_amount_out_fee_in(reserves: List[int],
-                                                               amount_in: int,
-                                                               expected: int):
-    first_token = Esdt(decimals=18,
-                       identifier='OUT-000000',
-                       ticker='OUT',
-                       name='OUT',
-                       is_lp_token=False,
-                       exchange='x')
-    second_token = Esdt(decimals=18,
-                        identifier='IN-000000',
-                        ticker='IN',
-                        name='IN',
-                        is_lp_token=False,
-                        exchange='x')
-
-    pool = OpendexConstantProductPool(
-        first_token=first_token,
-        first_token_reserves=reserves[0],
-        lp_token_supply=999,
-        second_token=second_token,
-        second_token_reserves=reserves[1],
-        total_fee_percent=40,
-        platform_fee_percent=10,
-        fee_token=second_token)
-
-    net_amount_out, _, _ = pool.estimate_amount_out(
-        second_token, amount_in, first_token)
-
-    assert net_amount_out == expected
 
 
 @pytest.mark.parametrize('reserves,underlying_prices,token_in_identifier,amount_in,token_out_identifier,expected', [
@@ -204,8 +136,8 @@ def test_StableSwapPool_estimate_amount_out(reserves: List[int],
                        token_out_identifier, tokens).__next__()
 
     pool = StableSwapPool(amp_factor=256,
-                          total_fees=0,
-                          max_fees=1_000_000,
+                          swap_fee=0,
+                          max_fee=1_000_000,
                           tokens=tokens,
                           reserves=reserves,
                           underlying_prices=underlying_prices,
@@ -252,8 +184,8 @@ def test_StableSwapPool_estimate_theorical_amount_out(reserves: List[int],
                        token_out_identifier, tokens).__next__()
 
     pool = StableSwapPool(amp_factor=256,
-                          total_fees=0,
-                          max_fees=1_000_000,
+                          swap_fee=0,
+                          max_fee=1_000_000,
                           tokens=tokens,
                           reserves=reserves,
                           underlying_prices=[10**18]*len(tokens),
@@ -290,8 +222,8 @@ def test_StableSwapPool_estimate_amount_out_with_underlying_prices(
     token_out = segld
 
     pool = StableSwapPool(amp_factor=256,
-                          total_fees=0,
-                          max_fees=1_000_000,
+                          swap_fee=0,
+                          max_fee=1_000_000,
                           tokens=[segld, wegld],
                           reserves=reserves,
                           underlying_prices=underlying_prices,
@@ -330,8 +262,8 @@ def test_StableSwapPool_estimate_theorical_amount_out_with_underlying_prices(
     token_out = segld
 
     pool = StableSwapPool(amp_factor=256,
-                          total_fees=0,
-                          max_fees=1_000_000,
+                          swap_fee=0,
+                          max_fee=1_000_000,
                           tokens=[segld, wegld],
                           reserves=reserves,
                           underlying_prices=underlying_prices,
@@ -340,38 +272,3 @@ def test_StableSwapPool_estimate_theorical_amount_out_with_underlying_prices(
     assert pool.estimate_theorical_amount_out(token_in,
                                               amount_in,
                                               token_out) == expected
-
-
-@pytest.mark.parametrize('reserves,amount_in,expected', [
-    ([3_343_668833240686226569, 1_289_058_540919326440545772],
-     10_000000000000000000, 3652_084564706615454872)])
-def test_VestaDexConstantProductPool_estimate_amount_out(reserves, amount_in, expected):
-    ouro = Esdt(decimals=18,
-                identifier='OURO-000000',
-                name='OURO',
-                ticker='OURO',
-                is_lp_token=False,
-                exchange='vestadex')
-    xlh = Esdt(decimals=18,
-               identifier='XLH-000000',
-               name='XLH',
-               ticker='XLH',
-               is_lp_token=False,
-               exchange='vestadex')
-
-    pool = VestaDexConstantProductPool(first_token=ouro,
-                                       first_token_reserves=reserves[0],
-                                       lp_token_supply=0,
-                                       second_token=xlh,
-                                       second_token_reserves=reserves[1],
-                                       special_fee_percent=42500,
-                                       total_fee_percent=50000,
-                                       fee_token=ouro)
-
-    net_amount_out, admin_fee_in, admin_fee_out = pool.estimate_amount_out(token_in=ouro,
-                                                                           amount_in=amount_in,
-                                                                           token_out=xlh)
-
-    assert net_amount_out == expected
-    assert admin_fee_out == 0
-    assert admin_fee_in == 425000000000000000
