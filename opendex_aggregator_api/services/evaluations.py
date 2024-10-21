@@ -12,8 +12,7 @@ from opendex_aggregator_api.pools.pools import AbstractPool
 from opendex_aggregator_api.services.externals import async_sc_query
 from opendex_aggregator_api.services.parsers.routing import \
     parse_evaluate_response
-from opendex_aggregator_api.services.tokens import (WEGLD_IDENTIFIER,
-                                                    get_or_fetch_token)
+from opendex_aggregator_api.services.tokens import get_or_fetch_token
 from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_aggregator)
 
