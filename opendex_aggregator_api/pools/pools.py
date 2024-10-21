@@ -6,6 +6,7 @@ from typing_extensions import override
 
 from opendex_aggregator_api.data.model import Esdt, ExchangeRate
 from opendex_aggregator_api.pools import stableswap
+from opendex_aggregator_api.utils.math import ceildiv
 
 
 def find(function_: Callable[[Any], bool], iter_: Iterable[Any]) -> Tuple[int, Optional[Any]]:
@@ -21,6 +22,15 @@ class AbstractPool:
         raise NotImplementedError()
 
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
+        """
+        :return: a tuple with:
+        - net amount out
+        - admin fee (token in) removed from reserves
+        - admin fee (token out) removed from reserves
+        """
+        raise NotImplementedError()
+
+    def estimate_amount_in(self, token_out: Esdt, net_amount_out: int, token_in: Esdt) -> Tuple[int, int, int]:
         """
         :return: a tuple with:
         - net amount out
@@ -99,6 +109,22 @@ class ConstantProductPool(AbstractPool):
         amount_out -= fee
 
         return int(amount_out), 0, 0
+
+    @override
+    def estimate_amount_in(self, token_out: Esdt, net_amount_out: int, token_in: Esdt) -> Tuple[int, int, int]:
+        in_reserve_before, out_reserve_before = self._reserves(token_in,
+                                                               token_out)
+
+        amount_out = (net_amount_out *
+                      self.max_fee) // (self.max_fee - self.total_fee)
+
+        if amount_out > out_reserve_before:
+            raise ValueError(f'Amount out to big {amount_out}')
+
+        amount_in = ceildiv(amount_out * in_reserve_before,
+                            out_reserve_before - amount_out)
+
+        return int(amount_in), 0, 0
 
     @override
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
@@ -311,6 +337,26 @@ class StableSwapPool(AbstractPool):
         fee = (amount_out * self.swap_fee) // self.max_fee
 
         return int(amount_out - fee), 0, 0
+
+    # @override
+    # def estimate_amount_in(self, token_out: Esdt, net_amount_out: int, token_in: Esdt) -> Tuple[int, int, int]:
+    #     i_token_in, _ = find(lambda x: x.identifier ==
+    #                          token_in.identifier, self.tokens)
+    #     i_token_out, _ = find(lambda x: x.identifier ==
+    #                           token_out.identifier, self.tokens)
+
+    #     amount_out = (net_amount_out *
+    #                   self.max_fee) // (self.max_fee - self.swap_fee)
+
+    #     normalized_amount_out = self._normalize_amount(amount_out, token_out)
+
+    #     normalized_amount_in = stableswap.estimate_amount_in(
+    #         self.amp_factor, self.normalized_reserves, self.underlying_prices,
+    #         i_token_in, normalized_amount_out, i_token_out)
+
+    #     amount_in = self._denormalize_amount(normalized_amount_in, token_in)
+
+    #     return int(amount_in), 0, 0
 
     @override
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:

@@ -70,6 +70,38 @@ def test_ConstantProductPool_estimate_amount_out(reserves: List[int], amount_in:
     assert net_amount_out == expected
 
 
+@pytest.mark.parametrize('reserves,net_amount_out,expected', [
+    ([1000_000000000000000000, 1000_000000], 9_900990, 9_999999899000000011)
+])
+def test_ConstantProductPool_estimate_amount_in(reserves: List[int], net_amount_out: int, expected: int):
+    first_token = Esdt(decimals=18,
+                       identifier='IN-000000',
+                       ticker='IN',
+                       name='IN',
+                       is_lp_token=False,
+                       exchange='x')
+    second_token = Esdt(decimals=6,
+                        identifier='OUT-000000',
+                        ticker='OUT',
+                        name='OUT',
+                        is_lp_token=False,
+                        exchange='x')
+
+    pool = ConstantProductPool(
+        max_fee=10_000,
+        total_fee=0,
+        first_token=first_token,
+        first_token_reserves=reserves[0],
+        lp_token_supply=999,
+        second_token=second_token,
+        second_token_reserves=reserves[1])
+
+    amount_in, _, _ = pool.estimate_amount_in(
+        second_token, net_amount_out, first_token)
+
+    assert amount_in == expected
+
+
 @pytest.mark.parametrize('reserves,amount_in,expected', [
     ([1000_000000000000000000, 1000_000000], 10_000000000000000000, 10_000000)
 ])
