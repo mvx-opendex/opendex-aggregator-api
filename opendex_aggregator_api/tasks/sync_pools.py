@@ -120,7 +120,7 @@ async def _sync_all_pools():
         _sync_vestadex_pools,
         # _sync_vestax_staking_pool,
         # _sync_hatom_staking_pool,
-        # _sync_hatom_money_markets,
+        _sync_hatom_money_markets,
         # _sync_opendex_pools
     ]
 
