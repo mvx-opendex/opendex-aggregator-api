@@ -6,6 +6,7 @@ from typing_extensions import override
 
 from opendex_aggregator_api.data.model import Esdt
 from opendex_aggregator_api.pools.pools import ConstantProductPool
+from opendex_aggregator_api.utils.math import ceildiv
 
 MAX_FEE = 10_000
 
@@ -82,6 +83,43 @@ class OpendexConstantProductPool(ConstantProductPool):
             net_amount_out = amount_out - lp_fee - platform_fee_out
 
         return net_amount_out, platform_fee_in, platform_fee_out
+
+    @override
+    def estimate_amount_in(self, token_out: Esdt, net_amount_out: int, token_in: Esdt) -> Tuple[int, int, int]:
+        if token_in.identifier == self.first_token.identifier:
+            (in_reserve_before, out_reserve_before) = (
+                self.first_token_reserves, self.second_token_reserves)
+        elif token_in.identifier == self.second_token.identifier:
+            (in_reserve_before, out_reserve_before) = (
+                self.second_token_reserves, self.first_token_reserves)
+        else:
+            raise ValueError(
+                f'Invalid token in: {token_in.identifier} for pool {self}')
+
+        if in_reserve_before == 0:
+            return 0, 0, 0
+
+        platform_fee_in = 0
+        platform_fee_out = 0
+
+        if self.fee_token is None or token_out.identifier == self.fee_token.identifier:
+            amount_out = (net_amount_out *
+                          self.max_fee) // (self.max_fee - self.total_fee)
+
+            platform_fee_out = amount_out * self.platform_fee // self.max_fee
+        else:
+            amount_out = net_amount_out
+
+        amount_in = ceildiv(amount_out * in_reserve_before,
+                            out_reserve_before - amount_out)
+
+        if self.fee_token and token_in.identifier == self.fee_token.identifier:
+            amount_in = amount_in * \
+                self.max_fee // (self.max_fee - self.total_fee)
+
+            platform_fee_in = amount_in * self.platform_fee // self.max_fee
+
+        return amount_in, platform_fee_in, platform_fee_out
 
     def _calculate_fees(self, amount: int) -> Tuple[int, int]:
 
