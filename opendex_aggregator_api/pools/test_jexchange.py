@@ -4,7 +4,7 @@ import pytest
 
 from opendex_aggregator_api.data.model import Esdt
 from opendex_aggregator_api.pools.pools import StableSwapPool
-from .jexchange import JexConstantProductPool, JexStableSwapPool
+from .jexchange import MAX_FEE, JexConstantProductPool, JexStableSwapPool
 
 TOKEN_IN = Esdt(decimals=18,
                 identifier='IN-000000',
@@ -70,8 +70,8 @@ def test_JexConstantProductPool_estimate_amount_out(reserves: List[int], amount_
 
 
 @pytest.mark.parametrize('reserves,net_amount_out,expected', [
-    ([30_000_000000000000000000, 3_000000000000000000],
-     744750000000000000, 10000_000000000000000000)
+    ([561_977377857549639494, 7566136_604933995627688221],
+     10000_000000000000000000, 746727254314357719)
 ])
 def test_JexConstantProductPool_estimate_amount_in(reserves: List[int], net_amount_out: int, expected: int):
     pool = JexConstantProductPool(
@@ -81,14 +81,17 @@ def test_JexConstantProductPool_estimate_amount_in(reserves: List[int], net_amou
         second_token=TOKEN_OUT,
         second_token_reserves=reserves[1],
         platform_fee=20,
-        lp_fee=50)
+        lp_fee=20)
 
     amount_in, admin_fee_in, admin_fee_out = pool.estimate_amount_in(
         TOKEN_OUT, net_amount_out, TOKEN_IN)
 
+    amount_out = (net_amount_out * MAX_FEE) // (MAX_FEE - 40)
+    expected_admin_fee_out = amount_out * 20 // MAX_FEE
+
     assert amount_in == expected
     assert admin_fee_in == 0
-    assert admin_fee_out == 1500000000000000
+    assert admin_fee_out == expected_admin_fee_out
 
 
 @pytest.mark.parametrize('reserves,token_in_identifier,amount_in,token_out_identifier,expected', [

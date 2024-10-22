@@ -90,7 +90,8 @@ class JexConstantProductPool(ConstantProductPool):
                       self.max_fee) // (self.max_fee - self.total_fee)
 
         if amount_out > out_reserve_before:
-            raise ValueError(f'Amount out to big {amount_out}')
+            raise ValueError(
+                f'Amount out to big {amount_out} (max {out_reserve_before})')
 
         amount_in = ceildiv(amount_out * in_reserve_before,
                             out_reserve_before - amount_out)
