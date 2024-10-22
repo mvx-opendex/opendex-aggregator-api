@@ -69,6 +69,28 @@ def test_JexConstantProductPool_estimate_amount_out(reserves: List[int], amount_
     assert admin_fee_out == 1500000000000000
 
 
+@pytest.mark.parametrize('reserves,net_amount_out,expected', [
+    ([30_000_000000000000000000, 3_000000000000000000],
+     744750000000000000, 10000_000000000000000000)
+])
+def test_JexConstantProductPool_estimate_amount_in(reserves: List[int], net_amount_out: int, expected: int):
+    pool = JexConstantProductPool(
+        first_token=TOKEN_IN,
+        first_token_reserves=reserves[0],
+        lp_token_supply=999,
+        second_token=TOKEN_OUT,
+        second_token_reserves=reserves[1],
+        platform_fee=20,
+        lp_fee=50)
+
+    amount_in, admin_fee_in, admin_fee_out = pool.estimate_amount_in(
+        TOKEN_OUT, net_amount_out, TOKEN_IN)
+
+    assert amount_in == expected
+    assert admin_fee_in == 0
+    assert admin_fee_out == 1500000000000000
+
+
 @pytest.mark.parametrize('reserves,token_in_identifier,amount_in,token_out_identifier,expected', [
     ([18_435_214786690045997381, 17_800_343931, 80_002_467145381198156678],
      WDAI.identifier, 5000_000000000000000000,

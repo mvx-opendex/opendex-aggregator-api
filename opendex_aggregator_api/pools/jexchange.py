@@ -6,6 +6,7 @@ from typing_extensions import override
 
 from opendex_aggregator_api.data.model import Esdt
 from opendex_aggregator_api.pools import stableswap
+from opendex_aggregator_api.utils.math import ceildiv
 
 from .pools import ConstantProductPool, StableSwapPool, find
 
@@ -79,6 +80,24 @@ class JexConstantProductPool(ConstantProductPool):
             raise ValueError(f'Amount to swap to big {amount_in}')
 
         return net_amount_out, 0, platform_fees
+
+    @override
+    def estimate_amount_in(self, token_out: Esdt, net_amount_out: int, token_in: Esdt) -> Tuple[int, int, int]:
+        in_reserve_before, out_reserve_before = self._reserves(token_in,
+                                                               token_out)
+
+        amount_out = (net_amount_out *
+                      self.max_fee) // (self.max_fee - self.total_fee)
+
+        if amount_out > out_reserve_before:
+            raise ValueError(f'Amount out to big {amount_out}')
+
+        amount_in = ceildiv(amount_out * in_reserve_before,
+                            out_reserve_before - amount_out)
+
+        platform_fees = (amount_out * self.platform_fee) // MAX_FEE
+
+        return int(amount_in), 0, platform_fees
 
     @override
     def estimated_gas(self) -> int:
