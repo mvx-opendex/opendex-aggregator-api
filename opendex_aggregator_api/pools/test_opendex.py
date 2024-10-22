@@ -7,24 +7,27 @@ from opendex_aggregator_api.data.model import Esdt
 
 from .opendex import OpendexConstantProductPool
 
+TOKEN_IN = Esdt(decimals=18,
+                identifier='IN-000000',
+                ticker='IN',
+                name='IN',
+                is_lp_token=False,
+                exchange='x')
+TOKEN_OUT = Esdt(decimals=18,
+                 identifier='OUT-000000',
+                 ticker='OUT',
+                 name='OUT',
+                 is_lp_token=False,
+                 exchange='x')
+
 
 @pytest.mark.parametrize('reserves,amount_in,expected', [
     ([10000_000000000000000000, 200_000000000000000000],
      100_000000000000000000, 1_972277227722772278)
 ])
 def test_OpendexConstantProductPool_estimate_amount_out(reserves: List[int], amount_in: int, expected: int):
-    first_token = Esdt(decimals=18,
-                       identifier='IN-000000',
-                       ticker='IN',
-                       name='IN',
-                       is_lp_token=False,
-                       exchange='x')
-    second_token = Esdt(decimals=18,
-                        identifier='OUT-000000',
-                        ticker='OUT',
-                        name='OUT',
-                        is_lp_token=False,
-                        exchange='x')
+    first_token = TOKEN_IN
+    second_token = TOKEN_OUT
 
     pool = OpendexConstantProductPool(first_token=first_token,
                                       first_token_reserves=reserves[0],
@@ -48,18 +51,8 @@ def test_OpendexConstantProductPool_estimate_amount_out(reserves: List[int], amo
 def test_OpendexConstantProductPool_estimate_amount_out_fee_in(reserves: List[int],
                                                                amount_in: int,
                                                                expected: int):
-    first_token = Esdt(decimals=18,
-                       identifier='OUT-000000',
-                       ticker='OUT',
-                       name='OUT',
-                       is_lp_token=False,
-                       exchange='x')
-    second_token = Esdt(decimals=18,
-                        identifier='IN-000000',
-                        ticker='IN',
-                        name='IN',
-                        is_lp_token=False,
-                        exchange='x')
+    first_token = TOKEN_OUT
+    second_token = TOKEN_IN
 
     pool = OpendexConstantProductPool(first_token=first_token,
                                       first_token_reserves=reserves[0],
