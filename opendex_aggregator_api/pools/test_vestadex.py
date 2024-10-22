@@ -3,7 +3,7 @@ import pytest
 
 from opendex_aggregator_api.data.model import Esdt
 
-from .vestadex import VestaDexConstantProductPool
+from .vestadex import MAX_FEE, VestaDexConstantProductPool
 
 OURO = Esdt(decimals=18,
             identifier='OURO-000000',
@@ -21,7 +21,7 @@ XLH = Esdt(decimals=18,
 
 @pytest.mark.parametrize('reserves,amount_in,expected', [
     ([3_343_668833240686226569, 1_289_058_540919326440545772],
-     10_000000000000000000, 3652_084564706615454872)])
+     10_000000000000000000, 3651_540073770523597689)])
 def test_VestaDexConstantProductPool_estimate_amount_out(reserves, amount_in, expected):
 
     pool = VestaDexConstantProductPool(first_token=OURO,
@@ -29,14 +29,42 @@ def test_VestaDexConstantProductPool_estimate_amount_out(reserves, amount_in, ex
                                        lp_token_supply=0,
                                        second_token=XLH,
                                        second_token_reserves=reserves[1],
-                                       special_fee=42500,
-                                       total_fee=50000,
+                                       special_fee=42_500,
+                                       total_fee=50_000,
+                                       fee_token=XLH)
+
+    net_amount_out, special_fee_in, special_fee_out = pool.estimate_amount_out(token_in=OURO,
+                                                                               amount_in=amount_in,
+                                                                               token_out=XLH)
+
+    amount_out = (net_amount_out * MAX_FEE) // (MAX_FEE - 50_000)
+    expected_special_fee = amount_out * 42_500 // MAX_FEE
+
+    assert net_amount_out == expected
+    assert special_fee_in == 0
+    assert special_fee_out == expected_special_fee
+
+
+@pytest.mark.parametrize('reserves,amount_in,expected', [
+    ([3_343_668833240686226569, 1_289_058_540919326440545772],
+     10_000000000000000000, 3652_084564706615454872)])
+def test_VestaDexConstantProductPool_estimate_amount_out_fee_in(reserves, amount_in, expected):
+
+    pool = VestaDexConstantProductPool(first_token=OURO,
+                                       first_token_reserves=reserves[0],
+                                       lp_token_supply=0,
+                                       second_token=XLH,
+                                       second_token_reserves=reserves[1],
+                                       special_fee=42_500,
+                                       total_fee=50_000,
                                        fee_token=OURO)
 
     net_amount_out, special_fee_in, special_fee_out = pool.estimate_amount_out(token_in=OURO,
                                                                                amount_in=amount_in,
                                                                                token_out=XLH)
 
+    expected_special_fee = amount_in * 42_500 // MAX_FEE
+
     assert net_amount_out == expected
+    assert special_fee_in == expected_special_fee
     assert special_fee_out == 0
-    assert special_fee_in == 425000000000000000
