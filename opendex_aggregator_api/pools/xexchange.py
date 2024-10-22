@@ -72,8 +72,8 @@ class XExchangeConstantProductPool(ConstantProductPool):
         net_amount_in = ceildiv(net_amount_out * in_reserve_before,
                                 out_reserve_before - net_amount_out)
 
-        amount_in = (net_amount_in *
-                     self.max_fee) // (self.max_fee - self.total_fee)
+        amount_in = ((net_amount_in *
+                     self.max_fee) // (self.max_fee - self.total_fee)) + 1
 
         special_fee = (amount_in * self.special_fee) // MAX_FEE
 
