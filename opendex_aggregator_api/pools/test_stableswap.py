@@ -1,23 +1,75 @@
 
 from typing import List
 import pytest
-from .stableswap import estimate_amount_out, estimate_deposit, estimate_withdraw_one_token
+from .stableswap import estimate_amount_out, estimate_amount_in, estimate_deposit, estimate_withdraw_one_token
 
 
 @pytest.mark.parametrize('reserves,underlying_prices,amount_in,expected', [
     ([1, 1], [10**18, 10**18], 0, 0),
+
     ([0, 1000], [10**18, 10**18], 1, 0),
+
     ([1000, 0], [10**18, 10**18], 1, 0),
+
     ([1000, 1000], [10**18, 10**18], 1, 1),
+
     ([1000, 1000], [10**18, 10**18], 1, 1),
-    ([466_060, 518_355, 428_216], [10**18, 10**18, 10**18], 100000, 99963),
-    ([15_347, 34_757], [10**18, 1_013470148086771241], 10_000, 9_884),
-    ([15_347_000_000, 34_757_000_000], [
-     10**18, 1_013470148086771241], 10_000_000_000, 9_884_809_278)
+
+    ([466_060, 518_355, 428_216],
+     [10**18, 10**18, 10**18],
+     100_000, 99_963),
+
+    ([15_347, 34_757],
+     [10**18, 1_013470148086771241],
+     10_000, 9_884),
+
+    ([15_347_000_000, 34_757_000_000],
+     [10**18, 1_013470148086771241],
+     10_000_000_000, 9_884_809_278),
+
+    ([514670_000000, 392640_000000, 495630_000000],
+     [10**18, 10**18, 10**18],
+     1000_000000, 998_869189)
 ])
 def test_estimate_amount_out(reserves: List[int], underlying_prices: List[int], amount_in: int, expected: int):
     assert estimate_amount_out(
         256, reserves, underlying_prices, 0, amount_in, 1) == expected
+
+
+@pytest.mark.parametrize('reserves,underlying_prices,amount_out,expected', [
+    ([1, 1], [10**18, 10**18], 0, 0),
+
+    ([0, 1000], [10**18, 10**18], 1, 0),
+
+    ([1000, 0], [10**18, 10**18], 1, 0),
+
+    ([1000, 1000], [10**18, 10**18], 1, 1),
+
+    ([1000, 1000], [10**18, 10**18], 1, 1),
+
+    ([466_060, 518_355, 428_216],
+     [10**18, 10**18, 10**18],
+     99_963, 100_000),
+
+    ([15_347, 34_757],
+     [10**18, 1_013470148086771241],
+     9_884, 9_999),
+
+    ([15_347_000_000, 34_757_000_000],
+     [10**18, 1_013470148086771241],
+     9_884_809_278, 9_999_999_999),
+
+    ([514670_000000, 392640_000000, 495630_000000],
+     [10**18, 10**18, 10**18],
+     998_869189, 1000_000000)
+])
+def test_estimate_amount_in(reserves: List[int], underlying_prices: List[int], amount_out: int, expected: int):
+    assert estimate_amount_in(256,
+                              reserves,
+                              underlying_prices,
+                              1,
+                              amount_out,
+                              0) == expected
 
 
 @pytest.mark.parametrize('reserves,underlying_prices,deposits,lp_total_supply,expected', [

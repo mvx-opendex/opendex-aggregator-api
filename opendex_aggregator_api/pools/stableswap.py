@@ -26,16 +26,49 @@ def estimate_amount_out(amp: int,
     if amount_in == 0 or in_reserve == 0 or out_reserve == 0:
         return 0
 
-    dx = amount_in * \
+    x = reserves[i_token_in] + amount_in * \
         underlying_prices[i_token_in] // UNDERLYING_PRICE_PRECISION
 
     out_reserve_after = curve.y(
-        amp, reserves, i_token_in, i_token_out, dx)
+        amp, reserves, i_token_in, i_token_out, x)
 
     dy = (out_reserve - out_reserve_after) * \
         UNDERLYING_PRICE_PRECISION // underlying_prices[i_token_out]
 
     return dy
+
+
+def estimate_amount_in(amp: int,
+                       reserves: List[int],
+                       underlying_prices: List[int],
+                       i_token_out: int,
+                       amount_out: int,
+                       i_token_in: int):
+    """
+    Estimate input amount of a stable swap.
+
+    Note that +reserves+ and +amount_out+ must be normalized (same number of decimals)
+    """
+
+    reserves = [(r*p)//UNDERLYING_PRICE_PRECISION for (r, p)
+                in zip(reserves, underlying_prices)]
+
+    in_reserve = reserves[i_token_in]
+    out_reserve = reserves[i_token_out]
+
+    if amount_out == 0 or in_reserve == 0 or out_reserve == 0:
+        return 0
+
+    y = reserves[i_token_out] - amount_out * \
+        underlying_prices[i_token_out] // UNDERLYING_PRICE_PRECISION
+
+    in_reserve_after = curve.y(
+        amp, reserves, i_token_out, i_token_in, y)
+
+    dx = (in_reserve_after - in_reserve) * \
+        UNDERLYING_PRICE_PRECISION // underlying_prices[i_token_in]
+
+    return dx
 
 
 def estimate_withdraw_one_token(shares: int,

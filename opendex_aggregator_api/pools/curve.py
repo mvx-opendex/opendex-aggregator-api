@@ -44,7 +44,7 @@ def D(amp: int, amounts: List[int]) -> int:
     raise DidNotConvergeException("D didn't converge")
 
 
-def y(amp: int, amounts: List[int], i_token_in: int, i_token_out: int, amount_in: int):
+def y(amp: int, amounts: List[int], i_token_in: int, i_token_out: int, token_in_balance: int):
     """
     Calculate x[j] if one makes x[i] = x
 
@@ -60,7 +60,7 @@ def y(amp: int, amounts: List[int], i_token_in: int, i_token_out: int, amount_in
     d = D(amp, amounts)
     ann = amp * n_coins
 
-    amounts[i_token_in] += amount_in
+    amounts[i_token_in] = token_in_balance
     amounts = [amounts[k] for k in range(n_coins) if k != i_token_out]
 
     c = d
