@@ -6,6 +6,7 @@ from typing_extensions import override
 
 from opendex_aggregator_api.data.model import Esdt
 from opendex_aggregator_api.pools.pools import ConstantProductPool
+from opendex_aggregator_api.utils.math import ceildiv
 
 MAX_FEE = 100_000
 
@@ -59,6 +60,24 @@ class XExchangeConstantProductPool(ConstantProductPool):
         special_fee = (amount_in * self.special_fee) // MAX_FEE
 
         return amount_out, special_fee, 0
+
+    @override
+    def estimate_amount_in(self, token_out: Esdt, net_amount_out: int, token_in: Esdt) -> Tuple[int, int, int]:
+        in_reserve_before, out_reserve_before = self._reserves(token_in,
+                                                               token_out)
+
+        if net_amount_out > out_reserve_before:
+            raise ValueError(f'Amount out to big {net_amount_out}')
+
+        net_amount_in = ceildiv(net_amount_out * in_reserve_before,
+                                out_reserve_before - net_amount_out)
+
+        amount_in = (net_amount_in *
+                     self.max_fee) // (self.max_fee - self.total_fee)
+
+        special_fee = (amount_in * self.special_fee) // MAX_FEE
+
+        return int(amount_in), special_fee, 0
 
     @override
     def _source(self) -> str:
