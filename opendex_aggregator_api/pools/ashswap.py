@@ -47,6 +47,14 @@ class AshSwapPoolV2(ConstantProductPool):
         assert len(tokens) == 2, 'Invalid number of tokens'
         assert len(reserves) == 2, 'Invalid number of token reserves'
 
+        super().__init__(max_fee=PRECISION,
+                         first_token=tokens[0],
+                         first_token_reserves=reserves[0],
+                         lp_token_supply=0,
+                         second_token=tokens[1],
+                         second_token_reserves=reserves[1],
+                         total_fee=out_fee)
+
         self.amp = amp
         self.d = d
         self.fee_gamma = fee_gamma
@@ -133,6 +141,10 @@ class AshSwapPoolV2(ConstantProductPool):
         dy = dy - fee
 
         return dy, 0, fee // 3
+
+    # @override
+    # def estimate_amount_in(self, token_out: Esdt, net_amount_out: int, token_in: Esdt) -> Tuple[int, int, int]:
+    #     raise NotImplementedError()
 
     @override
     def estimated_gas(self) -> int:

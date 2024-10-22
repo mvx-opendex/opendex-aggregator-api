@@ -1,10 +1,10 @@
 import asyncio
 import logging
 from time import time
-from typing import Optional
+from typing import Callable, Optional
 
 import aiohttp
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
                                                 SwapEvaluation)
@@ -24,11 +24,21 @@ router = APIRouter()
 @router.post("/evaluate")
 async def do_evaluate(response: Response,
                       token_in: str,
-                      amount_in: int,
                       token_out: str,
+                      amount_in: Optional[int] = None,
+                      net_amount_out: Optional[int] = None,
                       max_hops: int = Query(default=3, ge=1, le=4),
                       with_dyn_routing: Optional[bool] = False) -> SwapEvaluationOut:
     response.headers['Access-Control-Allow-Origin'] = '*'
+
+    if amount_in is None:
+        if net_amount_out is None:
+            raise HTTPException(status_code=400,
+                                detail='Either amount_in or net_amount_out is required')
+    else:
+        if net_amount_out is not None:
+            raise HTTPException(status_code=400,
+                                detail='Either amount_in or net_amount_out is required')
 
     routes = get_or_find_sorted_routes(token_in,
                                        token_out,
@@ -42,12 +52,27 @@ async def do_evaluate(response: Response,
     pools_cache = {}
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
-        evals = await asyncio.gather(*[eval_svc.evaluate(r, amount_in, pools_cache, http_client)
-                                       for r in routes])
+        if amount_in is not None:
+            evals = await asyncio.gather(*[_safely_do(eval_svc.evaluate_fixed_input(r,
+                                                                                    amount_in,
+                                                                                    pools_cache,
+                                                                                    http_client))
+                                           for r in routes])
+            evals = (e for e in evals if e is not None and e.net_amount_out > 1)
+            evals = sorted(evals,
+                           key=lambda x: x.net_amount_out,
+                           reverse=True)
+        else:
+            evals = await asyncio.gather(*[_safely_do(eval_svc.evaluate_fixed_output(r,
+                                                                                     net_amount_out,
+                                                                                     pools_cache,
+                                                                                     http_client))
+                                           for r in routes])
+            evals = (e for e in evals if e is not None and e.amount_in > 1)
+            evals = sorted(evals,
+                           key=lambda x: x.amount_in)
 
-    evals = sorted(evals,
-                   key=lambda x: x.net_amount_out,
-                   reverse=True)
+    print(evals[0])
 
     if with_dyn_routing:
         dyn_routing_eval = await eval_svc.find_best_dynamic_routing_algo3(routes,
@@ -150,3 +175,10 @@ def _adap_dyn_eval(e: DynamicRoutingSwapEvaluation) -> DynamicRouteSwapEvaluatio
                                          rate=rate,
                                          rate2=rate2,
                                          amounts_and_routes_payload=amounts_and_routes_payload)
+
+
+async def _safely_do(coroutine_: Callable[..., None]) -> SwapEvaluation:
+    try:
+        return await coroutine_
+    except:
+        logging.exception(f'Error during evaluation')

@@ -20,25 +20,38 @@ FEE_MULTIPLIER = 0  # 5  # 0.005%
 MAX_FEE = 100_000
 
 
-async def evaluate(route: SwapRoute,
-                   amount_in: int,
-                   pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
-                   http_client: aiohttp.ClientSession) -> SwapEvaluation:
+async def evaluate_fixed_input(route: SwapRoute,
+                               amount_in: int,
+                               pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
+                               http_client: aiohttp.ClientSession) -> SwapEvaluation:
 
     if _can_evaluate_offline(route):
-        return evaluate_offline(route,
-                                amount_in,
-                                pools_cache)
+        return evaluate_fixed_input_offline(route,
+                                            amount_in,
+                                            pools_cache)
     else:
-        return await evaluate_online(amount_in,
-                                     route,
-                                     http_client)
+        return await evaluate_fixed_input_online(amount_in,
+                                                 route,
+                                                 http_client)
 
 
-def evaluate_offline(route: SwapRoute,
-                     amount_in: int,
-                     pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
-                     update_reserves: bool = False) -> SwapEvaluation:
+async def evaluate_fixed_output(route: SwapRoute,
+                                net_amount_out: int,
+                                pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
+                                http_client: aiohttp.ClientSession) -> SwapEvaluation:
+
+    if _can_evaluate_offline(route):
+        return evaluate_fixed_output_offline(route,
+                                             net_amount_out,
+                                             pools_cache)
+    else:
+        raise ValueError('Cannot evaluate fixed output (online)')
+
+
+def evaluate_fixed_input_offline(route: SwapRoute,
+                                 amount_in: int,
+                                 pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
+                                 update_reserves: bool = False) -> SwapEvaluation:
     token = route.token_in
     amount = amount_in
     fee_amount = 0
@@ -119,9 +132,94 @@ def evaluate_offline(route: SwapRoute,
                           theorical_amount_out=theorical_amount)
 
 
-async def evaluate_online(amount_in: int,
-                          route: SwapRoute,
-                          http_client: aiohttp.ClientSession) -> SwapEvaluation:
+def evaluate_fixed_output_offline(route: SwapRoute,
+                                  net_amount_out: int,
+                                  pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
+                                  update_reserves: bool = False) -> SwapEvaluation:
+    token = route.token_out
+    amount = net_amount_out
+    fee_amount = 0
+    fee_token = None
+    estimated_gas = 10_000_000
+    theorical_amount = net_amount_out
+
+    for hop in reversed(route.hops):
+        if hop.token_out != token:
+            raise ValueError(f'Invalid output token [{hop.token_out}]')
+
+        pool_cache_key = (hop.pool.sc_address,
+                          hop.token_in,
+                          hop.token_out)
+        pool = pools_cache.get(pool_cache_key, None)
+
+        if pool is None:
+            pool = get_dex_aggregator_pool(hop.pool.sc_address,
+                                           hop.token_in,
+                                           hop.token_out)
+
+        if pool is None:
+            raise ValueError(
+                f'Unknown pool [{hop.pool.sc_address}] [{hop.token_in}] [{hop.token_out}]')
+
+        pool = pool.deep_copy()
+        pools_cache[pool_cache_key] = pool
+
+        if hop.token_out.startswith('WEGLD-'):
+            fee_amount = amount * FEE_MULTIPLIER // MAX_FEE
+            fee_token = hop.token_out
+            amount -= fee_amount
+            theorical_amount -= fee_amount
+
+        esdt_in = get_or_fetch_token(hop.token_in)
+        esdt_out = get_or_fetch_token(hop.token_out)
+
+        try:
+            amount_in, admin_fee_in, admin_fee_out = pool.estimate_amount_in(esdt_out,
+                                                                             amount,
+                                                                             esdt_in)
+
+            # TODO
+            # theorical_amount = pool.estimate_theorical_amount_in(esdt_in,
+            #                                                       theorical_amount,
+            #                                                       esdt_out)
+
+            if update_reserves:
+                pool.update_reserves(esdt_in,
+                                     amount_in - admin_fee_in,
+                                     esdt_out,
+                                     amount + admin_fee_out)
+
+            amount = amount_in
+        except ValueError as e:
+            logging.info('Error during estimation -> 0')
+            # logging.exception(e)
+            amount = 0
+
+        token = hop.token_in
+
+        estimated_gas += pool.estimated_gas()
+
+    if token != route.token_in:
+        raise ValueError(
+            f'Invalid output token after swaps [{token}] != [{route.token_in}]')
+
+    if fee_amount == 0:
+        fee_amount = amount * FEE_MULTIPLIER // MAX_FEE
+        fee_token = token
+        amount -= fee_amount
+
+    return SwapEvaluation(amount_in=amount,
+                          estimated_gas=estimated_gas,
+                          fee_amount=fee_amount,
+                          fee_token=fee_token,
+                          net_amount_out=net_amount_out,
+                          route=route,
+                          theorical_amount_out=theorical_amount)
+
+
+async def evaluate_fixed_input_online(amount_in: int,
+                                      route: SwapRoute,
+                                      http_client: aiohttp.ClientSession) -> SwapEvaluation:
     route_payload = route.serialize()
     args = [amount_in, route_payload]
 
@@ -187,8 +285,8 @@ def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluatio
     best_amount_out = first_eval.net_amount_out
 
     for a1, a2 in amounts:
-        e1 = evaluate_offline(first_route, a1)
-        e2 = evaluate_offline(second_route, a2)
+        e1 = evaluate_fixed_input_offline(first_route, a1)
+        e2 = evaluate_fixed_input_offline(second_route, a2)
 
         amount_out = e1.net_amount_out + e2.net_amount_out
 
@@ -247,8 +345,8 @@ def find_best_dynamic_routing_algo2(single_route_evaluations: List[SwapEvaluatio
     weights = [s / total_slippage
                for s in slippage]
 
-    evals = [evaluate_offline(c.route,
-                              int(amount_in * w))
+    evals = [evaluate_fixed_input_offline(c.route,
+                                          int(amount_in * w))
              for c, w in zip(candidates, weights)]
 
     return DynamicRoutingSwapEvaluation(amount_in=amount_in,
@@ -288,9 +386,9 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
         else:
             route_candidates = offline_routes
 
-        evals = [evaluate_offline(r,
-                                  amount,
-                                  pools_cache) for r in route_candidates]
+        evals = [evaluate_fixed_input_offline(r,
+                                              amount,
+                                              pools_cache) for r in route_candidates]
 
         evals = sorted(evals,
                        key=lambda x: x.net_amount_out,
@@ -306,10 +404,10 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                               for r in amount_per_route.keys()))
                           ))
 
-        evaluate_offline(best_eval.route,
-                         amount,
-                         pools_cache,
-                         update_reserves=True)
+        evaluate_fixed_input_offline(best_eval.route,
+                                     amount,
+                                     pools_cache,
+                                     update_reserves=True)
 
         amount_of_route = amount_per_route.get(best_eval.route, 0)
 
@@ -333,7 +431,7 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
             print(f'Route: {[h.pool.name for h in route.hops]}')
             print(f'Amount: {amount}')
 
-            eval = evaluate_offline(route, amount, {})
+            eval = evaluate_fixed_input_offline(route, amount, {})
 
             print(f'Amount out (offline): {eval.net_amount_out}')
             print(f'Fee (offline): {eval.fee_amount} {eval.fee_token}')
@@ -342,9 +440,9 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
             evals.append(eval)
 
-            online_eval = await evaluate_online(amount,
-                                                route,
-                                                http_client)
+            online_eval = await evaluate_fixed_input_online(amount,
+                                                            route,
+                                                            http_client)
 
             total_amount_out_verif_online += online_eval.net_amount_out
 
