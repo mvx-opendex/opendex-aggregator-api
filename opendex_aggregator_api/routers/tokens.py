@@ -24,4 +24,5 @@ def _adapt_token(x: Esdt) -> TokenOut:
                     ticker=x.ticker,
                     name=x.name,
                     is_lp_token=x.is_lp_token,
-                    exchange=x.exchange)
+                    exchange=x.exchange,
+                    usd_price=x.usd_price)

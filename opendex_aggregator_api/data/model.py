@@ -37,8 +37,9 @@ class Esdt(BaseModel):
     identifier: str
     ticker: str
     name: str
-    is_lp_token: Optional[bool]
-    exchange: Optional[str]
+    is_lp_token: Optional[bool] = None
+    exchange: Optional[str] = None
+    usd_price: Optional[float] = None
 
     def __hash__(self):
         return hash(self.identifier)

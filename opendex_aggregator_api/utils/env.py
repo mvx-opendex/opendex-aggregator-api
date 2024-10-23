@@ -51,3 +51,7 @@ def sc_address_vestadex_router():
 
 def sc_address_vestax_staking():
     return os.environ.get('SC_ADDRESS_VESTAX_STAKING', None)
+
+
+def sc_address_hatom_price_feed():
+    return os.environ.get('SC_ADDRESS_HATOM_PRICE_FEED', None)

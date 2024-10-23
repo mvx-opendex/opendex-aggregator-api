@@ -90,3 +90,4 @@ class TokenOut(BaseModel):
     is_lp_token: Optional[bool] = Field(..., serialization_alias='isLpToken')
     name: str
     exchange: Optional[str]
+    usd_price: Optional[float] = Field(..., serialization_alias='usdPrice')
