@@ -97,7 +97,7 @@ async def do_evaluate(response: Response,
     else:
         print('Not found')
 
-    if dyn_routing_eval.net_amount_out <= best_static_eval.net_amount_out:
+    if dyn_routing_eval and dyn_routing_eval.net_amount_out <= best_static_eval.net_amount_out:
         dyn_routing_eval = None
 
     return _adapt_eval_result(best_static_eval,
