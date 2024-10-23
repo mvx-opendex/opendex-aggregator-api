@@ -72,7 +72,7 @@ async def do_evaluate(response: Response,
             evals = sorted(evals,
                            key=lambda x: x.amount_in)
 
-    print(evals[0])
+    best_static_eval = evals[0]
 
     if with_dyn_routing:
         dyn_routing_eval = await eval_svc.find_best_dynamic_routing_algo3(routes,
@@ -87,9 +87,9 @@ async def do_evaluate(response: Response,
         f'{token_in} -> {token_out} :: evaluations computed in {end-start} seconds')
 
     print('Static route')
-    print([h.pool.name for h in evals[0].route.hops])
+    print([h.pool.name for h in best_static_eval.route.hops])
     print(
-        f'{amount_in} {token_in} -> {evals[0].net_amount_out} {token_out}')
+        f'{amount_in} {token_in} -> {best_static_eval.net_amount_out} {token_out}')
 
     print('Dynamic route')
     if dyn_routing_eval:
@@ -97,7 +97,10 @@ async def do_evaluate(response: Response,
     else:
         print('Not found')
 
-    return _adapt_eval_result(evals[0],
+    if dyn_routing_eval.net_amount_out <= best_static_eval.net_amount_out:
+        dyn_routing_eval = None
+
+    return _adapt_eval_result(best_static_eval,
                               dyn_routing_eval)
 
 
