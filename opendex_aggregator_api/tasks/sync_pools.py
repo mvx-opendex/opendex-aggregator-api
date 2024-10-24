@@ -10,6 +10,7 @@ from typing import Callable, List, Optional, Set, Tuple
 import aiohttp
 from multiversx_sdk_core import Address
 
+import opendex_aggregator_api.services.prices as prices_svc
 from opendex_aggregator_api.data.constants import (
     SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2, SC_TYPE_EXROND,
     SC_TYPE_HATOM_MONEY_MARKET_MINT, SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
@@ -34,7 +35,6 @@ from opendex_aggregator_api.pools.pools import (ConstantPricePool,
                                                 StableSwapPool)
 from opendex_aggregator_api.pools.vestadex import VestaDexConstantProductPool
 from opendex_aggregator_api.pools.xexchange import XExchangeConstantProductPool
-from opendex_aggregator_api.services import hatom as hatom_svc
 from opendex_aggregator_api.services.externals import async_sc_query
 from opendex_aggregator_api.services.parsers.ashswap import (
     parse_ashswap_stablepool_status, parse_ashswap_v2_pool_status)
@@ -144,7 +144,8 @@ async def _sync_all_pools():
 
     set_swap_pools(swap_pools)
     set_exchange_rates([x for x in _all_rates])
-    set_tokens(await _fill_all_tokens_usd_price(_all_tokens))
+
+    set_tokens(await prices_svc.fill_tokens_usd_price(_all_tokens, _all_rates))
 
     logging.info(f'Nb swap pools: {len(swap_pools)} (total)')
     logging.info(f'Nb tokens: {len(_all_tokens)} (total)')
@@ -1192,41 +1193,3 @@ def _is_pair_valid(tokens_reserves: List[Tuple[str, str]]) -> bool:
             break
 
     return is_valid
-
-
-async def _fill_all_tokens_usd_price(_all_tokens: List[Esdt]):
-    [wegld_usd_price, usdc_usd_price] = await hatom_svc.fetch_egld_and_usdc_prices()
-
-    return [_fill_token_usd_price(t,
-                                  _all_rates,
-                                  wegld_usd_price,
-                                  usdc_usd_price)
-            for t in _all_tokens]
-
-
-def _fill_token_usd_price(token: Esdt,
-                          rates: List[ExchangeRate],
-                          wegld_usd_price: Optional[float],
-                          usdc_usd_price: Optional[float]) -> Esdt:
-    if token.identifier == WEGLD_IDENTIFIER:
-        return wegld_usd_price
-    elif token.identifier == USDC_IDENTIFIER:
-        return usdc_usd_price
-
-    sorted_rates: List[ExchangeRate] = sorted((r for r in rates
-                                               if r.base_token_liquidity > 0
-                                               and r.base_token_id == token.identifier
-                                               and r.quote_token_id in [WEGLD_IDENTIFIER, USDC_IDENTIFIER]),
-                                              key=lambda x: x.base_token_liquidity,
-                                              reverse=True)
-
-    for rate in sorted_rates:
-        if rate.quote_token_id == WEGLD_IDENTIFIER and wegld_usd_price is not None:
-            token.usd_price = (wegld_usd_price * rate.quote_token_liquidity * 10**token.decimals) / \
-                (rate.base_token_liquidity * 10**18)
-
-        if rate.quote_token_id == USDC_IDENTIFIER and usdc_usd_price is not None:
-            token.usd_price = (usdc_usd_price * rate.quote_token_liquidity * 10**token.decimals) / \
-                (rate.base_token_liquidity * 10**6)
-
-    return token
