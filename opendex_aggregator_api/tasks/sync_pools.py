@@ -1208,6 +1208,11 @@ def _fill_token_usd_price(token: Esdt,
                           rates: List[ExchangeRate],
                           wegld_usd_price: Optional[float],
                           usdc_usd_price: Optional[float]) -> Esdt:
+    if token.identifier == WEGLD_IDENTIFIER:
+        return wegld_usd_price
+    elif token.identifier == USDC_IDENTIFIER:
+        return usdc_usd_price
+
     sorted_rates: List[ExchangeRate] = sorted((r for r in rates
                                                if r.base_token_liquidity > 0
                                                and r.base_token_id == token.identifier
