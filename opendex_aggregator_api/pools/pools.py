@@ -1,4 +1,5 @@
 import math
+import sys
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 
@@ -262,6 +263,18 @@ class ConstantPricePool(AbstractPool):
     @override
     def estimated_gas(self) -> int:
         return 20_000_000
+
+    @override
+    def exchange_rates(self, sc_address: str) -> List[ExchangeRate]:
+        rate = self.price / 10**18
+        return [ExchangeRate(base_token_id=self.token_out.identifier,
+                             base_token_liquidity=self.token_out_reserve,
+                             quote_token_id=self.token_in.identifier,
+                             quote_token_liquidity=sys.maxsize,
+                             rate=rate,
+                             rate2=1 / rate,
+                             sc_address=sc_address,
+                             source=self._source())]
 
     @override
     def update_reserves(self,

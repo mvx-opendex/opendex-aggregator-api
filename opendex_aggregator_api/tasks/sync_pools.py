@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import sys
 from datetime import datetime, timedelta
 from itertools import product
 from time import sleep
@@ -24,6 +25,7 @@ from opendex_aggregator_api.data.model import (Esdt, ExchangeRate, OpendexPair,
                                                VestaDexPool)
 from opendex_aggregator_api.pools.ashswap import (AshSwapPoolV2,
                                                   AshSwapStableSwapPool)
+from opendex_aggregator_api.pools.hatom import HatomConstantPricePool
 from opendex_aggregator_api.pools.jexchange import (
     JexConstantProductDepositPool, JexConstantProductPool, JexStableSwapPool,
     JexStableSwapPoolDeposit)
@@ -930,14 +932,18 @@ async def _sync_hatom_staking_pool() -> List[SwapPool]:
         _all_tokens.add(token_in)
         _all_tokens.add(token_out)
 
-        pool = ConstantPricePool(egld_price, token_in=token_in, token_out=token_out,
-                                 token_out_reserve=999*10**token_out.decimals)
+        pool = HatomConstantPricePool(egld_price,
+                                      token_in=token_in,
+                                      token_out=token_out,
+                                      token_out_reserve=sys.maxsize)
 
         swap_pools.append(SwapPool(name=f'Hatom (stake)',
                                    sc_address=sc_address,
                                    tokens_in=[WEGLD_IDENTIFIER],
                                    tokens_out=['SEGLD-3ad2d0'],
                                    type=SC_TYPE_HATOM_STAKE))
+
+        _all_rates.update(pool.exchange_rates(sc_address=sc_address))
 
         set_dex_aggregator_pool(
             sc_address, token_in.identifier, token_out.identifier, pool)
@@ -1004,10 +1010,10 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
             deposit_price = mm.ratio_tokens_to_underlying * \
                 10**(18-underlying_token.decimals)
 
-            deposit_pool = ConstantPricePool(deposit_price,
-                                             underlying_token,
-                                             h_token,
-                                             9999999*10**h_token.decimals)
+            deposit_pool = HatomConstantPricePool(deposit_price,
+                                                  underlying_token,
+                                                  h_token,
+                                                  sys.maxsize)
 
             swap_pools.append(SwapPool(name=f'Hatom: {underlying_token.name} market',
                                        sc_address=mm.sc_address,
@@ -1019,10 +1025,10 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
             redeem_price = mm.ratio_underlying_to_tokens * \
                 10**(18-h_token.decimals)
 
-            redeem_pool = ConstantPricePool(redeem_price,
-                                            h_token,
-                                            underlying_token,
-                                            mm.cash)
+            redeem_pool = HatomConstantPricePool(redeem_price,
+                                                 h_token,
+                                                 underlying_token,
+                                                 mm.cash)
 
             swap_pools.append(SwapPool(name=f'Hatom: {underlying_token.name} market',
                                        sc_address=mm.sc_address,
@@ -1030,6 +1036,9 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
                                        tokens_out=[
                                            underlying_token.identifier],
                                        type=SC_TYPE_HATOM_MONEY_MARKET_REDEEM))
+
+            _all_rates.update(deposit_pool.exchange_rates(
+                sc_address=mm.sc_address))
 
             set_dex_aggregator_pool(mm.sc_address,
                                     underlying_token.identifier,
