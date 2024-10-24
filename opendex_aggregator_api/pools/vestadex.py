@@ -5,7 +5,8 @@ from typing import Tuple
 from typing_extensions import override
 
 from opendex_aggregator_api.data.model import Esdt
-from opendex_aggregator_api.pools.pools import ConstantProductPool
+
+from .pools import ConstantPricePool, ConstantProductPool
 
 MAX_FEE = 1_000_000
 
@@ -97,3 +98,11 @@ class VestaDexConstantProductPool(ConstantProductPool):
     @override
     def _source(self) -> str:
         return 'vestadex'
+
+
+@dataclass
+class VestaxConstantPricePool(ConstantPricePool):
+
+    @override
+    def _source(self):
+        return 'vestax'

@@ -123,8 +123,8 @@ async def _sync_all_pools():
         # _sync_exrond_pools,
         # _sync_other_router_pools,
         _sync_vestadex_pools,
-        # _sync_vestax_staking_pool,
-        # _sync_hatom_staking_pool,
+        _sync_vestax_staking_pool,
+        _sync_hatom_staking_pool,
         _sync_hatom_money_markets,
         # _sync_opendex_pools
     ]
@@ -887,7 +887,9 @@ async def _sync_vestax_staking_pool() -> List[SwapPool]:
         pool = ConstantPricePool(egld_price,
                                  token_in=token_in,
                                  token_out=token_out,
-                                 token_out_reserve=999*10**token_out.decimals)
+                                 token_out_reserve=sys.maxsize)
+
+        _all_rates.update(pool.exchange_rates(sc_address=sc_address))
 
         swap_pools.append(SwapPool(name=f'VestaX (stake)',
                                    sc_address=sc_address,
