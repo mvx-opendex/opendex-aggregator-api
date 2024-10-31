@@ -84,6 +84,9 @@ class VestaDexConstantProductPool(ConstantProductPool):
 
         return net_amount_out, special_fee_in, special_fee_out
 
+    def estimated_gas(self):
+        return 80_000_000
+
     @override
     def _calculate_fees(self, amount: int) -> Tuple[int, int]:
 
