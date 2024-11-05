@@ -21,8 +21,8 @@ from opendex_aggregator_api.data.constants import (
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_exchange_rates,
                                                    set_swap_pools, set_tokens)
-from opendex_aggregator_api.data.model import (Esdt, ExchangeRate, OpendexPair,
-                                               VestaDexPool)
+from opendex_aggregator_api.data.model import (Esdt, ExchangeRate, OneDexPair,
+                                               OpendexPair, VestaDexPool)
 from opendex_aggregator_api.pools.ashswap import (AshSwapPoolV2,
                                                   AshSwapStableSwapPool)
 from opendex_aggregator_api.pools.hatom import HatomConstantPricePool
@@ -251,7 +251,7 @@ async def _sync_onedex_pools() -> List[SwapPool]:
             logging.error('Error calling "getMainPairTokens" from OneDex SC')
             return []
 
-        all_pairs = []
+        all_pairs: List[OneDexPair] = []
         done = False
         from_ = 0
         size = 500
@@ -272,18 +272,18 @@ async def _sync_onedex_pools() -> List[SwapPool]:
 
             from_ += size
 
-        logging.info(f'OneDex: pairs before {len(pairs)}')
+        logging.info(f'OneDex: pairs before {len(all_pairs)}')
 
-        pairs = [p for p in pairs
-                 if p.state == 1
-                 and _is_pair_valid([(p.first_token_identifier, p.first_token_reserve),
-                                     (p.second_token_identifier, p.second_token_reserve)])]
+        all_pairs = [p for p in all_pairs
+                     if p.state == 1
+                     and _is_pair_valid([(p.first_token_identifier, p.first_token_reserve),
+                                         (p.second_token_identifier, p.second_token_reserve)])]
 
-        logging.info(f'OneDex: pairs after {len(pairs)}')
+        logging.info(f'OneDex: pairs after {len(all_pairs)}')
 
     swap_pools = []
 
-    for pair in pairs:
+    for pair in all_pairs:
         first_token = get_or_fetch_token(pair.first_token_identifier)
         second_token = get_or_fetch_token(pair.second_token_identifier)
 
