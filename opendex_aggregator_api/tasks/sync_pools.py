@@ -477,18 +477,14 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
         logging.info(f'JEX: CP pools before filter {len(lp_statuses)}')
 
         lp_statuses = [s for s in lp_statuses
-                       if not s.paused
-                       and _is_pair_valid([(s.first_token_identifier, s.first_token_reserve),
-                                           (s.second_token_identifier, s.second_token_reserve)])]
+                       if _is_pair_valid([(s.first_token_identifier, s.first_token_reserve),
+                                          (s.second_token_identifier, s.second_token_reserve)])]
 
         logging.info(f'JEX: CP pools after filter {len(lp_statuses)}')
 
         nb_pools = 0
 
         for lp_status in lp_statuses:
-
-            if lp_status.paused:
-                continue
 
             lp_fees_percent_base_pts = lp_status.lp_fees
             platform_fees_percent_base_pts = lp_status.platform_fees
@@ -507,6 +503,9 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             _all_tokens.add(first_token)
             _all_tokens.add(second_token)
             _all_tokens.add(lp_token)
+
+            if lp_status.paused:
+                continue
 
             pool = JexConstantProductPool(
                 lp_fee=lp_fees_percent_base_pts,
