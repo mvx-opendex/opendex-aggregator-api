@@ -35,7 +35,8 @@ from opendex_aggregator_api.pools.opendex import OpendexConstantProductPool
 from opendex_aggregator_api.pools.pools import (ConstantPricePool,
                                                 ConstantProductPool,
                                                 StableSwapPool)
-from opendex_aggregator_api.pools.vestadex import VestaDexConstantProductPool
+from opendex_aggregator_api.pools.vestadex import (VestaDexConstantProductPool,
+                                                   VestaxConstantPricePool)
 from opendex_aggregator_api.pools.xexchange import XExchangeConstantProductPool
 from opendex_aggregator_api.services.externals import async_sc_query
 from opendex_aggregator_api.services.parsers.ashswap import (
@@ -883,10 +884,10 @@ async def _sync_vestax_staking_pool() -> List[SwapPool]:
         _all_tokens.add(token_in)
         _all_tokens.add(token_out)
 
-        pool = ConstantPricePool(egld_price,
-                                 token_in=token_in,
-                                 token_out=token_out,
-                                 token_out_reserve=sys.maxsize)
+        pool = VestaxConstantPricePool(egld_price,
+                                       token_in=token_in,
+                                       token_out=token_out,
+                                       token_out_reserve=sys.maxsize)
 
         _all_rates.update(pool.exchange_rates(sc_address=sc_address))
 
