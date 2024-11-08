@@ -71,14 +71,15 @@ def _fill_lp_token_usd_price(token: Esdt,
             total_usd_value = 0
 
             for id, reserve in zip(comp.token_ids, comp.token_reserves):
-                underlying_token_price = next((x for x in underlying_tokens
-                                               if x.identifier == id)).usd_price
+                underlying_token = next((x for x in underlying_tokens
+                                         if x.identifier == id))
 
-                if underlying_token_price is None:
+                if underlying_token.usd_price is None:
                     return token
 
-                total_usd_value += reserve * underlying_token_price
+                total_usd_value += reserve * underlying_token.usd_price / \
+                    10**underlying_token.decimals
 
-        token.usd_price = total_usd_value / comp.lp_token_supply
+        token.usd_price = total_usd_value * 10**token.decimals / comp.lp_token_supply
 
     return token
