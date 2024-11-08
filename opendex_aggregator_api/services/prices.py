@@ -62,7 +62,7 @@ def _fill_lp_token_usd_price(token: Esdt,
     comp = next((x for x in lp_tokens_compositions
                  if x.lp_token_id == token.identifier), None)
 
-    if comp:
+    if comp and comp.lp_token_supply > 0:
 
         underlying_tokens = [t for t in tokens
                              if t.identifier in comp.token_ids]
