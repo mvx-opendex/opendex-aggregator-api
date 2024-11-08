@@ -32,9 +32,7 @@ from opendex_aggregator_api.pools.jexchange import (
 from opendex_aggregator_api.pools.model import SwapPool
 from opendex_aggregator_api.pools.onedex import OneDexConstantProductPool
 from opendex_aggregator_api.pools.opendex import OpendexConstantProductPool
-from opendex_aggregator_api.pools.pools import (ConstantPricePool,
-                                                ConstantProductPool,
-                                                StableSwapPool)
+from opendex_aggregator_api.pools.pools import ConstantProductPool
 from opendex_aggregator_api.pools.vestadex import (VestaDexConstantProductPool,
                                                    VestaxConstantPricePool)
 from opendex_aggregator_api.pools.xexchange import XExchangeConstantProductPool
