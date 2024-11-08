@@ -171,5 +171,6 @@ class ExchangeRate(BaseModel):
 
 class LpTokenComposition(BaseModel):
     lp_token_id: str
+    lp_token_supply: int
     token_ids: List[str]
     token_reserves: List[int]

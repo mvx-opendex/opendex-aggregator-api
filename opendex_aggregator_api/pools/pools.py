@@ -172,6 +172,7 @@ class ConstantProductPool(AbstractPool):
     @override
     def lp_token_composition(self) -> Optional[LpTokenComposition]:
         return LpTokenComposition(lp_token_id=self.lp_token.identifier,
+                                  lp_token_supply=self.lp_token_supply,
                                   token_ids=[self.first_token.identifier,
                                              self.second_token.identifier],
                                   token_reserves=[self.first_token_reserves,
@@ -417,6 +418,7 @@ class StableSwapPool(AbstractPool):
     @override
     def lp_token_composition(self) -> Optional[LpTokenComposition]:
         return LpTokenComposition(lp_token_id=self.lp_token.identifier,
+                                  lp_token_supply=self.lp_token_supply,
                                   token_ids=[t.identifier
                                              for t in self.tokens],
                                   token_reserves=self.reserves)
