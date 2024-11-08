@@ -131,6 +131,12 @@ def parse_ashswap_v2_pool_status(hex_: str) -> AshSwapV2PoolStatus:
 
         xps.append(xp)
 
+    lp_token_id, read = parse_token_identifier(hex_[offset:])
+    offset += read
+
+    lp_token_supply, read = parse_amount(hex_[offset:])
+    offset += read
+
     return AshSwapV2PoolStatus(sc_address=sc_address.bech32(),
                                state=state,
                                amp_factor=amp_factor,
@@ -143,4 +149,6 @@ def parse_ashswap_v2_pool_status(hex_: str) -> AshSwapV2PoolStatus:
                                price_scale=price_scale,
                                reserves=reserves,
                                tokens=tokens,
-                               xp=xps)
+                               xp=xps,
+                               lp_token_id=lp_token_id,
+                               lp_token_supply=lp_token_supply)

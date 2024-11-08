@@ -25,6 +25,7 @@ class JexConstantProductPool(ConstantProductPool):
     def __init__(self,
                  first_token: Esdt,
                  first_token_reserves: int,
+                 lp_token: Esdt,
                  lp_token_supply: int,
                  second_token: Esdt,
                  second_token_reserves: int,
@@ -35,6 +36,7 @@ class JexConstantProductPool(ConstantProductPool):
                          total_fee=lp_fee + platform_fee,
                          first_token=first_token,
                          first_token_reserves=first_token_reserves,
+                         lp_token=lp_token,
                          lp_token_supply=lp_token_supply,
                          second_token=second_token,
                          second_token_reserves=second_token_reserves)
@@ -46,6 +48,7 @@ class JexConstantProductPool(ConstantProductPool):
     def deep_copy(self):
         return JexConstantProductPool(first_token=self.first_token.model_copy(),
                                       first_token_reserves=self.first_token_reserves,
+                                      lp_token=self.lp_token.model_copy(),
                                       lp_token_supply=self.lp_token_supply,
                                       second_token=self.second_token.model_copy(),
                                       second_token_reserves=self.second_token_reserves,
@@ -118,6 +121,7 @@ class JexConstantProductDepositPool(JexConstantProductPool):
     def __init__(self,
                  first_token: Esdt,
                  first_token_reserves: int,
+                 lp_token: Esdt,
                  lp_token_supply: int,
                  second_token: Esdt,
                  second_token_reserves: int,
@@ -126,6 +130,7 @@ class JexConstantProductDepositPool(JexConstantProductPool):
 
         super().__init__(first_token=first_token,
                          first_token_reserves=first_token_reserves,
+                         lp_token=lp_token,
                          lp_token_supply=lp_token_supply,
                          second_token=second_token,
                          second_token_reserves=second_token_reserves,
@@ -136,6 +141,7 @@ class JexConstantProductDepositPool(JexConstantProductPool):
     def deep_copy(self):
         return JexConstantProductDepositPool(first_token=self.first_token.model_copy(),
                                              first_token_reserves=self.first_token_reserves,
+                                             lp_token=self.lp_token.model_copy(),
                                              lp_token_supply=self.lp_token_supply,
                                              second_token=self.second_token.model_copy(),
                                              second_token_reserves=self.second_token_reserves,
@@ -233,6 +239,7 @@ class JexStableSwapPool(StableSwapPool):
                  tokens: List[Esdt],
                  reserves: List[int],
                  underlying_prices: List[int],
+                 lp_token: Esdt,
                  lp_token_supply: int):
         super().__init__(amp_factor=amp_factor,
                          swap_fee=swap_fee,
@@ -240,6 +247,7 @@ class JexStableSwapPool(StableSwapPool):
                          tokens=tokens,
                          reserves=reserves,
                          underlying_prices=underlying_prices,
+                         lp_token=lp_token,
                          lp_token_supply=lp_token_supply)
 
     @override
@@ -249,6 +257,7 @@ class JexStableSwapPool(StableSwapPool):
                                  tokens=[t.model_copy() for t in self.tokens],
                                  reserves=self.reserves.copy(),
                                  underlying_prices=self.underlying_prices.copy(),
+                                 lp_token=self.lp_token.model_copy(),
                                  lp_token_supply=self.lp_token_supply)
 
 
@@ -261,6 +270,7 @@ class JexStableSwapPoolDeposit(StableSwapPool):
                  tokens: List[Esdt],
                  reserves: List[int],
                  underlying_prices: List[int],
+                 lp_token: Esdt,
                  lp_token_supply: int):
         super().__init__(amp_factor=amp_factor,
                          swap_fee=total_fees,
@@ -268,6 +278,7 @@ class JexStableSwapPoolDeposit(StableSwapPool):
                          tokens=tokens,
                          reserves=reserves,
                          underlying_prices=underlying_prices,
+                         lp_token=lp_token,
                          lp_token_supply=lp_token_supply)
 
     @override
@@ -291,6 +302,17 @@ class JexStableSwapPoolDeposit(StableSwapPool):
         admin_fee_out = amount_out * (liquidity_fees * 33) // 100
 
         return int(amount_out), 0, admin_fee_out
+
+    @override
+    def deep_copy(self):
+        return JexStableSwapPoolDeposit(amp_factor=self.amp_factor,
+                                        lp_token=self.lp_token.model_copy(),
+                                        lp_token_supply=self.lp_token_supply,
+                                        reserves=self.reserves.copy(),
+                                        tokens=[t.model_copy()
+                                                for t in self.tokens],
+                                        total_fees=self.swap_fee,
+                                        underlying_prices=self.underlying_prices.copy())
 
     @override
     def update_reserves(self,

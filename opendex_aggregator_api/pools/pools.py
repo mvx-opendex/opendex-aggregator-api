@@ -5,7 +5,7 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from typing_extensions import override
 
-from opendex_aggregator_api.data.model import Esdt, ExchangeRate
+from opendex_aggregator_api.data.model import Esdt, ExchangeRate, LpTokenComposition
 from opendex_aggregator_api.pools import stableswap
 from opendex_aggregator_api.utils.math import ceildiv
 
@@ -49,6 +49,9 @@ class AbstractPool:
     def exchange_rates(self) -> List[ExchangeRate]:
         raise NotImplementedError()
 
+    def lp_token_composition(self) -> Optional[LpTokenComposition]:
+        raise NotImplementedError()
+
     def update_reserves(self,
                         token_in: Esdt,
                         amount_in: int,
@@ -80,6 +83,7 @@ class ConstantProductPool(AbstractPool):
 
     first_token: Esdt
     first_token_reserves: int
+    lp_token: Esdt
     lp_token_supply: int
     second_token: Esdt
     second_token_reserves: int
@@ -90,6 +94,7 @@ class ConstantProductPool(AbstractPool):
                                    total_fee=self.total_fee,
                                    first_token=self.first_token.model_copy(),
                                    first_token_reserves=self.first_token_reserves,
+                                   lp_token=self.lp_token.model_copy(),
                                    lp_token_supply=self.lp_token_supply,
                                    second_token=self.second_token.model_copy(),
                                    second_token_reserves=self.second_token_reserves)
@@ -163,6 +168,14 @@ class ConstantProductPool(AbstractPool):
                              source=self._source(),
                              rate=rate,
                              rate2=rate2)]
+
+    @override
+    def lp_token_composition(self) -> Optional[LpTokenComposition]:
+        return LpTokenComposition(lp_token_id=self.lp_token.identifier,
+                                  token_ids=[self.first_token.identifier,
+                                             self.second_token.identifier],
+                                  token_reserves=[self.first_token_reserves,
+                                                  self.second_token_reserves])
 
     @override
     def update_reserves(self,
@@ -277,6 +290,10 @@ class ConstantPricePool(AbstractPool):
                              source=self._source())]
 
     @override
+    def lp_token_composition(self):
+        return None
+
+    @override
     def update_reserves(self,
                         token_in: Esdt,
                         amount_in: int,
@@ -298,6 +315,7 @@ class StableSwapPool(AbstractPool):
     swap_fee: int
     max_fee: int
 
+    lp_token: Esdt
     lp_token_supply: int
     tokens: List[Esdt]
     reserves: List[int]
@@ -311,6 +329,7 @@ class StableSwapPool(AbstractPool):
                  tokens: List[Esdt],
                  reserves: List[int],
                  underlying_prices: List[int],
+                 lp_token: Esdt,
                  lp_token_supply: int):
         self.amp_factor = amp_factor
         self.swap_fee = swap_fee
@@ -318,6 +337,7 @@ class StableSwapPool(AbstractPool):
         self.tokens = tokens
         self.reserves = reserves
         self.underlying_prices = underlying_prices
+        self.lp_token = lp_token
         self.lp_token_supply = lp_token_supply
         self.normalized_reserves = [self._normalize_amount(a, t)
                                     for (a, t) in zip(self.reserves, self.tokens)]
@@ -330,6 +350,7 @@ class StableSwapPool(AbstractPool):
                               tokens=[t.model_copy() for t in self.tokens],
                               reserves=self.reserves.copy(),
                               underlying_prices=self.underlying_prices.copy(),
+                              lp_token=self.lp_token,
                               lp_token_supply=self.lp_token_supply)
 
     @override
@@ -392,6 +413,13 @@ class StableSwapPool(AbstractPool):
     @override
     def estimated_gas(self) -> int:
         return 20_000_000
+
+    @override
+    def lp_token_composition(self) -> Optional[LpTokenComposition]:
+        return LpTokenComposition(lp_token_id=self.lp_token.identifier,
+                                  token_ids=[t.identifier
+                                             for t in self.tokens],
+                                  token_reserves=self.reserves)
 
     @override
     def update_reserves(self,

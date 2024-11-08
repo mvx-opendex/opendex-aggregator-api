@@ -25,6 +25,9 @@ def parse_xexchange_pool_status(hex_: str) -> XExchangePoolStatus:
     second_token_reserve, read = parse_amount(hex_[offset:])
     offset += read
 
+    lp_token_id, read = parse_token_identifier(hex_[offset:])
+    offset += read
+
     lp_token_supply, read = parse_amount(hex_[offset:])
     offset += read
 
@@ -40,6 +43,7 @@ def parse_xexchange_pool_status(hex_: str) -> XExchangePoolStatus:
                                second_token_id=second_token_id,
                                first_token_reserve=first_token_reserve,
                                second_token_reserve=second_token_reserve,
+                               lp_token_id=lp_token_id,
                                lp_token_supply=lp_token_supply,
                                total_fee_percent=total_fee_percent,
                                special_fee_percent=special_fee_percent)

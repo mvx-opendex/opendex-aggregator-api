@@ -43,14 +43,17 @@ class AshSwapPoolV2(ConstantProductPool):
                  price_scale: int,
                  reserves: List[int],
                  tokens: List[Esdt],
-                 xp: List[int]):
+                 xp: List[int],
+                 lp_token: Esdt,
+                 lp_token_supply: int):
         assert len(tokens) == 2, 'Invalid number of tokens'
         assert len(reserves) == 2, 'Invalid number of token reserves'
 
         super().__init__(max_fee=PRECISION,
                          first_token=tokens[0],
                          first_token_reserves=reserves[0],
-                         lp_token_supply=0,
+                         lp_token=lp_token,
+                         lp_token_supply=lp_token_supply,
                          second_token=tokens[1],
                          second_token_reserves=reserves[1],
                          total_fee=out_fee)
@@ -83,7 +86,9 @@ class AshSwapPoolV2(ConstantProductPool):
                              price_scale=self.price_scale,
                              reserves=self.reserves.copy(),
                              tokens=[t.model_copy() for t in self.tokens],
-                             xp=self.xp.copy())
+                             xp=self.xp.copy(),
+                             lp_token=self.lp_token.model_copy(),
+                             lp_token_supply=self.lp_token_supply)
 
     @override
     def estimate_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> Tuple[int, int, int]:
@@ -220,6 +225,7 @@ class AshSwapStableSwapPool(StableSwapPool):
                  tokens: List[Esdt],
                  reserves: List[int],
                  underlying_prices: List[int],
+                 lp_token: Esdt,
                  lp_token_supply: int):
         super().__init__(amp_factor=amp_factor,
                          swap_fee=swap_fee,
@@ -227,7 +233,19 @@ class AshSwapStableSwapPool(StableSwapPool):
                          tokens=tokens,
                          reserves=reserves,
                          underlying_prices=underlying_prices,
+                         lp_token=lp_token,
                          lp_token_supply=lp_token_supply)
+
+    @override
+    def deep_copy(self):
+        return AshSwapStableSwapPool(amp_factor=self.amp_factor,
+                                     swap_fee=self.swap_fee,
+                                     tokens=[t.model_copy()
+                                             for t in self.tokens],
+                                     lp_token=self.lp_token.model_copy(),
+                                     lp_token_supply=self.lp_token_supply,
+                                     reserves=self.reserves.copy(),
+                                     underlying_prices=self.underlying_prices.copy())
 
     @override
     def _source(self) -> str:

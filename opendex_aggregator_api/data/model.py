@@ -30,6 +30,8 @@ class AshSwapV2PoolStatus(BaseModel):
     reserves: List[int]
     tokens: List[str]
     xp: List[int]
+    lp_token_id: str
+    lp_token_supply: int
 
 
 class Esdt(BaseModel):
@@ -138,6 +140,7 @@ class XExchangePoolStatus(BaseModel):
     second_token_id: str
     first_token_reserve: int
     second_token_reserve: int
+    lp_token_id: str
     lp_token_supply: int
     special_fee_percent: int
     total_fee_percent: int
@@ -164,3 +167,9 @@ class ExchangeRate(BaseModel):
 
     def __hash__(self):
         return hash(f'{self.base_token_id}::{self.quote_token_id}::{self.sc_address}')
+
+
+class LpTokenComposition(BaseModel):
+    lp_token_id: str
+    token_ids: List[str]
+    token_reserves: List[int]

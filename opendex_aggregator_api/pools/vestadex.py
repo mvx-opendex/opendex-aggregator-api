@@ -20,6 +20,7 @@ class VestaDexConstantProductPool(ConstantProductPool):
     def __init__(self,
                  first_token: Esdt,
                  first_token_reserves: int,
+                 lp_token: Esdt,
                  lp_token_supply: int,
                  second_token: Esdt,
                  second_token_reserves: int,
@@ -31,6 +32,7 @@ class VestaDexConstantProductPool(ConstantProductPool):
                          total_fee=total_fee,
                          first_token=first_token,
                          first_token_reserves=first_token_reserves,
+                         lp_token=lp_token,
                          lp_token_supply=lp_token_supply,
                          second_token=second_token,
                          second_token_reserves=second_token_reserves)
@@ -42,6 +44,7 @@ class VestaDexConstantProductPool(ConstantProductPool):
     def deep_copy(self) -> 'VestaDexConstantProductPool':
         return VestaDexConstantProductPool(first_token=self.first_token,
                                            first_token_reserves=self.first_token_reserves,
+                                           lp_token=self.lp_token.model_copy(),
                                            lp_token_supply=self.lp_token_supply,
                                            second_token=self.second_token,
                                            second_token_reserves=self.second_token_reserves,
