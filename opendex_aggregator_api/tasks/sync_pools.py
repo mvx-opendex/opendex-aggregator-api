@@ -23,7 +23,7 @@ from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools, set_tokens)
 from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
                                                LpTokenComposition, OneDexPair,
-                                               OpendexPair, VestaDexPool)
+                                               OpendexPair, VestaDexPool, XExchangePoolStatus)
 from opendex_aggregator_api.pools.ashswap import (AshSwapPoolV2,
                                                   AshSwapStableSwapPool)
 from opendex_aggregator_api.pools.hatom import HatomConstantPricePool
@@ -149,7 +149,9 @@ async def _sync_all_pools():
     set_swap_pools(swap_pools)
     set_exchange_rates([x for x in _all_rates])
 
-    set_tokens(await prices_svc.fill_tokens_usd_price(_all_tokens, _all_rates, _all_lp_tokens_compositions))
+    set_tokens(await prices_svc.fill_tokens_usd_price(_all_tokens,
+                                                      _all_rates,
+                                                      _all_lp_tokens_compositions))
 
     logging.info(f'Nb swap pools: {len(swap_pools)} (total)')
     logging.info(f'Nb tokens: {len(_all_tokens)} (total)')
@@ -170,18 +172,29 @@ async def _safely_do(function_: Callable[..., None]) -> List[SwapPool]:
 async def _sync_xexchange_pools() -> List[SwapPool]:
     logging.info('Loading xExchange pools')
 
+    lp_statuses: List[XExchangePoolStatus] = []
+
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
-        res = await async_sc_query(http_client,
-                                   sc_address_aggregator(),
-                                   'getXExchangePools')
+        done = False
+        from_ = 0
+        size = 200
 
-        if res is not None:
-            lp_statuses = [parse_xexchange_pool_status(r) for r in res]
-        else:
-            logging.error(
-                'Error calling "getXExchangePools" from aggregator SC')
-            return []
+        while not done:
+            res = await async_sc_query(http_client,
+                                       sc_address_aggregator(),
+                                       'getXExchangePools',
+                                       [from_, size])
+
+            if res is not None and len(res) > 0:
+                lp_statuses.extend(
+                    [parse_xexchange_pool_status(r) for r in res])
+            else:
+                logging.error(
+                    f'Error calling "getXExchangePools" ({from_},{size}) from aggregator SC')
+                done = True
+
+            from_ += size
 
     logging.info(f'xExchange: pairs before filter {len(lp_statuses)}')
 

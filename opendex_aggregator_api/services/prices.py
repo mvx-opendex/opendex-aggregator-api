@@ -26,7 +26,7 @@ async def fill_tokens_usd_price(tokens: Set[Esdt],
 
 
 def _fill_token_usd_price(token: Esdt,
-                          rates: List[ExchangeRate],
+                          rates: Set[ExchangeRate],
                           wegld_usd_price: Optional[float],
                           usdc_usd_price: Optional[float]) -> Esdt:
     if token.identifier == WEGLD_IDENTIFIER:
