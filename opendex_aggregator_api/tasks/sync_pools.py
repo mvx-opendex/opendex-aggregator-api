@@ -546,10 +546,15 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             second_token_reserves = int(lp_status.second_token_reserve)
             lp_token_supply = int(lp_status.lp_token_supply)
 
+            if not lp_status.paused:
+                custom_name = f'LP {first_token.ticker}/{second_token.ticker} (JEXchange)'
+            else:
+                custom_name = None
+
             lp_token = get_or_fetch_token(lp_status.lp_token_identifier,
                                           is_lp_token=True,
                                           exchange='jexchange',
-                                          custom_name=f'LP {first_token.ticker}/{second_token.ticker} (JEXchange)')
+                                          custom_name=custom_name)
 
             _all_tokens.add(first_token)
             _all_tokens.add(second_token)
