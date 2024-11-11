@@ -525,14 +525,6 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
         lp_statuses = [parse_jex_cp_lp_status(sc_addresses[i].bech32(), x)
                        for i, x in enumerate(lp_statuses)]
 
-        logging.info(f'JEX: CP pools before filter {len(lp_statuses)}')
-
-        lp_statuses = [s for s in lp_statuses
-                       if _is_pair_valid([(s.first_token_identifier, s.first_token_reserve),
-                                          (s.second_token_identifier, s.second_token_reserve)])]
-
-        logging.info(f'JEX: CP pools after filter {len(lp_statuses)}')
-
         nb_pools = 0
 
         for lp_status in lp_statuses:
@@ -577,6 +569,10 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
                 sc_address=lp_status.sc_address))
 
             _all_lp_tokens_compositions.append(pool.lp_token_composition())
+
+            if not _is_pair_valid([(first_token.identifier, first_token_reserves),
+                                   (second_token.identifier, second_token_reserves)]):
+                continue
 
             set_dex_aggregator_pool(
                 lp_status.sc_address, first_token.identifier, second_token.identifier, pool)
