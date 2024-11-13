@@ -49,6 +49,12 @@ WEGLD = Esdt(decimals=18,
              name='WEGLD',
              is_lp_token=False,
              exchange='x')
+LP_TOKEN = Esdt(decimals=18,
+                identifier='LPTOKEN-000000',
+                ticker='LPTOKEN',
+                name='LPTOKEN',
+                is_lp_token=True,
+                exchange='exchange')
 
 
 @pytest.mark.parametrize('price,reserve,amount_in,expected', [
@@ -80,6 +86,7 @@ def test_ConstantProductPool_estimate_amount_out(reserves: List[int], amount_in:
         total_fee=0,
         first_token=first_token,
         first_token_reserves=reserves[0],
+        lp_token=LP_TOKEN,
         lp_token_supply=999,
         second_token=second_token,
         second_token_reserves=reserves[1])
@@ -102,6 +109,7 @@ def test_ConstantProductPool_estimate_amount_in(reserves: List[int], net_amount_
         total_fee=0,
         first_token=first_token,
         first_token_reserves=reserves[0],
+        lp_token=LP_TOKEN,
         lp_token_supply=999,
         second_token=second_token,
         second_token_reserves=reserves[1])
@@ -124,6 +132,7 @@ def test_ConstantProductPool_estimate_theorical_amount_out(reserves: List[int], 
         total_fee=0,
         first_token=first_token,
         first_token_reserves=reserves[0],
+        lp_token=LP_TOKEN,
         lp_token_supply=999,
         second_token=second_token,
         second_token_reserves=reserves[1])
@@ -157,6 +166,7 @@ def test_StableSwapPool_estimate_amount_out(reserves: List[int],
                           tokens=tokens,
                           reserves=reserves,
                           underlying_prices=underlying_prices,
+                          lp_token=LP_TOKEN,
                           lp_token_supply=0)
 
     net_amount_out, _, _ = pool.estimate_amount_out(
@@ -188,6 +198,7 @@ def test_StableSwapPool_estimate_theorical_amount_out(reserves: List[int],
                           tokens=tokens,
                           reserves=reserves,
                           underlying_prices=[10**18]*len(tokens),
+                          lp_token=LP_TOKEN,
                           lp_token_supply=0)
 
     assert pool.estimate_theorical_amount_out(
@@ -214,6 +225,7 @@ def test_StableSwapPool_estimate_amount_out_with_underlying_prices(
                           tokens=[SEGLD, WEGLD],
                           reserves=reserves,
                           underlying_prices=underlying_prices,
+                          lp_token=LP_TOKEN,
                           lp_token_supply=0)
 
     net_amount_out, _, _ = pool.estimate_amount_out(
@@ -242,6 +254,7 @@ def test_StableSwapPool_estimate_theorical_amount_out_with_underlying_prices(
                           tokens=[SEGLD, WEGLD],
                           reserves=reserves,
                           underlying_prices=underlying_prices,
+                          lp_token=LP_TOKEN,
                           lp_token_supply=0)
 
     assert pool.estimate_theorical_amount_out(token_in,

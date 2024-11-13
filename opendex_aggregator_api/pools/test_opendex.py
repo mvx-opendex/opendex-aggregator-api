@@ -19,6 +19,12 @@ TOKEN_OUT = Esdt(decimals=18,
                  name='OUT',
                  is_lp_token=False,
                  exchange='x')
+LP_TOKEN = Esdt(decimals=18,
+                identifier='LPTOKEN-000000',
+                ticker='LPTOKEN',
+                name='LPTOKEN',
+                is_lp_token=True,
+                exchange='opendex')
 
 
 @pytest.mark.parametrize('reserves,amount_in,expected', [
@@ -31,6 +37,7 @@ def test_OpendexConstantProductPool_estimate_amount_out(reserves: List[int], amo
 
     pool = OpendexConstantProductPool(first_token=first_token,
                                       first_token_reserves=reserves[0],
+                                      lp_token=LP_TOKEN,
                                       lp_token_supply=999,
                                       second_token=second_token,
                                       second_token_reserves=reserves[1],
@@ -59,6 +66,7 @@ def test_OpendexConstantProductPool_estimate_amount_in(reserves: List[int], net_
 
     pool = OpendexConstantProductPool(first_token=first_token,
                                       first_token_reserves=reserves[0],
+                                      lp_token=LP_TOKEN,
                                       lp_token_supply=999,
                                       second_token=second_token,
                                       second_token_reserves=reserves[1],
@@ -89,6 +97,7 @@ def test_OpendexConstantProductPool_estimate_amount_out_fee_in(reserves: List[in
 
     pool = OpendexConstantProductPool(first_token=first_token,
                                       first_token_reserves=reserves[0],
+                                      lp_token=LP_TOKEN,
                                       lp_token_supply=999,
                                       second_token=second_token,
                                       second_token_reserves=reserves[1],
@@ -118,6 +127,7 @@ def test_OpendexConstantProductPool_estimate_amount_in_fee_in(reserves: List[int
 
     pool = OpendexConstantProductPool(first_token=first_token,
                                       first_token_reserves=reserves[0],
+                                      lp_token=LP_TOKEN,
                                       lp_token_supply=999,
                                       second_token=second_token,
                                       second_token_reserves=reserves[1],

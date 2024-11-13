@@ -42,6 +42,12 @@ JWLUSD = Esdt(decimals=18,
               name='JWLUSD',
               is_lp_token=False,
               exchange='x')
+LP_TOKEN = Esdt(decimals=18,
+                identifier='LPTOKEN-000000',
+                ticker='LPTOKEN',
+                name='LPTOKEN',
+                is_lp_token=True,
+                exchange='jexchange')
 
 
 @pytest.mark.parametrize('reserves,amount_in,expected', [
@@ -55,6 +61,7 @@ def test_JexConstantProductPool_estimate_amount_out(reserves: List[int], amount_
     pool = JexConstantProductPool(
         first_token=first_token,
         first_token_reserves=reserves[0],
+        lp_token=LP_TOKEN,
         lp_token_supply=999,
         second_token=second_token,
         second_token_reserves=reserves[1],
@@ -77,6 +84,7 @@ def test_JexConstantProductPool_estimate_amount_in(reserves: List[int], net_amou
     pool = JexConstantProductPool(
         first_token=TOKEN_IN,
         first_token_reserves=reserves[0],
+        lp_token=LP_TOKEN,
         lp_token_supply=999,
         second_token=TOKEN_OUT,
         second_token_reserves=reserves[1],
@@ -119,6 +127,7 @@ def test_JexStableSwapPool_estimate_amount_out(reserves: List[int],
                              tokens=tokens,
                              reserves=reserves,
                              underlying_prices=underlying_prices,
+                             lp_token=LP_TOKEN,
                              lp_token_supply=0)
 
     net_amount_out, _, _ = pool.estimate_amount_out(
@@ -151,6 +160,7 @@ def test_JexStableSwapPool_estimate_amount_out2(reserves: List[int],
                              tokens=tokens,
                              reserves=reserves,
                              underlying_prices=underlying_prices,
+                             lp_token=LP_TOKEN,
                              lp_token_supply=0)
 
     net_amount_out, _, _ = pool.estimate_amount_out(

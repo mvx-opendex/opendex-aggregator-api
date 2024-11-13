@@ -17,6 +17,12 @@ XLH = Esdt(decimals=18,
            ticker='XLH',
            is_lp_token=False,
            exchange='vestadex')
+LP_TOKEN = Esdt(decimals=18,
+                identifier='LPTOKEN-000000',
+                ticker='LPTOKEN',
+                name='LPTOKEN',
+                is_lp_token=True,
+                exchange='vestadex')
 
 
 @pytest.mark.parametrize('reserves,amount_in,expected', [
@@ -26,6 +32,7 @@ def test_VestaDexConstantProductPool_estimate_amount_out(reserves, amount_in, ex
 
     pool = VestaDexConstantProductPool(first_token=OURO,
                                        first_token_reserves=reserves[0],
+                                       lp_token=LP_TOKEN,
                                        lp_token_supply=0,
                                        second_token=XLH,
                                        second_token_reserves=reserves[1],
@@ -52,6 +59,7 @@ def test_VestaDexConstantProductPool_estimate_amount_out_fee_in(reserves, amount
 
     pool = VestaDexConstantProductPool(first_token=OURO,
                                        first_token_reserves=reserves[0],
+                                       lp_token=LP_TOKEN,
                                        lp_token_supply=0,
                                        second_token=XLH,
                                        second_token_reserves=reserves[1],
