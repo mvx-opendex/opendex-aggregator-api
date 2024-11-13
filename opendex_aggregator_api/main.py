@@ -4,7 +4,8 @@ import threading
 
 from fastapi import FastAPI
 
-from opendex_aggregator_api.routers import evaluations, routes, tokens
+from opendex_aggregator_api.routers import (evaluations, multi_eval, routes,
+                                            tokens)
 from opendex_aggregator_api.tasks import sync_pools
 
 logging.basicConfig(level=logging.INFO,
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(evaluations.router)
+app.include_router(multi_eval.router)
 app.include_router(routes.router)
 app.include_router(tokens.router)
 

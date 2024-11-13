@@ -25,7 +25,7 @@ async def evaluate_fixed_input(route: SwapRoute,
                                pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
                                http_client: aiohttp.ClientSession) -> SwapEvaluation:
 
-    if _can_evaluate_offline(route):
+    if can_evaluate_offline(route):
         return evaluate_fixed_input_offline(route,
                                             amount_in,
                                             pools_cache)
@@ -40,7 +40,7 @@ async def evaluate_fixed_output(route: SwapRoute,
                                 pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
                                 http_client: aiohttp.ClientSession) -> SwapEvaluation:
 
-    if _can_evaluate_offline(route):
+    if can_evaluate_offline(route):
         return evaluate_fixed_output_offline(route,
                                              net_amount_out,
                                              pools_cache)
@@ -367,7 +367,7 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
     offline_routes = [r
                       for r in routes
-                      if _can_evaluate_offline(r)]
+                      if can_evaluate_offline(r)]
 
     if len(offline_routes) < 2:
         return None
@@ -470,6 +470,6 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                                         token_out=evals[0].route.token_out)
 
 
-def _can_evaluate_offline(route: SwapRoute):
+def can_evaluate_offline(route: SwapRoute):
     return all((h.pool.type not in [SC_TYPE_JEXCHANGE_ORDERBOOK]
                 for h in route.hops))

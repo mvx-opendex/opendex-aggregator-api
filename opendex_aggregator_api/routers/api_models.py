@@ -91,3 +91,8 @@ class TokenOut(BaseModel):
     name: str
     exchange: Optional[str]
     usd_price: Optional[float] = Field(..., serialization_alias='usdPrice')
+
+
+class TokenIdAndAmount(BaseModel):
+    token_id: str
+    amount: str
