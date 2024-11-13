@@ -229,7 +229,7 @@ class AshSwapStableSwapPool(StableSwapPool):
                  lp_token_supply: int):
         super().__init__(amp_factor=amp_factor,
                          swap_fee=swap_fee,
-                         max_fee=1_000_000,
+                         max_fee=100_000,
                          tokens=tokens,
                          reserves=reserves,
                          underlying_prices=underlying_prices,
