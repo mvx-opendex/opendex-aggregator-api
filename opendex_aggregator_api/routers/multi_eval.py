@@ -14,7 +14,9 @@ router = APIRouter()
 
 @router.options("/multi-eval")
 async def options_multi_eval(response: Response):
+    response.headers['Access-Control-Request-Headers'] = '*'
     response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'POST'
 
 
 @router.post("/multi-eval")
