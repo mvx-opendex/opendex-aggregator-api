@@ -2,7 +2,10 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException, Response
 
-from opendex_aggregator_api.routers.api_models import TokenIdAndAmount
+from opendex_aggregator_api.pools.model import SwapEvaluation
+from opendex_aggregator_api.routers.adapters import adapt_static_eval
+from opendex_aggregator_api.routers.api_models import (
+    StaticRouteSwapEvaluationOut, TokenIdAndAmount)
 from opendex_aggregator_api.routers.common import get_or_find_sorted_routes
 from opendex_aggregator_api.services import evaluations as eval_svc
 
@@ -12,18 +15,21 @@ router = APIRouter()
 @router.post("/multi-eval")
 async def post_multi_eval(response: Response,
                           token_out: str,
-                          token_and_amounts: List[TokenIdAndAmount]):
+                          token_and_amounts: List[TokenIdAndAmount]) -> List[StaticRouteSwapEvaluationOut]:
     response.headers['Access-Control-Allow-Origin'] = '*'
 
     if len(token_and_amounts) < 0 or len(token_and_amounts) > 10:
         raise HTTPException(status_code=400,
                             detail='Invalid number of tokens/amounts')
 
-    return [_eval(token_and_amount, token_out)
-            for token_and_amount in token_and_amounts]
+    evals = [_eval(token_and_amount, token_out)
+             for token_and_amount in token_and_amounts]
+
+    return [adapt_static_eval(e)
+            for e in evals]
 
 
-def _eval(token_and_amount: TokenIdAndAmount, token_out: str):
+def _eval(token_and_amount: TokenIdAndAmount, token_out: str) -> SwapEvaluation:
     routes = get_or_find_sorted_routes(token_and_amount.token_id,
                                        token_out,
                                        max_hops=3)
