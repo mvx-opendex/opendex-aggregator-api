@@ -27,8 +27,12 @@ def token_from_identifier(token_identifier) -> Optional[Esdt]:
 def get_or_fetch_token(identifier: str,
                        is_lp_token: bool = False,
                        exchange: Optional[str] = None,
-                       custom_name: Optional[str] = None) -> Esdt:
-    token = token_from_identifier(identifier)
+                       custom_name: Optional[str] = None,
+                       skip_local_mem: bool = False) -> Esdt:
+    token = None
+
+    if not skip_local_mem:
+        token = token_from_identifier(identifier)
 
     if token is None:
         token = fetch_token(identifier,

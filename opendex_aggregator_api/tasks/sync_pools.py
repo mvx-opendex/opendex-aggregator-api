@@ -6,7 +6,7 @@ import sys
 from datetime import datetime, timedelta
 from itertools import product
 from time import sleep
-from typing import Callable, List, Set, Tuple
+from typing import Callable, List, Optional, Set, Tuple
 
 import aiohttp
 from multiversx_sdk_core import Address
@@ -208,12 +208,12 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
     swap_pools = []
 
     for lp_status in lp_statuses:
-        first_token = get_or_fetch_token(lp_status.first_token_id)
-        second_token = get_or_fetch_token(lp_status.second_token_id)
-        lp_token = get_or_fetch_token(lp_status.lp_token_id,
-                                      is_lp_token=True,
-                                      exchange='xexchange',
-                                      custom_name=f'LP {first_token.ticker}/{second_token.ticker} (xExchange)')
+        first_token = _get_or_fetch_token(lp_status.first_token_id)
+        second_token = _get_or_fetch_token(lp_status.second_token_id)
+        lp_token = _get_or_fetch_token(lp_status.lp_token_id,
+                                       is_lp_token=True,
+                                       exchange='xexchange',
+                                       custom_name=f'LP {first_token.ticker}/{second_token.ticker} (xExchange)')
 
         _all_tokens.add(first_token)
         _all_tokens.add(second_token)
@@ -308,12 +308,12 @@ async def _sync_onedex_pools() -> List[SwapPool]:
     swap_pools = []
 
     for pair in all_pairs:
-        first_token = get_or_fetch_token(pair.first_token_identifier)
-        second_token = get_or_fetch_token(pair.second_token_identifier)
-        lp_token = get_or_fetch_token(pair.lp_token_identifier,
-                                      is_lp_token=True,
-                                      exchange='onedex',
-                                      custom_name=f'LP {first_token.ticker}/{second_token.ticker} (OneDex)')
+        first_token = _get_or_fetch_token(pair.first_token_identifier)
+        second_token = _get_or_fetch_token(pair.second_token_identifier)
+        lp_token = _get_or_fetch_token(pair.lp_token_identifier,
+                                       is_lp_token=True,
+                                       exchange='onedex',
+                                       custom_name=f'LP {first_token.ticker}/{second_token.ticker} (OneDex)')
 
         _all_tokens.add(first_token)
         _all_tokens.add(second_token)
@@ -377,14 +377,14 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
 
             for status in stablepools_statuses:
 
-                tokens = [get_or_fetch_token(x)
+                tokens = [_get_or_fetch_token(x)
                           for x in status.tokens]
 
                 lp_token_name = f"LP {'/'.join((t.ticker for t in tokens))} (AshSwap)"
-                lp_token = get_or_fetch_token(status.lp_token_id,
-                                              is_lp_token=True,
-                                              exchange='ashswap',
-                                              custom_name=lp_token_name)
+                lp_token = _get_or_fetch_token(status.lp_token_id,
+                                               is_lp_token=True,
+                                               exchange='ashswap',
+                                               custom_name=lp_token_name)
 
                 _all_tokens.update(tokens)
                 _all_tokens.add(lp_token)
@@ -447,12 +447,12 @@ async def _sync_ashswap_v2_pools() -> List[SwapPool]:
 
             for status in v2_pools_statuses:
 
-                tokens = [get_or_fetch_token(x)
+                tokens = [_get_or_fetch_token(x)
                           for x in status.tokens]
-                lp_token = get_or_fetch_token(status.lp_token_id,
-                                              is_lp_token=True,
-                                              exchange='ashswap',
-                                              custom_name=f'LP {tokens[0].ticker}/{tokens[1].ticker} (AshSwap)')
+                lp_token = _get_or_fetch_token(status.lp_token_id,
+                                               is_lp_token=True,
+                                               exchange='ashswap',
+                                               custom_name=f'LP {tokens[0].ticker}/{tokens[1].ticker} (AshSwap)')
 
                 _all_tokens.update(tokens)
                 _all_tokens.add(lp_token)
@@ -531,9 +531,9 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
 
             lp_fees_percent_base_pts = lp_status.lp_fees
             platform_fees_percent_base_pts = lp_status.platform_fees
-            first_token = get_or_fetch_token(lp_status.first_token_identifier)
+            first_token = _get_or_fetch_token(lp_status.first_token_identifier)
             first_token_reserves = int(lp_status.first_token_reserve)
-            second_token = get_or_fetch_token(
+            second_token = _get_or_fetch_token(
                 lp_status.second_token_identifier)
             second_token_reserves = int(lp_status.second_token_reserve)
             lp_token_supply = int(lp_status.lp_token_supply)
@@ -543,13 +543,17 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             else:
                 custom_name = None
 
-            lp_token = get_or_fetch_token(lp_status.lp_token_identifier,
-                                          is_lp_token=True,
-                                          exchange='jexchange',
-                                          custom_name=custom_name)
-
             _all_tokens.add(first_token)
             _all_tokens.add(second_token)
+
+            if not lp_status.lp_token_identifier:
+                continue
+
+            lp_token = _get_or_fetch_token(lp_status.lp_token_identifier,
+                                           is_lp_token=True,
+                                           exchange='jexchange',
+                                           custom_name=custom_name)
+
             _all_tokens.add(lp_token)
 
             if lp_status.paused:
@@ -656,16 +660,16 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
             if lp_status.paused:
                 continue
 
-            tokens = [get_or_fetch_token(x)
+            tokens = [_get_or_fetch_token(x)
                       for x in lp_status.tokens]
             reserves = [int(x) for x in lp_status.reserves]
             underlying_prices = [int(x) for x in lp_status.underlying_prices]
 
             lp_token_name = f"LP {'/'.join((t.ticker for t in tokens))} (JEXchange)"
-            lp_token = get_or_fetch_token(lp_status.lp_token_identifier,
-                                          is_lp_token=True,
-                                          exchange='jexchange',
-                                          custom_name=lp_token_name)
+            lp_token = _get_or_fetch_token(lp_status.lp_token_identifier,
+                                           is_lp_token=True,
+                                           exchange='jexchange',
+                                           custom_name=lp_token_name)
 
             _all_tokens.update(tokens)
             _all_tokens.add(lp_token)
@@ -773,16 +777,16 @@ async def _sync_exrond_pools() -> List[SwapPool]:
 
         for pair in pairs:
             sc_address = pair['address']
-            first_token = get_or_fetch_token(
+            first_token = _get_or_fetch_token(
                 pair['firstToken']['identifier'])
-            second_token = get_or_fetch_token(
+            second_token = _get_or_fetch_token(
                 pair['secondToken']['identifier'])
             lp_token_supply = pair['liquidityPoolToken']['supply']
             lp_token_identifier: str = pair['liquidityPoolToken']['identifier']
-            lp_token = get_or_fetch_token(lp_token_identifier,
-                                          is_lp_token=True,
-                                          exchange='exrond',
-                                          custom_name=f'LP {first_token.ticker}/{second_token.ticker} (Exrond)')
+            lp_token = _get_or_fetch_token(lp_token_identifier,
+                                           is_lp_token=True,
+                                           exchange='exrond',
+                                           custom_name=f'LP {first_token.ticker}/{second_token.ticker} (Exrond)')
 
             _all_tokens.add(first_token)
             _all_tokens.add(second_token)
@@ -882,13 +886,13 @@ async def _sync_vestadex_pools() -> List[SwapPool]:
 
     for pair in pairs:
 
-        first_token = get_or_fetch_token(pair.first_token_id)
-        second_token = get_or_fetch_token(pair.second_token_id)
-        fee_token = get_or_fetch_token(pair.fee_token_id)
-        lp_token = get_or_fetch_token(pair.lp_token_id,
-                                      is_lp_token=True,
-                                      exchange='vestadex',
-                                      custom_name=f'LP {first_token.ticker}/{second_token.ticker} (VestaDex)')
+        first_token = _get_or_fetch_token(pair.first_token_id)
+        second_token = _get_or_fetch_token(pair.second_token_id)
+        fee_token = _get_or_fetch_token(pair.fee_token_id)
+        lp_token = _get_or_fetch_token(pair.lp_token_id,
+                                       is_lp_token=True,
+                                       exchange='vestadex',
+                                       custom_name=f'LP {first_token.ticker}/{second_token.ticker} (VestaDex)')
 
         _all_tokens.add(first_token)
         _all_tokens.add(second_token)
@@ -954,8 +958,8 @@ async def _sync_vestax_staking_pool() -> List[SwapPool]:
 
         egld_price = hex2dec(res[0])
 
-        token_in = get_or_fetch_token(WEGLD_IDENTIFIER)
-        token_out = get_or_fetch_token('VEGLD-2b9319')
+        token_in = _get_or_fetch_token(WEGLD_IDENTIFIER)
+        token_out = _get_or_fetch_token('VEGLD-2b9319')
 
         _all_tokens.add(token_in)
         _all_tokens.add(token_out)
@@ -1004,8 +1008,8 @@ async def _sync_hatom_staking_pool() -> List[SwapPool]:
 
         egld_price = hex2dec(res[0])
 
-        token_in = get_or_fetch_token(WEGLD_IDENTIFIER)
-        token_out = get_or_fetch_token('SEGLD-3ad2d0')
+        token_in = _get_or_fetch_token(WEGLD_IDENTIFIER)
+        token_out = _get_or_fetch_token('SEGLD-3ad2d0')
 
         _all_tokens.add(token_in)
         _all_tokens.add(token_out)
@@ -1072,11 +1076,11 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
         nb_mms = 0
 
         for mm in money_markets:
-            h_token = get_or_fetch_token(mm.hatom_token_id)
+            h_token = _get_or_fetch_token(mm.hatom_token_id)
 
-            underlying_token = get_or_fetch_token(WEGLD_IDENTIFIER) \
+            underlying_token = _get_or_fetch_token(WEGLD_IDENTIFIER) \
                 if mm.underlying_id == 'EGLD' \
-                else get_or_fetch_token(mm.underlying_id)
+                else _get_or_fetch_token(mm.underlying_id)
 
             _all_tokens.add(h_token)
             _all_tokens.add(underlying_token)
@@ -1229,19 +1233,19 @@ async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[Sw
 
         token_ids = [pair.first_token_id, pair.second_token_id]
 
-        first_token = get_or_fetch_token(pair.first_token_id)
-        second_token = get_or_fetch_token(pair.second_token_id)
-        lp_token = get_or_fetch_token(pair.lp_token_id,
-                                      is_lp_token=True,
-                                      exchange='opendex',
-                                      custom_name=f'LP {first_token.ticker}/{second_token.ticker} (Opendex)')
+        first_token = _get_or_fetch_token(pair.first_token_id)
+        second_token = _get_or_fetch_token(pair.second_token_id)
+        lp_token = _get_or_fetch_token(pair.lp_token_id,
+                                       is_lp_token=True,
+                                       exchange='opendex',
+                                       custom_name=f'LP {first_token.ticker}/{second_token.ticker} (Opendex)')
 
         _all_tokens.add(first_token)
         _all_tokens.add(second_token)
         _all_tokens.add(lp_token)
 
         if pair.fee_token_id:
-            fee_token = get_or_fetch_token(pair.fee_token_id)
+            fee_token = _get_or_fetch_token(pair.fee_token_id)
         else:
             fee_token = None
 
@@ -1288,3 +1292,14 @@ def _is_pair_valid(tokens_reserves: List[Tuple[str, str]]) -> bool:
             break
 
     return is_valid
+
+
+def _get_or_fetch_token(identifier: str,
+                        is_lp_token: bool = False,
+                        exchange: Optional[str] = None,
+                        custom_name: Optional[str] = None) -> Esdt:
+    return get_or_fetch_token(identifier=identifier,
+                              is_lp_token=is_lp_token,
+                              exchange=exchange,
+                              custom_name=custom_name,
+                              skip_local_mem=True)
