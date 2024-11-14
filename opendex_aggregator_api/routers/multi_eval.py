@@ -12,6 +12,7 @@ from opendex_aggregator_api.services import evaluations as eval_svc
 router = APIRouter()
 
 
+@router.get("/multi-eval")
 @router.post("/multi-eval")
 async def post_multi_eval(response: Response,
                           token_out: str,
