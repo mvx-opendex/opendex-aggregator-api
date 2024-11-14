@@ -12,7 +12,11 @@ from opendex_aggregator_api.services import evaluations as eval_svc
 router = APIRouter()
 
 
-@router.get("/multi-eval")
+@router.options("/multi-eval")
+async def options_multi_eval(response: Response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+
+
 @router.post("/multi-eval")
 async def post_multi_eval(response: Response,
                           token_out: str,
