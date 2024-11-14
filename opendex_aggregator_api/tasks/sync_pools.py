@@ -116,18 +116,18 @@ async def _sync_all_pools():
     _all_lp_tokens_compositions.clear()
 
     functions = [
-        # _sync_onedex_pools,
+        _sync_onedex_pools,
         _sync_xexchange_pools,
-        # _sync_ashswap_stable_pools,
-        # _sync_ashswap_v2_pools,
-        # _sync_jex_cp_pools,
-        # _sync_jex_stablepools,
+        _sync_ashswap_stable_pools,
+        _sync_ashswap_v2_pools,
+        _sync_jex_cp_pools,
+        _sync_jex_stablepools,
         # _sync_exrond_pools,
         # _sync_other_router_pools,
-        # _sync_vestadex_pools,
-        # _sync_vestax_staking_pool,
-        # _sync_hatom_staking_pool,
-        # _sync_hatom_money_markets,
+        _sync_vestadex_pools,
+        _sync_vestax_staking_pool,
+        _sync_hatom_staking_pool,
+        _sync_hatom_money_markets,
         # _sync_opendex_pools
     ]
 
