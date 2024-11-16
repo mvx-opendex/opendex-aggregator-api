@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Response
 
@@ -33,10 +33,11 @@ async def post_multi_eval(response: Response,
              for token_and_amount in token_and_amounts]
 
     return [adapt_static_eval(e)
-            for e in evals]
+            for e in evals
+            if e is not None]
 
 
-def _eval(token_and_amount: TokenIdAndAmount, token_out: str) -> SwapEvaluation:
+def _eval(token_and_amount: TokenIdAndAmount, token_out: str) -> Optional[SwapEvaluation]:
     routes = get_or_find_sorted_routes(token_and_amount.token_id,
                                        token_out,
                                        max_hops=3)
@@ -53,4 +54,7 @@ def _eval(token_and_amount: TokenIdAndAmount, token_out: str) -> SwapEvaluation:
                    key=lambda x: x.net_amount_out,
                    reverse=True)
 
-    return evals[0]
+    if len(evals) > 0:
+        return evals[0]
+    else:
+        return None
