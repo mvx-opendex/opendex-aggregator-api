@@ -71,16 +71,9 @@ class SwapHopOut(BaseModel):
 
 class SwapRouteOut(BaseModel):
     hops: List[SwapHopOut]
+    route_payload: str
     token_in: str
     token_out: str
-
-    def serialize(self) -> str:
-        str_ = int2hex(len(self.token_in), 8)
-        str_ += str2hex(self.token_in)
-        str_ += int2hex(len(self.hops), 8)
-        for hop in self.hops:
-            str_ += hop.serialize()
-        return str_
 
 
 class TokenOut(BaseModel):

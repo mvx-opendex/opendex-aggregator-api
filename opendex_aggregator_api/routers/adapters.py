@@ -1,7 +1,9 @@
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
-                                                SwapEvaluation)
+                                                SwapEvaluation, SwapHop,
+                                                SwapPool, SwapRoute)
 from opendex_aggregator_api.routers.api_models import (
-    DynamicRouteSwapEvaluationOut, StaticRouteSwapEvaluationOut)
+    DynamicRouteSwapEvaluationOut, StaticRouteSwapEvaluationOut, SwapHopOut,
+    SwapPoolOut, SwapRouteOut)
 from opendex_aggregator_api.services import gas as gas_svc
 from opendex_aggregator_api.services.tokens import get_or_fetch_token
 
@@ -74,3 +76,22 @@ def adapt_static_eval(e: SwapEvaluation) -> StaticRouteSwapEvaluationOut:
                                             e.theorical_amount_out),
                                         theorical_human_amount_out=theorical_human_amount_out,
                                         amounts_and_routes_payload=amounts_and_routes_payload)
+
+
+def adapt_pool(p: SwapPool) -> SwapPoolOut:
+    return SwapPoolOut(name=p.name,
+                       sc_address=p.sc_address,
+                       type=p.type)
+
+
+def adapt_hop(h: SwapHop) -> SwapHopOut:
+    return SwapHopOut(pool=adapt_pool(h.pool),
+                      token_in=h.token_in,
+                      token_out=h.token_out)
+
+
+def adapt_route(r: SwapRoute) -> SwapRouteOut:
+    return SwapRouteOut(hops=[adapt_hop(h) for h in r.hops],
+                        route_payload=r.serialize().hex(),
+                        token_in=r.token_in,
+                        token_out=r.token_out)
