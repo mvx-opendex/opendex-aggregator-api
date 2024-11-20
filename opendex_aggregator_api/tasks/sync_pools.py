@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import random
 import sys
 from datetime import datetime, timedelta
 from itertools import product
@@ -23,7 +24,8 @@ from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_swap_pools, set_tokens)
 from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
                                                LpTokenComposition, OneDexPair,
-                                               OpendexPair, VestaDexPool, XExchangePoolStatus)
+                                               OpendexPair, VestaDexPool,
+                                               XExchangePoolStatus)
 from opendex_aggregator_api.pools.ashswap import (AshSwapPoolV2,
                                                   AshSwapStableSwapPool)
 from opendex_aggregator_api.pools.hatom import HatomConstantPricePool
@@ -1298,8 +1300,10 @@ def _get_or_fetch_token(identifier: str,
                         is_lp_token: bool = False,
                         exchange: Optional[str] = None,
                         custom_name: Optional[str] = None) -> Esdt:
+    skip_local_mem = random.randint(0, 4) == 0
+
     return get_or_fetch_token(identifier=identifier,
                               is_lp_token=is_lp_token,
                               exchange=exchange,
                               custom_name=custom_name,
-                              skip_local_mem=True)
+                              skip_local_mem=skip_local_mem)
