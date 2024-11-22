@@ -121,6 +121,7 @@ async def _safely_do(coroutine_: Callable[..., None]) -> SwapEvaluation:
 
 
 def _cutoff_routes(routes: List[SwapRoute]):
+    max_routes = 100
     max_online = 5
     nb_online = 0
 
@@ -128,6 +129,9 @@ def _cutoff_routes(routes: List[SwapRoute]):
 
     for route in routes:
         res.append(route)
+
+        if len(res) >= max_routes:
+            break
 
         if not eval_svc.can_evaluate_offline(route):
             nb_online += 1
