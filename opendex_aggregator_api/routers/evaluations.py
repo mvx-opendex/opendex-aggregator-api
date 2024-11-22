@@ -1,13 +1,13 @@
 import asyncio
 import logging
 from time import time
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 import aiohttp
 from fastapi import APIRouter, HTTPException, Query, Response
 
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
-                                                SwapEvaluation)
+                                                SwapEvaluation, SwapRoute)
 from opendex_aggregator_api.routers.adapters import (adap_dyn_eval,
                                                      adapt_static_eval)
 from opendex_aggregator_api.routers.api_models import SwapEvaluationOut
@@ -44,6 +44,8 @@ async def do_evaluate(response: Response,
 
     if len(routes) == 0:
         return _adapt_eval_result(None, None)
+
+    routes = _cutoff_routes(routes)
 
     start = time()
 
@@ -113,3 +115,21 @@ async def _safely_do(coroutine_: Callable[..., None]) -> SwapEvaluation:
         return await coroutine_
     except:
         logging.exception(f'Error during evaluation')
+
+
+def _cutoff_routes(routes: List[SwapRoute]):
+    max_online = 5
+    nb_online = 0
+
+    res = []
+
+    for route in routes:
+        if not eval_svc.can_evaluate_offline(route):
+            nb_online += 1
+
+        res.append(route)
+
+        if nb_online == max_online:
+            break
+
+    return res
