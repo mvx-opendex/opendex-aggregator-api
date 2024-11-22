@@ -125,7 +125,7 @@ async def _sync_all_pools():
         _sync_jex_cp_pools,
         _sync_jex_stablepools,
         # _sync_exrond_pools,
-        # _sync_other_router_pools,
+        _sync_other_router_pools,
         _sync_vestadex_pools,
         _sync_vestax_staking_pool,
         _sync_hatom_staking_pool,
@@ -1152,13 +1152,17 @@ async def _sync_other_router_pools() -> List[SwapPool]:
         logging.info('ROUTER_POOLS_DIR not set -> skip')
         return []
 
-    swap_pools = []
+    swap_pools: List[SwapPool] = []
 
     for filename in ['pools_jexchange.json']:
         path = f'{dir}/{filename}'
         with open(path, 'rt') as f:
             pools = json.load(f)
             swap_pools.extend([SwapPool.model_validate(x) for x in pools])
+
+            _all_tokens.update([_get_or_fetch_token(t)
+                                for p in swap_pools
+                                for t in p.tokens_in + p.tokens_out])
 
     logging.info('Loading pools from jex-router-pools - done')
 
