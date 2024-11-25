@@ -1,7 +1,8 @@
 from typing import List, Optional, Set
 
 import opendex_aggregator_api.services.hatom as hatom_svc
-from opendex_aggregator_api.data.model import Esdt, ExchangeRate, LpTokenComposition
+from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
+                                               LpTokenComposition)
 from opendex_aggregator_api.services.tokens import (USDC_IDENTIFIER,
                                                     WEGLD_IDENTIFIER)
 
@@ -15,6 +16,11 @@ async def fill_tokens_usd_price(tokens: Set[Esdt],
                                     rates,
                                     wegld_usd_price,
                                     usdc_usd_price)
+              for t in tokens]
+
+    tokens = [_fill_token_usd_price_indirect(t,
+                                             rates,
+                                             tokens)
               for t in tokens]
 
     tokens = [_fill_lp_token_usd_price(t,
@@ -81,5 +87,31 @@ def _fill_lp_token_usd_price(token: Esdt,
                     10**underlying_token.decimals
 
         token.usd_price = total_usd_value * 10**token.decimals / comp.lp_token_supply
+
+    return token
+
+
+def _fill_token_usd_price_indirect(token: Esdt,
+                                   rates: Set[ExchangeRate],
+                                   tokens: List[Esdt]) -> Esdt:
+    if token.usd_price is not None:
+        return token
+
+    sorted_rates: List[ExchangeRate] = sorted((r for r in rates
+                                               if r.base_token_liquidity > 0
+                                               and r.base_token_id == token.identifier),
+                                              key=lambda x: x.base_token_liquidity,
+                                              reverse=True)
+
+    for rate in sorted_rates:
+        quote_token = next((t for t in tokens
+                            if t.identifier == rate.quote_token_id), None)
+
+        if quote_token is None or quote_token.usd_price is None:
+            continue
+
+        if quote_token.usd_price:
+            token.usd_price = quote_token.usd_price * rate.rate
+            break
 
     return token
