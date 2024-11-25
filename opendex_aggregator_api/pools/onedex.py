@@ -80,5 +80,9 @@ class OneDexConstantProductPool(ConstantProductPool):
             return net_amount_out, 0, 0
 
     @override
+    def estimated_gas(self) -> int:
+        return 20_000_000
+
+    @override
     def _source(self) -> str:
         return 'onedex'

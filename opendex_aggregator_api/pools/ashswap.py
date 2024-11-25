@@ -248,6 +248,10 @@ class AshSwapStableSwapPool(StableSwapPool):
                                      underlying_prices=self.underlying_prices.copy())
 
     @override
+    def estimated_gas(self) -> int:
+        return 30_000_000
+
+    @override
     def _source(self) -> str:
         return 'ashswap'
 

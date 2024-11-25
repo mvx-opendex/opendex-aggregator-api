@@ -62,7 +62,7 @@ then
         do_start
     elif [ $1 = "--dev" ]
     then
-        GATEWAY_URL=https://api.multiversx.com \
+        GATEWAY_URL=http://gateway.mvx.fr:8079 \
             uvicorn opendex_aggregator_api.main:app --host 0.0.0.0 --port 3002 --log-level debug --reload
     elif [ $1 = "--info" ] || [ $1 = "--status" ]
     then

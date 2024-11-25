@@ -18,5 +18,9 @@ class HatomConstantPricePool(ConstantPricePool):
                                       token_out_reserve=self.token_out_reserve)
 
     @override
+    def estimated_gas(self) -> int:
+        return 20_000_000
+
+    @override
     def _source(self):
         return 'hatom'

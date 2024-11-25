@@ -83,5 +83,9 @@ class XExchangeConstantProductPool(ConstantProductPool):
         return int(amount_in), special_fee, 0
 
     @override
+    def estimated_gas(self) -> int:
+        return 25_000_000
+
+    @override
     def _source(self) -> str:
         return 'xexchange'
