@@ -1061,7 +1061,9 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
             _addr('erd1qqqqqqqqqqqqqpgqg47t8v5nwzvdxgf6g5jkxleuplu8y4f678ssfcg5gy'),
             10**8,  # WBTC
             _addr('erd1qqqqqqqqqqqqqpgq8h8upp38fe9p4ny9ecvsett0usu2ep7978ssypgmrs'),
-            10**18  # WETH
+            10**18,  # WETH
+            _addr('erd1qqqqqqqqqqqqqpgq2rnjnp543m5d8fac8v2ltkr5w2quh0v978ssswj939'),
+            10**18  # MEX
         ]
 
         res = await async_sc_query(http_client,
