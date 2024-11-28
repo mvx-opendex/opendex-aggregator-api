@@ -289,7 +289,7 @@ class JexStableSwapPoolDeposit(StableSwapPool):
         nb_tokens = len(self.tokens)
 
         liquidity_fees = (
-            self.total_fees * nb_tokens) // (4 * (nb_tokens - 1))
+            self.swap_fee * nb_tokens) // (4 * (nb_tokens - 1))
 
         amount_out = stableswap.estimate_deposit(deposits=deposits,
                                                  amp=self.amp_factor,
