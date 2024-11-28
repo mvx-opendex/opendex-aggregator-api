@@ -27,6 +27,9 @@ def find_routes(token_in: str,
 
     all_pools = get_swap_pools()
 
+    if all_pools is None:
+        return []
+
     _find_routes_inner(token_out,
                        all_pools,
                        max_hops,
