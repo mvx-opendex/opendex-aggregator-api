@@ -18,10 +18,11 @@ async def fill_tokens_usd_price(tokens: Set[Esdt],
                                     usdc_usd_price)
               for t in tokens]
 
-    tokens = [_fill_token_usd_price_indirect(t,
-                                             rates,
-                                             tokens)
-              for t in tokens]
+    for _ in range(3):
+        tokens = [_fill_token_usd_price_indirect(t,
+                                                 rates,
+                                                 tokens)
+                  for t in tokens]
 
     tokens = [_fill_lp_token_usd_price(t,
                                        tokens,

@@ -5,7 +5,8 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from typing_extensions import override
 
-from opendex_aggregator_api.data.model import Esdt, ExchangeRate, LpTokenComposition
+from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
+                                               LpTokenComposition)
 from opendex_aggregator_api.pools import stableswap
 from opendex_aggregator_api.utils.math import ceildiv
 
@@ -46,7 +47,7 @@ class AbstractPool:
     def estimate_theorical_amount_out(self, token_in: Esdt, amount_in: int, token_out: Esdt) -> int:
         raise NotImplementedError()
 
-    def exchange_rates(self) -> List[ExchangeRate]:
+    def exchange_rates(self, sc_address: str) -> List[ExchangeRate]:
         raise NotImplementedError()
 
     def lp_token_composition(self) -> Optional[LpTokenComposition]:
@@ -439,3 +440,35 @@ class StableSwapPool(AbstractPool):
 
         self.normalized_reserves = [self._normalize_amount(a, t)
                                     for (a, t) in zip(self.reserves, self.tokens)]
+
+    @override
+    def exchange_rates(self, sc_address: str) -> List[ExchangeRate]:
+
+        rates = []
+
+        for i_token_in, token_in in enumerate(self.tokens):
+            amount_in = (10**token_in.decimals) // 1000
+
+            for i_token_out, token_out in enumerate(self.tokens):
+                if token_in == token_out:
+                    continue
+
+                normalized_amount_in = self._normalize_amount(
+                    amount_in, token_in)
+
+                normalized_amount_out = stableswap.estimate_amount_out(
+                    self.amp_factor, self.normalized_reserves, self.underlying_prices,
+                    i_token_in, normalized_amount_in, i_token_out)
+
+                if normalized_amount_out != 0:
+
+                    rates.append(ExchangeRate(base_token_id=token_in.identifier,
+                                              base_token_liquidity=self.reserves[i_token_in],
+                                              quote_token_id=token_out.identifier,
+                                              quote_token_liquidity=self.reserves[i_token_out],
+                                              sc_address=sc_address,
+                                              source=self._source(),
+                                              rate=normalized_amount_in / normalized_amount_out,
+                                              rate2=normalized_amount_out / normalized_amount_in))
+
+        return rates

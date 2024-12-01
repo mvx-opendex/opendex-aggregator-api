@@ -405,6 +405,9 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
 
                 _all_lp_tokens_compositions.append(pool.lp_token_composition())
 
+                _all_rates.update(pool.exchange_rates(
+                    sc_address=status.sc_address))
+
                 token_ids = [t.identifier for t in tokens]
                 swap_pools.append(SwapPool(name=f"AshSwap: {'/'.join([t.name for t in tokens])}",
                                            sc_address=status.sc_address,
