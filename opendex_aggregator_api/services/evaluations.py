@@ -60,36 +60,36 @@ def evaluate_fixed_input_offline(route: SwapRoute,
     theorical_amount = amount_in
 
     for hop in route.hops:
-        if hop.token_in != token:
-            raise ValueError(f'Invalid input token [{hop.token_in}]')
-
-        pool_cache_key = (hop.pool.sc_address,
-                          hop.token_in,
-                          hop.token_out)
-        pool = pools_cache.get(pool_cache_key, None)
-
-        if pool is None:
-            pool = get_dex_aggregator_pool(hop.pool.sc_address,
-                                           hop.token_in,
-                                           hop.token_out)
-
-        if pool is None:
-            raise ValueError(
-                f'Unknown pool [{hop.pool.sc_address}] [{hop.token_in}] [{hop.token_out}]')
-
-        pool = pool.deep_copy()
-        pools_cache[pool_cache_key] = pool
-
-        if hop.token_in.startswith('WEGLD-'):
-            fee_amount = amount * FEE_MULTIPLIER // MAX_FEE
-            fee_token = hop.token_in
-            amount -= fee_amount
-            theorical_amount -= fee_amount
-
-        esdt_in = get_or_fetch_token(hop.token_in)
-        esdt_out = get_or_fetch_token(hop.token_out)
-
         try:
+            if hop.token_in != token:
+                raise ValueError(f'Invalid input token [{hop.token_in}]')
+
+            pool_cache_key = (hop.pool.sc_address,
+                              hop.token_in,
+                              hop.token_out)
+            pool = pools_cache.get(pool_cache_key, None)
+
+            if pool is None:
+                pool = get_dex_aggregator_pool(hop.pool.sc_address,
+                                               hop.token_in,
+                                               hop.token_out)
+
+            if pool is None:
+                raise ValueError(
+                    f'Unknown pool [{hop.pool.sc_address}] [{hop.token_in}] [{hop.token_out}]')
+
+            pool = pool.deep_copy()
+            pools_cache[pool_cache_key] = pool
+
+            if hop.token_in.startswith('WEGLD-'):
+                fee_amount = amount * FEE_MULTIPLIER // MAX_FEE
+                fee_token = hop.token_in
+                amount -= fee_amount
+                theorical_amount -= fee_amount
+
+            esdt_in = get_or_fetch_token(hop.token_in)
+            esdt_out = get_or_fetch_token(hop.token_out)
+
             amount_out, admin_fee_in, admin_fee_out = pool.estimate_amount_out(esdt_in,
                                                                                amount,
                                                                                esdt_out)
