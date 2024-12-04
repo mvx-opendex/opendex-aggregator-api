@@ -112,7 +112,8 @@ def evaluate_fixed_input_offline(route: SwapRoute,
 
         token = hop.token_out
 
-        estimated_gas += pool.estimated_gas()
+        if pool:
+            estimated_gas += pool.estimated_gas()
 
     if token != route.token_out:
         raise ValueError(
