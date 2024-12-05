@@ -17,8 +17,9 @@ from opendex_aggregator_api.data.constants import (
     SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2, SC_TYPE_EXROND,
     SC_TYPE_HATOM_MONEY_MARKET_MINT, SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
     SC_TYPE_HATOM_STAKE, SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
-    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_ONEDEX, SC_TYPE_OPENDEX_LP,
-    SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE)
+    SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
+    SC_TYPE_ONEDEX, SC_TYPE_OPENDEX_LP, SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE,
+    SC_TYPE_XEXCHANGE)
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_exchange_rates,
                                                    set_swap_pools, set_tokens)
@@ -711,7 +712,7 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
                                        tokens_in=token_ids,
                                        tokens_out=[
                                            lp_status.lp_token_identifier],
-                                       type=SC_TYPE_JEXCHANGE_STABLEPOOL))
+                                       type=SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT))
 
             for t1, t2 in product(lp_status.tokens, lp_status.tokens):
                 if t1 != t2:
