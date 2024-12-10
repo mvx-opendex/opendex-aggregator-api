@@ -28,11 +28,14 @@ def parse_opendex_pool(hex_: str) -> OpendexPair:
     second_token_reserve, read = parse_amount(hex_[offset:])
     offset += read
 
-    lp_token_id, read = parse_token_identifier(hex_[offset:])
+    lp_token_id_is_set, read = parse_uint8(hex_[offset:])
     offset += read
 
-    lp_token_mint_burn_enabled, read = parse_uint8(hex_[offset:])
-    offset += read
+    if lp_token_id_is_set:
+        lp_token_id, read = parse_token_identifier(hex_[offset:])
+        offset += read
+    else:
+        lp_token_id = None
 
     lp_token_supply, read = parse_amount(hex_[offset:])
     offset += read
@@ -63,7 +66,6 @@ def parse_opendex_pool(hex_: str) -> OpendexPair:
                        second_token_id=second_token_id,
                        second_token_reserve=second_token_reserve,
                        lp_token_id=lp_token_id,
-                       lp_token_mint_burn_enabled=lp_token_mint_burn_enabled,
                        lp_token_supply=lp_token_supply,
                        total_fee_percent=total_fee_percent,
                        platform_fee_percent=platform_fee_percent,

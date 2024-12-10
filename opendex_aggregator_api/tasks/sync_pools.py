@@ -1247,19 +1247,25 @@ async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[Sw
 
         first_token = _get_or_fetch_token(pair.first_token_id)
         second_token = _get_or_fetch_token(pair.second_token_id)
-        lp_token = _get_or_fetch_token(pair.lp_token_id,
-                                       is_lp_token=True,
-                                       exchange='opendex',
-                                       custom_name=f'LP {first_token.ticker}/{second_token.ticker} (Opendex)')
+
+        if pair.lp_token_id:
+            custom_name = f'LP {first_token.ticker}/{second_token.ticker} (Opendex)'
+            lp_token = _get_or_fetch_token(pair.lp_token_id,
+                                           is_lp_token=True,
+                                           exchange='opendex',
+                                           custom_name=custom_name)
+            _all_tokens.add(lp_token)
 
         _all_tokens.add(first_token)
         _all_tokens.add(second_token)
-        _all_tokens.add(lp_token)
 
         if pair.fee_token_id:
             fee_token = _get_or_fetch_token(pair.fee_token_id)
         else:
             fee_token = None
+
+        if not pair.lp_token_id:
+            continue
 
         pool = OpendexConstantProductPool(first_token=first_token,
                                           first_token_reserves=pair.first_token_reserve,

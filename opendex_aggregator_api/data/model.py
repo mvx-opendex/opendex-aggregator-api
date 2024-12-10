@@ -104,8 +104,7 @@ class OpendexPair(BaseModel):
     first_token_reserve: int
     second_token_id: str
     second_token_reserve: int
-    lp_token_id: str
-    lp_token_mint_burn_enabled: bool
+    lp_token_id: Optional[str]
     lp_token_supply: int
     total_fee_percent: int
     platform_fee_percent: int
