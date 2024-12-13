@@ -245,8 +245,10 @@ async def evaluate_fixed_input_online(amount_in: int,
         net_amount_out, fee, fee_token = \
             parse_evaluate_response(result[0])
 
+        [h.pool.sc_type_as_code() for h in route.hops]
+
         return SwapEvaluation(amount_in=amount_in,
-                              estimated_gas=0,
+                              estimated_gas=route.estimated_gas(),
                               fee_amount=fee,
                               fee_token=fee_token,
                               net_amount_out=net_amount_out,

@@ -4,7 +4,7 @@ from typing import List, Optional
 from multiversx_sdk_core import Address
 from pydantic import BaseModel
 
-from opendex_aggregator_api.data.constants import SC_TYPES
+from opendex_aggregator_api.data.constants import ESTIMATED_GAS_PER_SC_TYPE, SC_TYPES
 from opendex_aggregator_api.utils.convert import (int2hex, int2hex_even_size,
                                                   str2hex)
 
@@ -22,6 +22,9 @@ class SwapPool(BaseModel):
             and self.tokens_in == other.tokens_in \
             and self.type == other.type
 
+    def estimated_gas(self) -> int:
+        return ESTIMATED_GAS_PER_SC_TYPE[self.sc_type_as_code()]
+
     def sc_type_as_code(self) -> int:
         return SC_TYPES.index(self.type)
 
@@ -30,6 +33,9 @@ class SwapHop(BaseModel):
     pool: SwapPool
     token_in: str
     token_out: str
+
+    def estimated_gas(self) -> int:
+        return self.pool.estimated_gas()
 
     def serialize(self) -> str:
         str_ = Address.from_bech32(self.pool.sc_address).hex()
@@ -57,6 +63,10 @@ class SwapRoute(BaseModel):
                 return False
 
         return True
+
+    def estimated_gas(self) -> int:
+        return sum((h.estimated_gas()
+                    for h in self.hops))
 
     def serialize(self) -> bytes:
         str_ = int2hex(len(self.token_in), 8)
