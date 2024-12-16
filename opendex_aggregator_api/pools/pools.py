@@ -468,7 +468,7 @@ class StableSwapPool(AbstractPool):
                                               quote_token_liquidity=self.reserves[i_token_out],
                                               sc_address=sc_address,
                                               source=self._source(),
-                                              rate=normalized_amount_in / normalized_amount_out,
-                                              rate2=normalized_amount_out / normalized_amount_in))
+                                              rate=normalized_amount_out / normalized_amount_in,
+                                              rate2=normalized_amount_in / normalized_amount_out))
 
         return rates
