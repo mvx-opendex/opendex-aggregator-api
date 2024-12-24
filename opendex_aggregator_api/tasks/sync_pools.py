@@ -1154,7 +1154,7 @@ async def _sync_other_router_pools() -> List[SwapPool]:
 
     dir = router_pools_dir()
 
-    if dir is None:
+    if not dir:
         logging.info('ROUTER_POOLS_DIR not set -> skip')
         return []
 
