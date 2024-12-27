@@ -1,7 +1,7 @@
 
 from typing import List
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter
 
 from opendex_aggregator_api.data import datastore
 from opendex_aggregator_api.data.model import Esdt
@@ -11,8 +11,7 @@ router = APIRouter()
 
 
 @router.get("/tokens")
-async def get_tokens(response: Response) -> List[TokenOut]:
-    response.headers['Access-Control-Allow-Origin'] = '*'
+async def get_tokens() -> List[TokenOut]:
 
     return [_adapt_token(x)
             for x in datastore.get_tokens() or []]

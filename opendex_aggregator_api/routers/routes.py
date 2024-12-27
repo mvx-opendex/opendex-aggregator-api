@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Query
 
 from opendex_aggregator_api.routers.adapters import adapt_route
 from opendex_aggregator_api.routers.api_models import SwapRouteOut
@@ -10,11 +10,9 @@ router = APIRouter()
 
 
 @router.get("/routes")
-def get_routes(response: Response,
-               token_in: str,
+def get_routes(token_in: str,
                token_out: str,
                max_hops: int = Query(default=3, ge=1, le=4)) -> List[SwapRouteOut]:
-    response.headers['Access-Control-Allow-Origin'] = '*'
 
     return [adapt_route(r)
             for r in get_or_find_sorted_routes(token_in,

@@ -4,7 +4,7 @@ from time import time
 from typing import Callable, List, Optional
 
 import aiohttp
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Query
 
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
                                                 SwapEvaluation, SwapRoute)
@@ -20,14 +20,12 @@ router = APIRouter()
 
 @router.get("/evaluate")
 @router.post("/evaluate")
-async def do_evaluate(response: Response,
-                      token_in: str,
+async def do_evaluate(token_in: str,
                       token_out: str,
                       amount_in: Optional[int] = None,
                       net_amount_out: Optional[int] = None,
                       max_hops: int = Query(default=3, ge=1, le=4),
                       with_dyn_routing: Optional[bool] = False) -> SwapEvaluationOut:
-    response.headers['Access-Control-Allow-Origin'] = '*'
 
     if amount_in is None:
         if net_amount_out is None:

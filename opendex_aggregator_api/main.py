@@ -3,6 +3,7 @@ import os
 import threading
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from opendex_aggregator_api.routers import (evaluations, multi_eval, routes,
                                             tokens)
@@ -30,6 +31,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
+
 app.include_router(evaluations.router)
 app.include_router(multi_eval.router)
 app.include_router(routes.router)

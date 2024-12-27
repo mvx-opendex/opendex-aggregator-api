@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException
 
 from opendex_aggregator_api.pools.model import SwapEvaluation
 from opendex_aggregator_api.routers.adapters import adapt_static_eval
@@ -12,18 +12,9 @@ from opendex_aggregator_api.services import evaluations as eval_svc
 router = APIRouter()
 
 
-@router.options("/multi-eval")
-async def options_multi_eval(response: Response):
-    response.headers['Access-Control-Allow-Headers'] = '*'
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'POST'
-
-
 @router.post("/multi-eval")
-async def post_multi_eval(response: Response,
-                          token_out: str,
+async def post_multi_eval(token_out: str,
                           token_and_amounts: List[TokenIdAndAmount]) -> List[StaticRouteSwapEvaluationOut]:
-    response.headers['Access-Control-Allow-Origin'] = '*'
 
     if len(token_and_amounts) < 0 or len(token_and_amounts) > 10:
         raise HTTPException(status_code=400,
