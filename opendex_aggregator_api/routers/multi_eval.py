@@ -26,6 +26,9 @@ async def post_multi_eval(token_out: str,
     token_out_obj = next((t for t in all_tokens if t.identifier == token_out),
                          None)
 
+    if token_out_obj is None:
+        raise HTTPException(status_code=404)
+
     evals = [_eval(token_and_amount, token_out_obj)
              for token_and_amount in token_and_amounts]
 
