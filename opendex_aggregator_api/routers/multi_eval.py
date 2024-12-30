@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.post("/multi-eval")
-async def post_multi_eval(token_id_out: str,
+async def post_multi_eval(token_out: str,
                           token_and_amounts: List[TokenIdAndAmount]) -> List[StaticRouteSwapEvaluationOut]:
 
     if len(token_and_amounts) < 0 or len(token_and_amounts) > 10:
@@ -23,18 +23,18 @@ async def post_multi_eval(token_id_out: str,
 
     all_tokens = get_tokens()
 
-    token_out = next((t for t in all_tokens if t.identifier == token_id_out),
-                     None)
+    token_out_obj = next((t for t in all_tokens if t.identifier == token_out),
+                         None)
 
-    evals = [_eval(token_and_amount, token_id_out)
+    evals = [_eval(token_and_amount, token_out_obj)
              for token_and_amount in token_and_amounts]
 
-    tokens_in = [next((t for t in all_tokens if t.identifier == token_and_amount.token_id),
+    tokens_in_objs = [next((t for t in all_tokens if t.identifier == token_and_amount.token_id),
                       None)
-                 for token_and_amount in token_and_amounts]
+                      for token_and_amount in token_and_amounts]
 
-    return [adapt_static_eval(e, token_in, token_out)
-            for (e, token_in) in zip(evals, tokens_in)
+    return [adapt_static_eval(e, token_in, token_out_obj)
+            for (e, token_in) in zip(evals, tokens_in_objs)
             if e is not None]
 
 
