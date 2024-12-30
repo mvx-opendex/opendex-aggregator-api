@@ -6,6 +6,8 @@ from typing import Callable, List, Optional
 import aiohttp
 from fastapi import APIRouter, HTTPException, Query
 
+from opendex_aggregator_api.data.datastore import get_tokens
+from opendex_aggregator_api.data.model import Esdt
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
                                                 SwapEvaluation, SwapRoute)
 from opendex_aggregator_api.routers.adapters import (adap_dyn_eval,
@@ -35,6 +37,9 @@ async def do_evaluate(token_in: str,
         if net_amount_out is not None:
             raise HTTPException(status_code=400,
                                 detail='Either amount_in or net_amount_out is required')
+
+    token_in_obj = _get_token(token_in)
+    token_out_obj = _get_token(token_out)
 
     routes = get_or_find_sorted_routes(token_in,
                                        token_out,
@@ -102,13 +107,21 @@ async def do_evaluate(token_in: str,
         dyn_routing_eval = None
 
     return _adapt_eval_result(best_static_eval,
-                              dyn_routing_eval)
+                              dyn_routing_eval,
+                              token_in_obj,
+                              token_out_obj)
 
 
 def _adapt_eval_result(static_eval: Optional[SwapEvaluation],
-                       dyn_eval: Optional[DynamicRoutingSwapEvaluation]) -> SwapEvaluationOut:
-    return SwapEvaluationOut(static=adapt_static_eval(static_eval) if static_eval else None,
-                             dynamic=adap_dyn_eval(dyn_eval) if dyn_eval else None)
+                       dyn_eval: Optional[DynamicRoutingSwapEvaluation],
+                       token_in: Esdt,
+                       token_out: Esdt) -> SwapEvaluationOut:
+    return SwapEvaluationOut(static=adapt_static_eval(static_eval,
+                                                      token_in,
+                                                      token_out) if static_eval else None,
+                             dynamic=adap_dyn_eval(dyn_eval,
+                                                   token_in,
+                                                   token_out) if dyn_eval else None)
 
 
 async def _safely_do(coroutine_: Callable[..., None]) -> SwapEvaluation:
@@ -138,3 +151,17 @@ def _cutoff_routes(routes: List[SwapRoute]):
             break
 
     return res
+
+
+def _get_token(token_id: str) -> Esdt:
+    all_tokens = get_tokens()
+
+    if all_tokens is None:
+        raise HTTPException(status_code=404)
+
+    token = next((t for t in all_tokens if t.identifier == token_id), None)
+
+    if token is None:
+        raise HTTPException(status_code=404)
+
+    return token

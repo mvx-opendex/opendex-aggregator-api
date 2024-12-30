@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 
+from opendex_aggregator_api.data.datastore import get_tokens
 from opendex_aggregator_api.pools.model import SwapEvaluation
 from opendex_aggregator_api.routers.adapters import adapt_static_eval
 from opendex_aggregator_api.routers.api_models import (
@@ -13,18 +14,27 @@ router = APIRouter()
 
 
 @router.post("/multi-eval")
-async def post_multi_eval(token_out: str,
+async def post_multi_eval(token_id_out: str,
                           token_and_amounts: List[TokenIdAndAmount]) -> List[StaticRouteSwapEvaluationOut]:
 
     if len(token_and_amounts) < 0 or len(token_and_amounts) > 10:
         raise HTTPException(status_code=400,
                             detail='Invalid number of tokens/amounts')
 
-    evals = [_eval(token_and_amount, token_out)
+    all_tokens = get_tokens()
+
+    token_out = next((t for t in all_tokens if t.identifier == token_id_out),
+                     None)
+
+    evals = [_eval(token_and_amount, token_id_out)
              for token_and_amount in token_and_amounts]
 
-    return [adapt_static_eval(e)
-            for e in evals
+    tokens_in = [next((t for t in all_tokens if t.identifier == token_and_amount.token_id),
+                      None)
+                 for token_and_amount in token_and_amounts]
+
+    return [adapt_static_eval(e, token_in, token_out)
+            for (e, token_in) in zip(evals, tokens_in)
             if e is not None]
 
 

@@ -19,6 +19,7 @@ class StaticRouteSwapEvaluationOut(BaseModel):
     human_amount_in: float
     net_amount_out: str
     net_human_amount_out: float
+    net_usd_amount_out: Optional[float]
     route: SwapRoute
     route_payload: str
     rate: float
@@ -36,6 +37,7 @@ class DynamicRouteSwapEvaluationOut(BaseModel):
     human_amount_in: float
     net_amount_out: str
     net_human_amount_out: float
+    net_usd_amount_out: Optional[float]
     evals: List[StaticRouteSwapEvaluationOut]
     rate: float
     rate2: float
