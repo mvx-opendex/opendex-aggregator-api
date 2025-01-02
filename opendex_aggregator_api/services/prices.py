@@ -74,8 +74,9 @@ def _fill_lp_token_usd_price(token: Esdt,
         underlying_tokens = [t for t in tokens
                              if t.identifier in comp.token_ids]
 
+        total_usd_value = 0
+
         if len(underlying_tokens) == len(comp.token_ids):
-            total_usd_value = 0
 
             for id, reserve in zip(comp.token_ids, comp.token_reserves):
                 underlying_token = next((x for x in underlying_tokens
