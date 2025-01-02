@@ -445,9 +445,13 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
             evals.append(eval)
 
+            start_online_eval = time()
             online_eval = await evaluate_fixed_input_online(amount,
                                                             route,
                                                             http_client)
+            end_online_eval = time()
+            logging.info(
+                f'algo3: online eval computed in {end_online_eval-start_online_eval} seconds')
 
             total_amount_out_verif_online += online_eval.net_amount_out
 
