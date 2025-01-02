@@ -1,5 +1,6 @@
 
 import logging
+from time import time
 from typing import List, Mapping, Optional, Tuple
 
 import aiohttp
@@ -367,6 +368,7 @@ def find_best_dynamic_routing_algo2(single_route_evaluations: List[SwapEvaluatio
 async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                                           amount_in: int,
                                           max_routes: int) -> Optional[DynamicRoutingSwapEvaluation]:
+    start = time()
 
     offline_routes = [r
                       for r in routes
@@ -460,6 +462,10 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
     print(
         f'Diff (offline vs online): {100 * abs(total_amount_out_verif_offline - total_amount_out_verif_online) / total_amount_out_verif_online}%')
+
+    end = time()
+
+    logging.info(f'algo3: computed in {end-start} seconds')
 
     return DynamicRoutingSwapEvaluation(amount_in=amount_in,
                                         estimated_gas=sum((e.estimated_gas)
