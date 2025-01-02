@@ -42,7 +42,6 @@ def set_dex_aggregator_pool(sc_address: str, token_in: str, token_out: str, pool
 
 @cached(cache=TTLCache(maxsize=1, ttl=10))
 def get_tokens() -> Optional[List[Esdt]]:
-    logging.info('load tokens from datastore')
     return redis_get('tokens',
                      lambda json_: [Esdt.model_validate(x) for x in json_])
 
