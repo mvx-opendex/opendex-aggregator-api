@@ -1,4 +1,5 @@
 aiohttp==3.9.5
+cachetools==5.5.0
 fastapi==0.111.0
 gunicorn==22.0.0
 multiversx-sdk-core==0.8.1
