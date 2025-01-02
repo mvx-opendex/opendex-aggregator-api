@@ -40,6 +40,7 @@ def get_or_fetch_token(identifier: str,
                             exchange,
                             custom_name,
                             cooldown_fetch=timedelta(seconds=0.25))
+        _LOCAL_CACHE[identifier] = token
 
     return token
 
