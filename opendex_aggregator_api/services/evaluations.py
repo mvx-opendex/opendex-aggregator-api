@@ -377,7 +377,9 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
     if len(offline_routes) < 2:
         return None
 
-    amounts = [amount_in // 10] * 9
+    nb_sub_amounts = 20
+
+    amounts = [amount_in // nb_sub_amounts] * (nb_sub_amounts-1)
     amounts = [amount_in - sum(amounts)] + amounts
     amounts = [a for a in amounts if a > 0]
 
