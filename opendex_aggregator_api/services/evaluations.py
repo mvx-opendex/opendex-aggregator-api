@@ -220,7 +220,7 @@ def evaluate_fixed_output_offline(route: SwapRoute,
 
 async def evaluate_fixed_input_online(amount_in: int,
                                       route: SwapRoute,
-                                      http_client: aiohttp.ClientSession) -> SwapEvaluation:
+                                      http_client: aiohttp.ClientSession) -> Optional[SwapEvaluation]:
     route_payload = route.serialize()
     args = [amount_in, route_payload]
 
