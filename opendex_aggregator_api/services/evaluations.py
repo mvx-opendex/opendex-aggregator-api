@@ -24,7 +24,7 @@ MAX_FEE = 100_000
 async def evaluate_fixed_input(route: SwapRoute,
                                amount_in: int,
                                pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
-                               http_client: aiohttp.ClientSession) -> SwapEvaluation:
+                               http_client: aiohttp.ClientSession) -> Optional[SwapEvaluation]:
 
     if can_evaluate_offline(route):
         return evaluate_fixed_input_offline(route,
@@ -39,7 +39,7 @@ async def evaluate_fixed_input(route: SwapRoute,
 async def evaluate_fixed_output(route: SwapRoute,
                                 net_amount_out: int,
                                 pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
-                                http_client: aiohttp.ClientSession) -> SwapEvaluation:
+                                http_client: aiohttp.ClientSession) -> Optional[SwapEvaluation]:
 
     if can_evaluate_offline(route):
         return evaluate_fixed_output_offline(route,
@@ -52,7 +52,7 @@ async def evaluate_fixed_output(route: SwapRoute,
 def evaluate_fixed_input_offline(route: SwapRoute,
                                  amount_in: int,
                                  pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
-                                 update_reserves: bool = False) -> SwapEvaluation:
+                                 update_reserves: bool = False) -> Optional[SwapEvaluation]:
     token = route.token_in
     amount = amount_in
     fee_amount = 0
@@ -107,9 +107,8 @@ def evaluate_fixed_input_offline(route: SwapRoute,
 
             amount = amount_out
         except ValueError as e:
-            logging.info('Error during estimation -> 0')
-            logging.exception(e)
-            amount = 0
+            logging.info('Error during estimation for this route -> abort')
+            return None
 
         token = hop.token_out
 
@@ -137,7 +136,7 @@ def evaluate_fixed_input_offline(route: SwapRoute,
 def evaluate_fixed_output_offline(route: SwapRoute,
                                   net_amount_out: int,
                                   pools_cache: Mapping[Tuple[str, str, str], AbstractPool],
-                                  update_reserves: bool = False) -> SwapEvaluation:
+                                  update_reserves: bool = False) -> Optional[SwapEvaluation]:
     token = route.token_out
     amount = net_amount_out
     fee_amount = 0
@@ -193,9 +192,9 @@ def evaluate_fixed_output_offline(route: SwapRoute,
 
             amount = amount_in
         except ValueError as e:
-            logging.info('Error during estimation -> 0')
+            logging.info('Error during estimation for this route -> abort')
             # logging.exception(e)
-            amount = 0
+            return None
 
         token = hop.token_in
 
@@ -235,12 +234,7 @@ async def evaluate_fixed_input_online(amount_in: int,
                                       args=args)
     except:
         logging.exception('Error during evaluation')
-        return SwapEvaluation(amount_in=amount_in,
-                              estimated_gas=0,
-                              fee_amount=0,
-                              net_amount_out=0,
-                              route=route,
-                              theorical_amount_out=0)
+        return None
 
     if result is not None and len(result) > 0:
         net_amount_out, fee, fee_token = \
@@ -256,13 +250,7 @@ async def evaluate_fixed_input_online(amount_in: int,
                               route=route,
                               theorical_amount_out=0)
 
-    return SwapEvaluation(amount_in=amount_in,
-                          estimated_gas=0,
-                          fee_amount=0,
-                          fee_token=None,
-                          net_amount_out=0,
-                          route=route,
-                          theorical_amount_out=0)
+    return None
 
 
 def find_best_dynamic_routing_algo1(single_route_evaluations: List[SwapEvaluation],
