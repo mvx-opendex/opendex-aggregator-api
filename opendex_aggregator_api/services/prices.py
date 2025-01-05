@@ -9,25 +9,25 @@ from opendex_aggregator_api.services.tokens import (USDC_IDENTIFIER,
 
 async def fill_tokens_usd_price(tokens: Set[Esdt],
                                 rates: Set[ExchangeRate],
-                                lp_tokens_compositions: List[LpTokenComposition]) -> List[Esdt]:
+                                lp_tokens_compositions: List[LpTokenComposition]) -> Set[Esdt]:
     [wegld_usd_price, usdc_usd_price] = await hatom_svc.fetch_egld_and_usdc_prices()
 
-    tokens = [_fill_token_usd_price(t,
-                                    rates,
-                                    wegld_usd_price,
-                                    usdc_usd_price)
-              for t in tokens]
+    tokens = set([_fill_token_usd_price(t,
+                                        rates,
+                                        wegld_usd_price,
+                                        usdc_usd_price)
+                  for t in tokens])
 
     for _ in range(3):
-        tokens = [_fill_token_usd_price_indirect(t,
-                                                 rates,
-                                                 tokens)
-                  for t in tokens]
+        tokens = set([_fill_token_usd_price_indirect(t,
+                                                     rates,
+                                                     tokens)
+                      for t in tokens])
 
-    tokens = [_fill_lp_token_usd_price(t,
-                                       tokens,
-                                       lp_tokens_compositions)
-              for t in tokens]
+    tokens = set([_fill_lp_token_usd_price(t,
+                                           tokens,
+                                           lp_tokens_compositions)
+                  for t in tokens])
 
     return tokens
 
@@ -61,7 +61,7 @@ def _fill_token_usd_price(token: Esdt,
 
 
 def _fill_lp_token_usd_price(token: Esdt,
-                             tokens: List[Esdt],
+                             tokens: Set[Esdt],
                              lp_tokens_compositions: List[LpTokenComposition]) -> Esdt:
     if not token.is_lp_token:
         return token
@@ -95,7 +95,7 @@ def _fill_lp_token_usd_price(token: Esdt,
 
 def _fill_token_usd_price_indirect(token: Esdt,
                                    rates: Set[ExchangeRate],
-                                   tokens: List[Esdt]) -> Esdt:
+                                   tokens: Set[Esdt]) -> Esdt:
     if token.usd_price is not None:
         return token
 
