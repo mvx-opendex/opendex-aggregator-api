@@ -54,6 +54,8 @@ def _eval(token_and_amount: TokenIdAndAmount, token_out: str) -> Optional[SwapEv
              for r in routes
              if eval_svc.can_evaluate_offline(r))
 
+    evals = (e for e in evals if e is not None)
+
     evals = sorted(evals,
                    key=lambda x: x.net_amount_out,
                    reverse=True)
