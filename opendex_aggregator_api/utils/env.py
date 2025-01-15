@@ -11,7 +11,7 @@ def mvx_public_gateway_url():
 
 
 def router_pools_dir():
-    return os.environ.get('ROUTER_POOLS_DIR', None)
+    return os.environ.get('ROUTER_POOLS_DIR', '')
 
 
 def sc_address_aggregator():
@@ -19,19 +19,19 @@ def sc_address_aggregator():
 
 
 def sc_address_jex_lp_deployer():
-    return os.environ.get('SC_ADDRESS_JEX_LP_DEPLOYER', None)
+    return os.environ.get('SC_ADDRESS_JEX_LP_DEPLOYER', '')
 
 
 def sc_address_hatom_staking():
-    return os.environ.get('SC_ADDRESS_HATOM_STAKING', None)
+    return os.environ.get('SC_ADDRESS_HATOM_STAKING', '')
 
 
 def sc_address_onedex_swap():
-    return os.environ.get('SC_ADDRESS_ONEDEX_SWAP', None)
+    return os.environ.get('SC_ADDRESS_ONEDEX_SWAP', '')
 
 
 def sc_addresses_opendex_deployers() -> List[str]:
-    value = os.environ.get('SC_ADDRESSES_OPENDEX_DEPLOYERS', None)
+    value = os.environ.get('SC_ADDRESSES_OPENDEX_DEPLOYERS', '')
 
     addresses = []
 
@@ -42,16 +42,16 @@ def sc_addresses_opendex_deployers() -> List[str]:
 
 
 def sc_address_system_tokens():
-    return os.environ.get('SC_ADDRESS_SYSTEM_TOKENS', None)
+    return os.environ.get('SC_ADDRESS_SYSTEM_TOKENS', '')
 
 
 def sc_address_vestadex_router():
-    return os.environ.get('SC_ADDRESS_VESTADEX_ROUTER', None)
+    return os.environ.get('SC_ADDRESS_VESTADEX_ROUTER', '')
 
 
 def sc_address_vestax_staking():
-    return os.environ.get('SC_ADDRESS_VESTAX_STAKING', None)
+    return os.environ.get('SC_ADDRESS_VESTAX_STAKING', '')
 
 
 def sc_address_hatom_price_feed():
-    return os.environ.get('SC_ADDRESS_HATOM_PRICE_FEED', None)
+    return os.environ.get('SC_ADDRESS_HATOM_PRICE_FEED', '')

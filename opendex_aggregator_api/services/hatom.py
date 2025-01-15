@@ -16,7 +16,7 @@ async def fetch_egld_and_usdc_prices() -> Union[Optional[float], Optional[float]
 
     sc_address = env.sc_address_hatom_price_feed()
 
-    if sc_address == '':
+    if not sc_address:
         return [None, None]
 
     async with aiohttp.ClientSession(env.mvx_gateway_url()) as http_client:

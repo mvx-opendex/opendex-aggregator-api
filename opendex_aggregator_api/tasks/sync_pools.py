@@ -633,7 +633,7 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
     logging.info('Loading JEX stable pools')
 
     sc_deployer = sc_address_jex_lp_deployer()
-    if sc_deployer is None:
+    if not sc_deployer:
         logging.info('JEX LP deployer SC address not set -> skip')
         return []
 
