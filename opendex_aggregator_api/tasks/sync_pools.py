@@ -151,7 +151,7 @@ async def _sync_all_pools():
     set_swap_pools(swap_pools)
     set_exchange_rates([x for x in _all_rates])
 
-    all_tokens_set = set(_all_tokens.values)
+    all_tokens_set = set(_all_tokens.values())
     set_tokens(await prices_svc.fill_tokens_usd_price(all_tokens_set,
                                                       _all_rates,
                                                       _all_lp_tokens_compositions))
