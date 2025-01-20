@@ -168,7 +168,15 @@ class ConstantProductPool(AbstractPool):
                              sc_address=sc_address,
                              source=self._source(),
                              rate=rate,
-                             rate2=rate2)]
+                             rate2=rate2),
+                ExchangeRate(base_token_id=self.second_token.identifier,
+                             base_token_liquidity=self.second_token_reserves,
+                             quote_token_id=self.first_token.identifier,
+                             quote_token_liquidity=self.first_token_reserves,
+                             sc_address=sc_address,
+                             source=self._source(),
+                             rate=rate2,
+                             rate2=rate)]
 
     @override
     def lp_token_composition(self) -> Optional[LpTokenComposition]:
