@@ -1,5 +1,6 @@
 
 import asyncio
+import itertools
 import json
 import logging
 import random
@@ -116,6 +117,7 @@ def loop():
 async def _sync_all_pools():
     _all_rates.clear()
     _all_lp_tokens_compositions.clear()
+    _all_pools_map: dict[str, List[SwapPool]] = dict()
 
     functions = [
         _sync_onedex_pools,
@@ -140,13 +142,17 @@ async def _sync_all_pools():
     swap_pools: List[SwapPool] = []
 
     for task, result in zip(tasks, results):
+        task_name = task.get_name()
+
         if result is None:
-            logging.info(f'{task.get_name()} -> failed')
+            logging.info(f'{task_name} -> failed')
             continue
 
-        logging.info(f'{task.get_name()} -> {len(result)} swap pools')
+        _all_pools_map[task_name] = result
 
-        swap_pools.extend(result)
+        logging.info(f'{task_name} -> {len(result)} swap pools')
+
+    swap_pools.extend(itertools.chain(*_all_pools_map.values()))
 
     set_swap_pools(swap_pools)
     set_exchange_rates([x for x in _all_rates])
@@ -189,8 +195,8 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
                                        [from_, size])
 
             if res is not None and len(res) > 0:
-                lp_statuses.extend(
-                    [parse_xexchange_pool_status(r) for r in res])
+                lp_statuses.extend([parse_xexchange_pool_status(r)
+                                    for r in res])
             else:
                 logging.error(
                     f'Error calling "getXExchangePools" ({from_},{size}) from aggregator SC')
