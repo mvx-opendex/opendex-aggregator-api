@@ -412,50 +412,50 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
 
     pools_cache.clear()
 
-    print('-----------------------')
-    print('Verifications')
+    # print('-----------------------')
+    # print('Verifications')
 
     total_amount_out_verif_offline = 0
-    total_amount_out_verif_online = 0
+    # total_amount_out_verif_online = 0
 
     evals: List[SwapEvaluation] = []
 
-    async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
-        for route, amount in amount_per_route.items():
-            print('++')
-            print(f'Route: {[h.pool.name for h in route.hops]}')
-            print(f'Amount: {amount}')
+    # async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
+    for route, amount in amount_per_route.items():
+        #         print('++')
+        #         print(f'Route: {[h.pool.name for h in route.hops]}')
+        #         print(f'Amount: {amount}')
 
-            eval = evaluate_fixed_input_offline(route, amount, {})
+        eval = evaluate_fixed_input_offline(route, amount, {})
 
-            print(f'Amount out (offline): {eval.net_amount_out}')
-            print(f'Fee (offline): {eval.fee_amount} {eval.fee_token}')
+    #         print(f'Amount out (offline): {eval.net_amount_out}')
+    #         print(f'Fee (offline): {eval.fee_amount} {eval.fee_token}')
 
-            total_amount_out_verif_offline += eval.net_amount_out
+        total_amount_out_verif_offline += eval.net_amount_out
 
-            evals.append(eval)
+        evals.append(eval)
 
-            start_online_eval = time()
-            online_eval = await evaluate_fixed_input_online(amount,
-                                                            route,
-                                                            http_client)
-            end_online_eval = time()
-            logging.info(
-                f'algo3: online eval computed in {end_online_eval-start_online_eval} seconds')
+    #         start_online_eval = time()
+    #         online_eval = await evaluate_fixed_input_online(amount,
+    #                                                         route,
+    #                                                         http_client)
+    #         end_online_eval = time()
+    #         logging.info(
+    #             f'algo3: online eval computed in {end_online_eval-start_online_eval} seconds')
 
-            total_amount_out_verif_online += online_eval.net_amount_out
+    #         total_amount_out_verif_online += online_eval.net_amount_out
 
-            print(f'Amount out (online): {online_eval.net_amount_out}')
-            print(
-                f'Fee (online): {online_eval.fee_amount} {online_eval.fee_token}')
+    #         print(f'Amount out (online): {online_eval.net_amount_out}')
+    #         print(
+    #             f'Fee (online): {online_eval.fee_amount} {online_eval.fee_token}')
 
-    print(
-        f'Total amount out (verif) (offline): {total_amount_out_verif_offline}')
-    print(
-        f'Total amount out (verif) (online): {total_amount_out_verif_online}')
+    # print(
+    #     f'Total amount out (verif) (offline): {total_amount_out_verif_offline}')
+    # print(
+    #     f'Total amount out (verif) (online): {total_amount_out_verif_online}')
 
-    print(
-        f'Diff (offline vs online): {100 * abs(total_amount_out_verif_offline - total_amount_out_verif_online) / total_amount_out_verif_online}%')
+    # print(
+    #     f'Diff (offline vs online): {100 * abs(total_amount_out_verif_offline - total_amount_out_verif_online) / total_amount_out_verif_online}%')
 
     end = time()
 
