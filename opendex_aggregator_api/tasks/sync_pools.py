@@ -20,7 +20,7 @@ from opendex_aggregator_api.data.constants import (
     SC_TYPE_HATOM_STAKE, SC_TYPE_JEXCHANGE_LP, SC_TYPE_JEXCHANGE_LP_DEPOSIT,
     SC_TYPE_JEXCHANGE_STABLEPOOL, SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT,
     SC_TYPE_ONEDEX, SC_TYPE_OPENDEX_LP, SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE,
-    SC_TYPE_XEXCHANGE)
+    SC_TYPE_XEXCHANGE, SC_TYPE_XOXNO_STAKE)
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_exchange_rates,
                                                    set_swap_pools, set_tokens)
@@ -37,10 +37,12 @@ from opendex_aggregator_api.pools.jexchange import (
 from opendex_aggregator_api.pools.model import SwapPool
 from opendex_aggregator_api.pools.onedex import OneDexConstantProductPool
 from opendex_aggregator_api.pools.opendex import OpendexConstantProductPool
-from opendex_aggregator_api.pools.pools import ConstantProductPool
+from opendex_aggregator_api.pools.pools import (ConstantPricePool,
+                                                ConstantProductPool)
 from opendex_aggregator_api.pools.vestadex import (VestaDexConstantProductPool,
                                                    VestaxConstantPricePool)
 from opendex_aggregator_api.pools.xexchange import XExchangeConstantProductPool
+from opendex_aggregator_api.pools.xoxno import XoxnoConstantPricePool
 from opendex_aggregator_api.services.externals import async_sc_query
 from opendex_aggregator_api.services.parsers.ashswap import (
     parse_ashswap_stablepool_status, parse_ashswap_v2_pool_status)
@@ -68,6 +70,7 @@ from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_onedex_swap,
                                               sc_address_vestadex_router,
                                               sc_address_vestax_staking,
+                                              sc_address_xoxno_liquid_staking,
                                               sc_addresses_opendex_deployers)
 from opendex_aggregator_api.utils.redis_utils import redis_lock_and_do
 
@@ -132,7 +135,8 @@ async def _sync_all_pools():
         _sync_vestax_staking_pool,
         _sync_hatom_staking_pool,
         _sync_hatom_money_markets,
-        # _sync_opendex_pools
+        # _sync_opendex_pools,
+        _sync_xoxno_liquid_staking,
     ]
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
@@ -1301,6 +1305,61 @@ async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[Sw
             pair.sc_address, first_token.identifier, second_token.identifier, pool)
         set_dex_aggregator_pool(
             pair.sc_address, second_token.identifier, first_token.identifier, pool)
+
+    return swap_pools
+
+
+async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
+    logging.info('Loading Xoxno staking pool')
+
+    sc_address = sc_address_xoxno_liquid_staking()
+
+    swap_pools = []
+
+    async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
+        res = await async_sc_query(http_client=http_client,
+                                   sc_address=sc_address,
+                                   function='getExchangeRate')
+
+        if res is None:
+            logging.error(f'Error fetching Xoxno liquid staking info (rate)')
+
+        rate = hex2dec(res[0])
+
+        res = await async_sc_query(http_client=http_client,
+                                   sc_address=sc_address_xoxno_liquid_staking(),
+                                   function='getLsTokenId')
+
+        if res is None:
+            logging.error(
+                f'Error fetching Xoxno liquid staking info (LS token ID)')
+
+        ls_token_id = hex2str(res[0])
+
+        token_in = _get_or_fetch_token(WEGLD_IDENTIFIER)
+        token_out = _get_or_fetch_token(ls_token_id)
+
+        _all_tokens[token_in.identifier] = token_in
+        _all_tokens[token_out.identifier] = token_out
+        pool = XoxnoConstantPricePool(price=rate,
+                                      token_in=token_in,
+                                      token_out=token_out,
+                                      token_out_reserve=sys.maxsize)
+
+        swap_pools.append(SwapPool(name=f'Xoxno (stake)',
+                                   sc_address=sc_address,
+                                   tokens_in=[WEGLD_IDENTIFIER],
+                                   tokens_out=[ls_token_id],
+                                   type=SC_TYPE_XOXNO_STAKE))
+
+        _all_rates.update(pool.exchange_rates(sc_address=sc_address))
+
+        set_dex_aggregator_pool(sc_address,
+                                token_in.identifier,
+                                token_out.identifier,
+                                pool)
+
+    logging.info('Loading Xoxno staking pool - done')
 
     return swap_pools
 

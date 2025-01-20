@@ -19,6 +19,7 @@ export SC_ADDRESS_ONEDEX_SWAP=
 export SC_ADDRESS_SYSTEM_TOKENS=erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
 export SC_ADDRESS_VESTADEX_ROUTER=
 export SC_ADDRESS_VESTAX_STAKING=
+export SC_ADDRESS_XOXNO_LIQUID_STAKING=
 export SC_ADDRESSES_OPENDEX_DEPLOYERS=erd1qqqqqqqqqqqqqpgq25vpgegz4c9yx3aae6cdd24uzgrdkksw6avsqmj8r8
 
 if [ -z "${NB_WORKERS}" ]; then export NB_WORKERS=2; fi
