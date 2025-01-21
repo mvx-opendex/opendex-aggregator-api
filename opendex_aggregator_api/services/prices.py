@@ -53,9 +53,11 @@ def _fill_token_usd_price(token: Esdt,
         for rate in sorted_rates:
             if rate.quote_token_id == WEGLD_IDENTIFIER and wegld_usd_price is not None:
                 token.usd_price = wegld_usd_price * rate.rate
+                break
 
             if rate.quote_token_id == USDC_IDENTIFIER and usdc_usd_price is not None:
                 token.usd_price = usdc_usd_price * rate.rate
+                break
 
     return token
 
