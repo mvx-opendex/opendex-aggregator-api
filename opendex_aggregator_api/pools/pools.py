@@ -229,7 +229,7 @@ class ConstantProductPool(AbstractPool):
  {self.first_token.identifier} + \
  {self.second_token_reserves/10**self.second_token.decimals:.4f} \
  {self.second_token.identifier} \
- fees: {self.total_fees * 100 / self.max_fees}%)'
+ fees: {self.total_fee * 100 / self.max_fee}%)'
 
 
 @dataclass

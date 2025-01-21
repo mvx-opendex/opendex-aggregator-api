@@ -43,6 +43,11 @@ class Esdt(BaseModel):
     exchange: Optional[str] = None
     usd_price: Optional[float] = None
 
+    def __eq__(self, other):
+        if isinstance(other, Esdt):
+            return self.identifier == other.identifier
+        return False
+
     def __hash__(self):
         return hash(self.identifier)
 

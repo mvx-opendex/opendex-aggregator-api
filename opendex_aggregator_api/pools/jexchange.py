@@ -156,9 +156,11 @@ class JexConstantProductDepositPool(JexConstantProductPool):
         if token_in == self.first_token:
             reserve_in = first_token_reserve
             reserve_out = second_token_reserve
-        else:
+        elif token_in == self.second_token:
             reserve_in = second_token_reserve
             reserve_out = first_token_reserve
+        else:
+            raise ValueError(f'Invalid input token "{token_in.identifier}"')
 
         swap_amount = self._zap_optimal_swap_amount(reserve_in,
                                                     amount_in,
@@ -178,11 +180,13 @@ class JexConstantProductDepositPool(JexConstantProductPool):
             second_token_amount = other_amount
             first_token_reserve += swap_amount
             second_token_reserve = second_token_reserve - other_amount - platform_fee
-        else:
+        elif token_in == self.second_token:
             first_token_amount = other_amount
             second_token_amount = amount_in - swap_amount
             second_token_reserve += swap_amount
             first_token_reserve = first_token_reserve - other_amount - platform_fee
+        else:
+            raise ValueError(f'Invalid input token "{token_in.identifier}"')
 
         exact_second_token_amount = first_token_amount * \
             second_token_reserve // first_token_reserve
