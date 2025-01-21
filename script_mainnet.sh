@@ -1,10 +1,14 @@
 #!/bin/sh
 
-if [ -d .venv ]
+VENV_DIR=.venv
+
+if [ -d ${VENV_DIR} ]
 then
-  . .venv/bin/activate
+  . ${VENV_DIR}/bin/activate
 else
     echo 'Python venv not found'
+    echo "Launch:"
+    echo "$0 --init"
     exit 1
 fi
 
@@ -27,6 +31,15 @@ if [ -z "${NB_WORKERS}" ]; then export NB_WORKERS=2; fi
 
 echo "Nb workers: $NB_WORKERS"
 
+do_init() {
+    if [ ! -d ${VENV_DIR} ]
+    then
+        python3.10 -m venv ${VENV_DIR}
+        . ${VENV_DIR}/bin/activate
+        pip install -r opendex_aggregator_api/requirements.txt
+    fi
+}
+
 do_kill() {
     ps aux | grep gunicorn | grep opendex-aggregator-api | awk '{print $2}' | xargs kill -9
 }
@@ -46,7 +59,10 @@ do_start() {
 
 if [ $# -eq 1 ]
 then
-    if [ $1 = "--start" ]
+    if [ $1 = "--init" ]
+    then
+        do_init
+    elif [ $1 = "--start" ]
     then
         do_start
     elif [ $1 = "--stop" ]
@@ -73,5 +89,5 @@ then
         exit 1
     fi
 else
-    echo "Usage: $0 {--start|--reload|--restart|--info|--status|--stop}"
+    echo "Usage: $0 {--init|--start|--reload|--restart|--info|--status|--stop}"
 fi

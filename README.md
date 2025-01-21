@@ -21,4 +21,16 @@ OpenDex aggregator API is compatible with:
 - OneDex
 - AshSwap
 - VestaDex
+- Hatom (money markets & liquid staking)
+- Xoxno (liquid staking)
 - Exrond
+
+##
+
+```
+# init env (1st time only)
+./script_mainnet.sh  --init
+
+# Start daemon
+NB_WORKERS=3  ./script_mainnet.sh  --start
+```
