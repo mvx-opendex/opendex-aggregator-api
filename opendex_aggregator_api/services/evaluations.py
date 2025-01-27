@@ -17,7 +17,7 @@ from opendex_aggregator_api.services.tokens import get_or_fetch_token
 from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_aggregator)
 
-FEE_MULTIPLIER = 0  # 5  # 0.005%
+FEE_MULTIPLIER = 50  # 0.05%
 MAX_FEE = 100_000
 
 
