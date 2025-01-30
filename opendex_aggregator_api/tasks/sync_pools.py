@@ -211,7 +211,7 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
             else:
                 logging.error(
                     f'Error calling "getXExchangePools" ({from_},{size}) from aggregator SC')
-                done = True
+                return None
 
             from_ += size
 
