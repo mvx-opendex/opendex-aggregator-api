@@ -385,6 +385,8 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                                               amount,
                                               pools_cache) for r in route_candidates]
 
+        evals = [e for e in evals if e is not None]
+
         evals = sorted(evals,
                        key=lambda x: x.net_amount_out,
                        reverse=True)
