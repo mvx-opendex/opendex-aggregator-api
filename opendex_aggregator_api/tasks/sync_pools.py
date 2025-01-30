@@ -56,7 +56,7 @@ from opendex_aggregator_api.services.parsers.opendex import parse_opendex_pool
 from opendex_aggregator_api.services.parsers.vestadex import \
     parse_vestadex_view_pools
 from opendex_aggregator_api.services.parsers.xexchange import \
-    parse_xexchange_pool_status
+    parse_xexchange_pool_status_option
 from opendex_aggregator_api.services.tokens import (JEX_IDENTIFIER,
                                                     USDC_IDENTIFIER,
                                                     WEGLD_IDENTIFIER,
@@ -193,14 +193,21 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
         size = 200
 
         while not done:
+            logging.info(f'Loading xExchange pools ({from_},{size})')
+
             res = await async_sc_query(http_client,
                                        sc_address_aggregator(),
                                        'getXExchangePools',
                                        [from_, size])
 
             if res is not None and len(res) > 0:
-                lp_statuses.extend([parse_xexchange_pool_status(r)
-                                    for r in res])
+                lp_statuses.extend([x for x in
+                                    [parse_xexchange_pool_status_option(r)
+                                     for r in res]
+                                    if x])
+
+                if len(res) < size:
+                    done = True
             else:
                 logging.error(
                     f'Error calling "getXExchangePools" ({from_},{size}) from aggregator SC')
