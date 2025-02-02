@@ -992,7 +992,7 @@ async def _sync_vestax_staking_pool() -> List[SwapPool]:
         pool = VestaxConstantPricePool(egld_price,
                                        token_in=token_in,
                                        token_out=token_out,
-                                       token_out_reserve=sys.maxsize)
+                                       token_out_reserve=99999*10**token_out.decimals)
 
         _all_rates.update(pool.exchange_rates(sc_address=sc_address))
 
@@ -1042,7 +1042,7 @@ async def _sync_hatom_staking_pool() -> List[SwapPool]:
         pool = HatomConstantPricePool(egld_price,
                                       token_in=token_in,
                                       token_out=token_out,
-                                      token_out_reserve=sys.maxsize)
+                                      token_out_reserve=99999*10**token_out.decimals)
 
         swap_pools.append(SwapPool(name=f'Hatom (stake)',
                                    sc_address=sc_address,
@@ -1351,7 +1351,7 @@ async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
         pool = XoxnoConstantPricePool(price=rate,
                                       token_in=token_in,
                                       token_out=token_out,
-                                      token_out_reserve=sys.maxsize)
+                                      token_out_reserve=99999*10**token_out.decimals)
 
         swap_pools.append(SwapPool(name=f'Xoxno (stake)',
                                    sc_address=sc_address,
