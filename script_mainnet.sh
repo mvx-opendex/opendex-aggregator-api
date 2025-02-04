@@ -2,16 +2,6 @@
 
 VENV_DIR=.venv
 
-if [ -d ${VENV_DIR} ]
-then
-  . ${VENV_DIR}/bin/activate
-else
-    echo 'Python venv not found'
-    echo "Launch:"
-    echo "$0 --init"
-    exit 1
-fi
-
 export GATEWAY_URL=http://jex-observer-squad:8079
 export PUBLIC_GATEWAY_URL=https://gateway.multiversx.com
 export REDIS_HOST=localhost
@@ -27,18 +17,33 @@ export SC_ADDRESS_VESTAX_STAKING=erd1qqqqqqqqqqqqqpgqawus4zu5w2frmhh9rscjqnu9x6m
 export SC_ADDRESS_XOXNO_LIQUID_STAKING=erd1qqqqqqqqqqqqqpgq6uzdzy54wnesfnlaycxwymrn9texlnmyah0ssrfvk6
 export SC_ADDRESSES_OPENDEX_DEPLOYERS=
 
+if [ $# -eq 1 ]
+then
+    if [ $1 = "--init" ]
+    then
+        if [ ! -d ${VENV_DIR} ]
+        then
+            python3.10 -m venv ${VENV_DIR}
+            . ${VENV_DIR}/bin/activate
+            pip install -r opendex_aggregator_api/requirements.txt
+        fi
+        exit 0
+    fi
+fi
+
+if [ -d ${VENV_DIR} ]
+then
+  . ${VENV_DIR}/bin/activate
+else
+    echo 'Python venv not found'
+    echo "Launch:"
+    echo "$0 --init"
+    exit 1
+fi
+
 if [ -z "${NB_WORKERS}" ]; then export NB_WORKERS=2; fi
 
 echo "Nb workers: $NB_WORKERS"
-
-do_init() {
-    if [ ! -d ${VENV_DIR} ]
-    then
-        python3.10 -m venv ${VENV_DIR}
-        . ${VENV_DIR}/bin/activate
-        pip install -r opendex_aggregator_api/requirements.txt
-    fi
-}
 
 do_kill() {
     ps aux | grep gunicorn | grep opendex-aggregator-api | awk '{print $2}' | xargs kill -9
@@ -59,10 +64,7 @@ do_start() {
 
 if [ $# -eq 1 ]
 then
-    if [ $1 = "--init" ]
-    then
-        do_init
-    elif [ $1 = "--start" ]
+    if [ $1 = "--start" ]
     then
         do_start
     elif [ $1 = "--stop" ]
