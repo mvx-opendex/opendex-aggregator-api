@@ -46,7 +46,10 @@ async def do_evaluate(token_in: str,
                                        max_hops)
 
     if len(routes) == 0:
-        return _adapt_eval_result(None, None)
+        return _adapt_eval_result(static_eval=None,
+                                  dyn_eval=None,
+                                  token_in=token_in_obj,
+                                  token_out=token_out_obj)
 
     routes = _cutoff_routes(routes)
 
