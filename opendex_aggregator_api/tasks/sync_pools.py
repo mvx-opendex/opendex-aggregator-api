@@ -1321,6 +1321,10 @@ async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
 
     sc_address = sc_address_xoxno_liquid_staking()
 
+    if sc_address == '':
+        logging.info('SC_ADDRESS_XOXNO_LIQUID_STAKING not set -> skip')
+        return []
+
     swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
