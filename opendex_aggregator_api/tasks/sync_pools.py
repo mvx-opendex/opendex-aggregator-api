@@ -1379,13 +1379,13 @@ def _is_pair_valid(tokens_reserves: List[Tuple[str, str]]) -> bool:
     is_valid = True
 
     for token_id, reserve in tokens_reserves:
-        if token_id == JEX_IDENTIFIER and int(reserve) < 5_000*10**18:
+        if token_id == JEX_IDENTIFIER and int(reserve) < 1_000*10**18:
             is_valid = False
             break
-        if token_id == WEGLD_IDENTIFIER and int(reserve) < 10**18:
+        if token_id == WEGLD_IDENTIFIER and int(reserve) < 0.5*10**18:
             is_valid = False
             break
-        if token_id == USDC_IDENTIFIER and int(reserve) < 100*10**6:
+        if token_id == USDC_IDENTIFIER and int(reserve) < 10*10**6:
             is_valid = False
             break
 
