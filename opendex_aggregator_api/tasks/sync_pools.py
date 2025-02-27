@@ -124,19 +124,19 @@ async def _sync_all_pools():
 
     functions = [
         _sync_onedex_pools,
-        _sync_xexchange_pools,
-        _sync_ashswap_stable_pools,
-        _sync_ashswap_v2_pools,
-        _sync_jex_cp_pools,
-        _sync_jex_stablepools,
-        # _sync_exrond_pools,
-        _sync_other_router_pools,
-        _sync_vestadex_pools,
-        _sync_vestax_staking_pool,
-        _sync_hatom_staking_pool,
-        _sync_hatom_money_markets,
-        # _sync_opendex_pools,
-        _sync_xoxno_liquid_staking,
+        # _sync_xexchange_pools,
+        # _sync_ashswap_stable_pools,
+        # _sync_ashswap_v2_pools,
+        # _sync_jex_cp_pools,
+        # _sync_jex_stablepools,
+        # # _sync_exrond_pools,
+        # _sync_other_router_pools,
+        # _sync_vestadex_pools,
+        # _sync_vestax_staking_pool,
+        # _sync_hatom_staking_pool,
+        # _sync_hatom_money_markets,
+        # # _sync_opendex_pools,
+        # _sync_xoxno_liquid_staking,
     ]
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
@@ -294,6 +294,18 @@ async def _sync_onedex_pools() -> List[SwapPool]:
             logging.error('Error calling "getMainPairTokens" from OneDex SC')
             return []
 
+        res = await async_sc_query(http_client,
+                                   sc_address,
+                                   function='getLastPairId',
+                                   args=[])
+        if res is not None and len(res) > 0:
+            last_pair_id = hex2dec(res[0])
+        else:
+            logging.error('Error calling "getLastPairId" from OneDex SC')
+            return []
+
+        logging.info(f'OneDex: pairs to load {last_pair_id}')
+
         all_pairs: List[OneDexPair] = []
         done = False
         from_ = 0
@@ -311,9 +323,12 @@ async def _sync_onedex_pools() -> List[SwapPool]:
             else:
                 logging.error(
                     f'Error calling "viewPairsPaginated" ({from_}, {size}) from OneDex SC')
-                done = True
+                return []
 
             from_ += size
+
+            if from_ > last_pair_id:
+                done = True
 
         logging.info(f'OneDex: pairs before {len(all_pairs)}')
 
