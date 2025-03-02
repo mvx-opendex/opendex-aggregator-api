@@ -217,30 +217,28 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
 
     logging.info(f'xExchange: pairs before filter {len(lp_statuses)}')
 
+    lp_statuses = [s for s in lp_statuses
+                   if s.state == 1
+                   and _is_pair_valid([(s.first_token_id, str(s.first_token_reserve)),
+                                      (s.second_token_id, str(s.second_token_reserve))])]
+
+    logging.info(f'xExchange: pairs after filter {len(lp_statuses)}')
+
     swap_pools = []
 
     for lp_status in lp_statuses:
         first_token = _get_or_fetch_token(lp_status.first_token_id)
         second_token = _get_or_fetch_token(lp_status.second_token_id)
+        lp_token = _get_or_fetch_token(lp_status.lp_token_id,
+                                       is_lp_token=True,
+                                       exchange='xexchange',
+                                       custom_name=f'LP {first_token.ticker}/{second_token.ticker} (xExchange)')
 
         _all_tokens[first_token.identifier] = first_token
         _all_tokens[second_token.identifier] = second_token
-
-        if lp_status.lp_token_id:
-            lp_token = _get_or_fetch_token(lp_status.lp_token_id,
-                                           is_lp_token=True,
-                                           exchange='xexchange',
-                                           custom_name=f'LP {first_token.ticker}/{second_token.ticker} (xExchange)')
-            _all_tokens[lp_token.identifier] = lp_token
+        _all_tokens[lp_token.identifier] = lp_token
 
         if first_token is None or second_token is None:
-            continue
-
-        if lp_status.state != 1:
-            continue
-
-        if not _is_pair_valid([(lp_status.first_token_id, str(lp_status.first_token_reserve)),
-                               (lp_status.second_token_id, str(lp_status.second_token_reserve))]):
             continue
 
         pool = XExchangeConstantProductPool(first_token=first_token,
