@@ -124,14 +124,17 @@ class AshSwapPoolV2(ConstantProductPool):
             (xp[1] * price_scale) // self.PRECISION,
         ]
 
-        y = newton_y(
-            self.amp,
-            self.gamma,
-            xp,
-            d,
-            i_token_out,
-            self.reserves
-        )
+        try:
+            y = newton_y(
+                self.amp,
+                self.gamma,
+                xp,
+                d,
+                i_token_out,
+                self.reserves
+            )
+        except AssertionError as e:
+            raise ValueError('Error during newton_y', e)
 
         dy = xp[i_token_out] - y - 1
         xp[i_token_out] = y

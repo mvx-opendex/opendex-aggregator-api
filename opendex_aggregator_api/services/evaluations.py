@@ -392,7 +392,8 @@ async def find_best_dynamic_routing_algo3(routes: List[SwapRoute],
                        reverse=True)
 
         best_eval = next((e for e in evals
-                          if  # first eval
+                          if e
+                          and  # first eval
                           len(amount_per_route) == 0
                           or  # known route
                           e.route in amount_per_route
