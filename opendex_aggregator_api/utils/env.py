@@ -22,8 +22,12 @@ def sc_address_jex_lp_deployer():
     return os.environ.get('SC_ADDRESS_JEX_LP_DEPLOYER', '')
 
 
-def sc_address_hatom_staking():
-    return os.environ.get('SC_ADDRESS_HATOM_STAKING', '')
+def sc_address_hatom_staking_segld():
+    return os.environ.get('SC_ADDRESS_HATOM_STAKING_SEGLD', '')
+
+
+def sc_address_hatom_staking_tao():
+    return os.environ.get('SC_ADDRESS_HATOM_STAKING_TAO', '')
 
 
 def sc_address_onedex_swap():

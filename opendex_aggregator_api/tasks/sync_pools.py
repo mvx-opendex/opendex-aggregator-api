@@ -65,7 +65,8 @@ from opendex_aggregator_api.utils.convert import hex2dec, hex2str
 from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               router_pools_dir,
                                               sc_address_aggregator,
-                                              sc_address_hatom_staking,
+                                              sc_address_hatom_staking_segld,
+                                              sc_address_hatom_staking_tao,
                                               sc_address_jex_lp_deployer,
                                               sc_address_onedex_swap,
                                               sc_address_vestadex_router,
@@ -133,7 +134,7 @@ async def _sync_all_pools():
         _sync_other_router_pools,
         _sync_vestadex_pools,
         _sync_vestax_staking_pool,
-        _sync_hatom_staking_pool,
+        _sync_hatom_staking_pools,
         _sync_hatom_money_markets,
         # _sync_opendex_pools,
         _sync_xoxno_liquid_staking,
@@ -1027,14 +1028,24 @@ async def _sync_vestax_staking_pool() -> List[SwapPool]:
     return swap_pools
 
 
-async def _sync_hatom_staking_pool() -> List[SwapPool]:
-    logging.info('Loading Hatom staking pool')
+async def _sync_hatom_staking_pools() -> List[SwapPool]:
+    logging.info('Loading Hatom staking pools')
 
-    sc_address = sc_address_hatom_staking()
-    if not sc_address:
-        logging.info('Hatom staking SC address not set -> skip')
-        return []
+    swap_pools = (await _sync_hatom_staking_pool(sc_address_hatom_staking_segld(),
+                                                 WEGLD_IDENTIFIER,
+                                                 'SEGLD-3ad2d0')) + \
+        await (_sync_hatom_staking_pool(sc_address_hatom_staking_tao(),
+                                        'WTAO-4f5363',
+                                        'SWTAO-356a25'))
 
+    logging.info('Loading Hatom staking pools - done')
+
+    return swap_pools
+
+
+async def _sync_hatom_staking_pool(sc_address: str,
+                                   token_id_in: str,
+                                   token_id_out: str) -> List[SwapPool]:
     swap_pools = []
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
@@ -1048,8 +1059,8 @@ async def _sync_hatom_staking_pool() -> List[SwapPool]:
 
         egld_price = hex2dec(res[0])
 
-        token_in = _get_or_fetch_token(WEGLD_IDENTIFIER)
-        token_out = _get_or_fetch_token('SEGLD-3ad2d0')
+        token_in = _get_or_fetch_token(token_id_in)
+        token_out = _get_or_fetch_token(token_id_out)
 
         _all_tokens[token_in.identifier] = token_in
         _all_tokens[token_out.identifier] = token_out
@@ -1061,8 +1072,8 @@ async def _sync_hatom_staking_pool() -> List[SwapPool]:
 
         swap_pools.append(SwapPool(name=f'Hatom (stake)',
                                    sc_address=sc_address,
-                                   tokens_in=[WEGLD_IDENTIFIER],
-                                   tokens_out=['SEGLD-3ad2d0'],
+                                   tokens_in=[token_id_in],
+                                   tokens_out=[token_id_out],
                                    type=SC_TYPE_HATOM_STAKE))
 
         _all_rates.update(pool.exchange_rates(sc_address=sc_address))
