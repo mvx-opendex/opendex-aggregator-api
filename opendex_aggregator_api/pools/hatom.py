@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from typing_extensions import override
 
+from opendex_aggregator_api.services.tokens import WEGLD_IDENTIFIER
+
 from .pools import ConstantPricePool
 
 
@@ -19,7 +21,14 @@ class HatomConstantPricePool(ConstantPricePool):
 
     @override
     def estimated_gas(self) -> int:
-        return 20_000_000
+        gas = 20_000_000
+
+        if self.token_in.identifier == WEGLD_IDENTIFIER:
+            gas += 5_000_000
+        elif self.token_out.identifier == WEGLD_IDENTIFIER:
+            gas += 5_000_000
+
+        return gas
 
     @override
     def _source(self):

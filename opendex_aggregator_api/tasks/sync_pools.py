@@ -1112,7 +1112,9 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
             _addr('erd1qqqqqqqqqqqqqpgq8h8upp38fe9p4ny9ecvsett0usu2ep7978ssypgmrs'),
             10**18,  # WETH
             _addr('erd1qqqqqqqqqqqqqpgq2rnjnp543m5d8fac8v2ltkr5w2quh0v978ssswj939'),
-            10**18  # MEX
+            10**18,  # MEX
+            _addr('erd1qqqqqqqqqqqqqpgq35qkf34a8svu4r2zmfzuztmeltqclapv78ss5jleq3'),
+            10**18  # EGLD
         ]
 
         res = await async_sc_query(http_client,
@@ -1131,9 +1133,12 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
         for mm in money_markets:
             h_token = _get_or_fetch_token(mm.hatom_token_id)
 
-            underlying_token = _get_or_fetch_token(WEGLD_IDENTIFIER) \
-                if mm.underlying_id == 'EGLD' \
-                else _get_or_fetch_token(mm.underlying_id)
+            if mm.underlying_id == 'EGLD':
+                underlying_token = _get_or_fetch_token(WEGLD_IDENTIFIER)
+                underlying_token_name = 'EGLD'
+            else:
+                underlying_token = _get_or_fetch_token(mm.underlying_id)
+                underlying_token_name = underlying_token.name
 
             _all_tokens[h_token.identifier] = h_token
             _all_tokens[underlying_token.identifier] = underlying_token
@@ -1150,7 +1155,7 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
                                                   h_token,
                                                   sys.maxsize)
 
-            swap_pools.append(SwapPool(name=f'Hatom: {underlying_token.name} market',
+            swap_pools.append(SwapPool(name=f'Hatom: {underlying_token_name} market',
                                        sc_address=mm.sc_address,
                                        tokens_in=[underlying_token.identifier],
                                        tokens_out=[h_token.identifier],
@@ -1165,7 +1170,7 @@ async def _sync_hatom_money_markets() -> List[SwapPool]:
                                                  underlying_token,
                                                  mm.cash)
 
-            swap_pools.append(SwapPool(name=f'Hatom: {underlying_token.name} market',
+            swap_pools.append(SwapPool(name=f'Hatom: {underlying_token_name} market',
                                        sc_address=mm.sc_address,
                                        tokens_in=[h_token.identifier],
                                        tokens_out=[
