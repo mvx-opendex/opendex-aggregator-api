@@ -1047,8 +1047,8 @@ async def _sync_hatom_staking_pools() -> List[SwapPool]:
 
 
 async def _sync_hatom_staking_pool(sc_address: str,
-                                   token_id_in: str,
-                                   token_id_out: str,
+                                   token_id: str,
+                                   ls_token_id: str,
                                    allow_unstake=False,
                                    exchange_rate_view='getExchangeRate') -> List[SwapPool]:
     swap_pools = []
@@ -1064,28 +1064,28 @@ async def _sync_hatom_staking_pool(sc_address: str,
 
         exchange_rate = hex2dec(res[0])
 
-        token_in = _get_or_fetch_token(token_id_in)
-        token_out = _get_or_fetch_token(token_id_out)
+        token = _get_or_fetch_token(token_id)
+        ls_token = _get_or_fetch_token(ls_token_id)
 
-        _all_tokens[token_in.identifier] = token_in
-        _all_tokens[token_out.identifier] = token_out
+        _all_tokens[token.identifier] = token
+        _all_tokens[ls_token.identifier] = ls_token
 
         stake_pool = HatomConstantPricePool(exchange_rate,
-                                            token_in=token_in,
-                                            token_out=token_out,
-                                            token_out_reserve=99999*10**token_out.decimals)
+                                            token_in=token,
+                                            token_out=ls_token,
+                                            token_out_reserve=99999*10**ls_token.decimals)
 
         swap_pools.append(SwapPool(name=f'Hatom (stake)',
                                    sc_address=sc_address,
-                                   tokens_in=[token_id_in],
-                                   tokens_out=[token_id_out],
+                                   tokens_in=[token.identifier],
+                                   tokens_out=[ls_token.identifier],
                                    type=SC_TYPE_HATOM_STAKE))
 
         _all_rates.update(stake_pool.exchange_rates(sc_address=sc_address))
 
         set_dex_aggregator_pool(sc_address,
-                                token_in.identifier,
-                                token_out.identifier,
+                                token.identifier,
+                                ls_token.identifier,
                                 stake_pool)
 
         if allow_unstake:
@@ -1100,19 +1100,19 @@ async def _sync_hatom_staking_pool(sc_address: str,
                 unstake_rate = 10**18 * 10**18 // exchange_rate
 
                 unstake_pool = HatomConstantPricePool(unstake_rate,
-                                                      token_in=token_out,
-                                                      token_out=token_in,
+                                                      token_in=ls_token,
+                                                      token_out=token,
                                                       token_out_reserve=cash_reserve)
 
                 swap_pools.append(SwapPool(name=f'Hatom (unstake)',
                                            sc_address=sc_address,
-                                           tokens_in=[token_id_out],
-                                           tokens_out=[token_id_in],
+                                           tokens_in=[ls_token.identifier],
+                                           tokens_out=[token.identifier],
                                            type=SC_TYPE_HATOM_UNSTAKE))
 
                 set_dex_aggregator_pool(sc_address,
-                                        token_out.identifier,
-                                        token_in.identifier,
+                                        ls_token.identifier,
+                                        token.identifier,
                                         unstake_pool)
 
     logging.info('Loading Hatom staking pool - done')
