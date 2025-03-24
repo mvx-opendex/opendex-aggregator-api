@@ -61,6 +61,8 @@ do_start() {
         --daemon --pid pid
 }
 
+cp opendex_aggregator_api/ignored_tokens.devnet.py opendex_aggregator_api/ignored_tokens.py
+
 if [ $# -eq 1 ]
 then
     if [ $1 = "--start" ]

@@ -29,6 +29,7 @@ from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
                                                LpTokenComposition, OneDexPair,
                                                OpendexPair, VestaDexPool,
                                                XExchangePoolStatus)
+from opendex_aggregator_api.ignored_tokens import IGNORED_TOKENS
 from opendex_aggregator_api.pools.ashswap import (AshSwapPoolV2,
                                                   AshSwapStableSwapPool)
 from opendex_aggregator_api.pools.hatom import HatomConstantPricePool
@@ -1443,16 +1444,20 @@ async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
 def _is_pair_valid(tokens_reserves: List[Tuple[str, str]]) -> bool:
     is_valid = True
 
-    for token_id, reserve in tokens_reserves:
-        if token_id == JEX_IDENTIFIER and int(reserve) < 1_000*10**18:
-            is_valid = False
-            break
-        if token_id == WEGLD_IDENTIFIER and int(reserve) < 0.5*10**18:
-            is_valid = False
-            break
-        if token_id == USDC_IDENTIFIER and int(reserve) < 10*10**6:
-            is_valid = False
-            break
+    if any((t in IGNORED_TOKENS
+            for t, _ in tokens_reserves)):
+        is_valid = False
+    else:
+        for token_id, reserve in tokens_reserves:
+            if token_id == JEX_IDENTIFIER and int(reserve) < 1_000*10**18:
+                is_valid = False
+                break
+            if token_id == WEGLD_IDENTIFIER and int(reserve) < 0.5*10**18:
+                is_valid = False
+                break
+            if token_id == USDC_IDENTIFIER and int(reserve) < 10*10**6:
+                is_valid = False
+                break
 
     return is_valid
 

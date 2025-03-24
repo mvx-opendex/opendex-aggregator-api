@@ -1,2 +1,4 @@
 **/*.pyc
 \.*
+
+opendex_aggregator_api/ignored_tokens.py
