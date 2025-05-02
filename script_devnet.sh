@@ -58,6 +58,11 @@ do_start() {
         --log-file log_devnet \
         --access-logfile log_devnet \
         --capture-output \
+        --timeout 60 \
+        --graceful-timeout 30 \
+        --keep-alive 5 \
+        --max-requests 1000 \
+        --max-requests-jitter 100 \
         --daemon --pid pid
 }
 
