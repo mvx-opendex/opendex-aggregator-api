@@ -203,18 +203,18 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
                                        'getXExchangePools',
                                        [from_, size])
 
-            if res is not None and len(res) > 0:
-                lp_statuses.extend([x for x in
-                                    [parse_xexchange_pool_status_option(r)
-                                     for r in res]
-                                    if x])
-
-                if len(res) < size:
-                    done = True
-            else:
+            if res is None:
                 logging.error(
                     f'Error calling "getXExchangePools" ({from_},{size}) from aggregator SC')
                 return None
+
+            lp_statuses.extend([x for x in
+                                [parse_xexchange_pool_status_option(r)
+                                    for r in res]
+                                if x])
+
+            if len(res) < size:
+                done = True
 
             from_ += size
 
