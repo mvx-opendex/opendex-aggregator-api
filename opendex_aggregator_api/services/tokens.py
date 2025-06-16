@@ -2,7 +2,7 @@ import logging
 import random
 from datetime import timedelta
 from time import sleep
-from typing import List, Optional
+from typing import Optional
 
 from opendex_aggregator_api.data.model import Esdt
 from opendex_aggregator_api.services.externals import sync_sc_query
