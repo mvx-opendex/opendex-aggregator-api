@@ -3,7 +3,7 @@ cachetools==5.5.0
 fastapi==0.115.12
 gunicorn==23.0.0
 multiversx-sdk-core==0.8.1
-pydantic==2.7.1
+pydantic==2.11.7
 pytest==8.2.0
 redis==5.0.4
 requests==2.32.3
