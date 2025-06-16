@@ -24,7 +24,7 @@ then
     then
         if [ ! -d ${VENV_DIR} ]
         then
-            python3.10 -m venv ${VENV_DIR}
+            python3.12 -m venv ${VENV_DIR}
             . ${VENV_DIR}/bin/activate
             pip install -r opendex_aggregator_api/requirements.txt
         fi
