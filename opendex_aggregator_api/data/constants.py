@@ -4,8 +4,6 @@ SC_TYPE_EXROND = 'exrond'
 SC_TYPE_ONEDEX = 'onedex'
 SC_TYPE_XEXCHANGE = 'xexchange'
 SC_TYPE_JEXCHANGE_LP = 'jexchange_lp'
-SC_TYPE_VESTADEX = 'vestadex'
-SC_TYPE_VESTAX_STAKE = 'vestax_stake'
 SC_TYPE_HATOM_STAKE = 'hatom_stake'
 SC_TYPE_HATOM_MONEY_MARKET_MINT = 'hatom_money_market_mint'
 SC_TYPE_HATOM_MONEY_MARKET_REDEEM = 'hatom_money_market_redeem'
@@ -25,8 +23,8 @@ SC_TYPES_AND_GAS = [
     (SC_TYPE_ONEDEX, 20_000_000),
     (SC_TYPE_XEXCHANGE, 25_000_000),
     (SC_TYPE_JEXCHANGE_LP, 20_000_000),
-    (SC_TYPE_VESTADEX, 80_000_000),
-    (SC_TYPE_VESTAX_STAKE, 20_000_000),
+    ('', 0),  # 'vestadex' deprecated
+    ('', 0),  # 'vestax_stake' deprecated
     (SC_TYPE_HATOM_STAKE, 20_000_000),
     (SC_TYPE_HATOM_MONEY_MARKET_MINT, 20_000_000),
     (SC_TYPE_HATOM_MONEY_MARKET_REDEEM, 20_000_000),

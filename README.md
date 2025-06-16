@@ -20,7 +20,7 @@ OpenDex aggregator API is compatible with:
 - xExchange
 - OneDex
 - AshSwap
-- VestaDex
+- VestaDex (removed in June 2025)
 - Hatom (money markets & liquid staking)
 - Xoxno (liquid staking)
 - Exrond

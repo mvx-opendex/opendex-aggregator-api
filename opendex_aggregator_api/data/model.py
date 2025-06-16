@@ -117,20 +117,6 @@ class OpendexPair(BaseModel):
     fee_token_id: Optional[str]
 
 
-class VestaDexPool(BaseModel):
-    first_token_id: str
-    first_token_reserve: str
-    pool_address: str
-    pool_state: int
-    second_token_id: str
-    second_token_reserve: str
-    lp_token_id: str
-    lp_token_supply: str
-    fee_token_id: str
-    total_fee_percentage: int
-    special_fee_percentage: int
-
-
 class JexDeployedPoolContract(BaseModel):
     sc_type: int
     sc_address: str
