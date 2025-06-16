@@ -49,14 +49,6 @@ def sc_address_system_tokens():
     return os.environ.get('SC_ADDRESS_SYSTEM_TOKENS', '')
 
 
-def sc_address_vestadex_router():
-    return os.environ.get('SC_ADDRESS_VESTADEX_ROUTER', '')
-
-
-def sc_address_vestax_staking():
-    return os.environ.get('SC_ADDRESS_VESTAX_STAKING', '')
-
-
 def sc_address_hatom_price_feed():
     return os.environ.get('SC_ADDRESS_HATOM_PRICE_FEED', '')
 

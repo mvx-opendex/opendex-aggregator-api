@@ -20,14 +20,13 @@ from opendex_aggregator_api.data.constants import (
     SC_TYPE_HATOM_STAKE, SC_TYPE_HATOM_UNSTAKE, SC_TYPE_JEXCHANGE_LP,
     SC_TYPE_JEXCHANGE_LP_DEPOSIT, SC_TYPE_JEXCHANGE_STABLEPOOL,
     SC_TYPE_JEXCHANGE_STABLEPOOL_DEPOSIT, SC_TYPE_ONEDEX, SC_TYPE_OPENDEX_LP,
-    SC_TYPE_VESTADEX, SC_TYPE_VESTAX_STAKE, SC_TYPE_XEXCHANGE,
-    SC_TYPE_XOXNO_STAKE)
+    SC_TYPE_XEXCHANGE, SC_TYPE_XOXNO_STAKE)
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_exchange_rates,
                                                    set_swap_pools, set_tokens)
 from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
                                                LpTokenComposition, OneDexPair,
-                                               OpendexPair, VestaDexPool,
+                                               OpendexPair,
                                                XExchangePoolStatus)
 from opendex_aggregator_api.ignored_tokens import IGNORED_TOKENS
 from opendex_aggregator_api.pools.ashswap import (AshSwapPoolV2,
@@ -39,10 +38,7 @@ from opendex_aggregator_api.pools.jexchange import (
 from opendex_aggregator_api.pools.model import SwapPool
 from opendex_aggregator_api.pools.onedex import OneDexConstantProductPool
 from opendex_aggregator_api.pools.opendex import OpendexConstantProductPool
-from opendex_aggregator_api.pools.pools import (ConstantPricePool,
-                                                ConstantProductPool)
-from opendex_aggregator_api.pools.vestadex import (VestaDexConstantProductPool,
-                                                   VestaxConstantPricePool)
+from opendex_aggregator_api.pools.pools import ConstantProductPool
 from opendex_aggregator_api.pools.xexchange import XExchangeConstantProductPool
 from opendex_aggregator_api.pools.xoxno import XoxnoConstantPricePool
 from opendex_aggregator_api.services.externals import async_sc_query
@@ -55,8 +51,6 @@ from opendex_aggregator_api.services.parsers.jexchange import (
     parse_jex_stablepool_status)
 from opendex_aggregator_api.services.parsers.onedex import parse_onedex_pair
 from opendex_aggregator_api.services.parsers.opendex import parse_opendex_pool
-from opendex_aggregator_api.services.parsers.vestadex import \
-    parse_vestadex_view_pools
 from opendex_aggregator_api.services.parsers.xexchange import \
     parse_xexchange_pool_status_option
 from opendex_aggregator_api.services.tokens import (JEX_IDENTIFIER,
@@ -71,8 +65,6 @@ from opendex_aggregator_api.utils.env import (mvx_gateway_url,
                                               sc_address_hatom_staking_tao,
                                               sc_address_jex_lp_deployer,
                                               sc_address_onedex_swap,
-                                              sc_address_vestadex_router,
-                                              sc_address_vestax_staking,
                                               sc_address_xoxno_liquid_staking,
                                               sc_addresses_opendex_deployers)
 from opendex_aggregator_api.utils.redis_utils import redis_lock_and_do
@@ -134,8 +126,6 @@ async def _sync_all_pools():
         _sync_jex_stablepools,
         # _sync_exrond_pools,
         _sync_other_router_pools,
-        _sync_vestadex_pools,
-        _sync_vestax_staking_pool,
         _sync_hatom_staking_pools,
         _sync_hatom_money_markets,
         # _sync_opendex_pools,
@@ -874,158 +864,6 @@ async def _sync_exrond_pools() -> List[SwapPool]:
     logging.info(f'Exrond pools: {len(pairs)}')
 
     logging.info('Loading Exrond pools - done')
-
-    return swap_pools
-
-
-async def _sync_vestadex_pools() -> List[SwapPool]:
-    logging.info('Loading VestaDex pools')
-
-    sc_address = sc_address_vestadex_router()
-    if not sc_address:
-        logging.info('VestaDex router SC address not set -> skip')
-        return []
-
-    pairs: List[VestaDexPool] = []
-    swap_pools = []
-
-    done = False
-    from_ = 1
-    size = 20
-
-    async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
-
-        while not done:
-
-            res = await async_sc_query(http_client,
-                                       sc_address,
-                                       'viewPaginationPools',
-                                       [from_, from_ + size])
-
-            if res is not None:
-                new_pairs = parse_vestadex_view_pools(res[0])
-
-                done = len(new_pairs) < size
-
-                pairs.extend(new_pairs)
-
-            else:
-                logging.error('Error calling "viewPools" from VestaDex SC')
-
-                done = True
-
-            from_ += size
-
-    logging.info(f'VestaDex: pairs before filter {len(pairs)}')
-
-    pairs = [p for p in pairs
-             if p.pool_state == 1
-             and _is_pair_valid([(p.first_token_id, p.first_token_reserve),
-                                (p.second_token_id, p.second_token_reserve)])
-             # frozen pool
-             and p.pool_address != 'erd1qqqqqqqqqqqqqpgq8fsfc5jesw83ug9x09rx4wzg7rxxcnyl0a0stftt9c']
-
-    logging.info(f'VestaDex: pairs after filter {len(pairs)}')
-
-    for pair in pairs:
-
-        first_token = _get_or_fetch_token(pair.first_token_id)
-        second_token = _get_or_fetch_token(pair.second_token_id)
-        fee_token = _get_or_fetch_token(pair.fee_token_id)
-        lp_token = _get_or_fetch_token(pair.lp_token_id,
-                                       is_lp_token=True,
-                                       exchange='vestadex',
-                                       custom_name=f'LP {first_token.ticker}/{second_token.ticker} (VestaDex)')
-
-        _all_tokens[first_token.identifier] = first_token
-        _all_tokens[second_token.identifier] = second_token
-        _all_tokens[lp_token.identifier] = lp_token
-
-        if first_token is None or second_token is None:
-            continue
-
-        pool = VestaDexConstantProductPool(first_token=first_token,
-                                           first_token_reserves=int(
-                                               pair.first_token_reserve),
-                                           lp_token=lp_token,
-                                           lp_token_supply=int(
-                                               pair.lp_token_supply),
-                                           second_token=second_token,
-                                           second_token_reserves=int(
-                                               pair.second_token_reserve),
-                                           special_fee=pair.special_fee_percentage,
-                                           total_fee=pair.total_fee_percentage,
-                                           fee_token=fee_token)
-
-        _all_rates.update(pool.exchange_rates(sc_address=pair.pool_address))
-
-        _all_lp_tokens_compositions.append(pool.lp_token_composition())
-
-        swap_pools.append(SwapPool(name=f'VestaDex: {first_token.name}/{second_token.name}',
-                                   sc_address=pair.pool_address,
-                                   tokens_in=[first_token.identifier,
-                                              second_token.identifier],
-                                   tokens_out=[first_token.identifier,
-                                               second_token.identifier],
-                                   type=SC_TYPE_VESTADEX))
-
-        set_dex_aggregator_pool(
-            pair.pool_address, first_token.identifier, second_token.identifier, pool)
-        set_dex_aggregator_pool(
-            pair.pool_address, second_token.identifier, first_token.identifier, pool)
-
-    logging.info(f'VestaDex pools: {len(pairs)}')
-
-    logging.info('Loading VestaDex pools - done')
-
-    return swap_pools
-
-
-async def _sync_vestax_staking_pool() -> List[SwapPool]:
-    logging.info('Loading VestaX staking pool')
-
-    sc_address = sc_address_vestax_staking()
-    if not sc_address:
-        logging.info('VestaX staking SC address not set -> skip')
-        return []
-
-    swap_pools = []
-
-    async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
-
-        res = await async_sc_query(http_client,
-                                   sc_address,
-                                   function='getVegldPrice')
-        if res is None:
-            return []
-
-        egld_price = hex2dec(res[0])
-
-        token_in = _get_or_fetch_token(WEGLD_IDENTIFIER)
-        token_out = _get_or_fetch_token('VEGLD-2b9319')
-
-        _all_tokens[token_in.identifier] = token_in
-        _all_tokens[token_out.identifier] = token_out
-
-        pool = VestaxConstantPricePool(egld_price,
-                                       token_in=token_in,
-                                       token_out=token_out,
-                                       token_out_reserve=99999*10**token_out.decimals)
-
-        _all_rates.update(pool.exchange_rates(sc_address=sc_address))
-
-        swap_pools.append(SwapPool(name=f'VestaX (stake)',
-                                   sc_address=sc_address,
-                                   tokens_in=[WEGLD_IDENTIFIER],
-                                   tokens_out=['VEGLD-2b9319'],
-                                   type=SC_TYPE_VESTAX_STAKE))
-
-        set_dex_aggregator_pool(sc_address,
-                                token_in.identifier,
-                                token_out.identifier,
-                                pool)
-
-    logging.info('Loading VestaX staking pool - done')
 
     return swap_pools
 
