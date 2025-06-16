@@ -1,6 +1,5 @@
 
 import base64
-import logging
 import pickle
 from datetime import timedelta
 from typing import List, Optional
