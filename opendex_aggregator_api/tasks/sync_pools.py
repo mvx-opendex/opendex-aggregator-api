@@ -91,7 +91,7 @@ def loop():
 
     global _ready
 
-    delta = timedelta(seconds=60)
+    delta = timedelta(seconds=30)
     start = datetime.min
     while not _must_stop:
         now = datetime.now()
@@ -101,7 +101,7 @@ def loop():
                               lambda: asyncio.run(
                                   _sync_all_pools(), debug=False),
                               task_ttl=timedelta(seconds=10),
-                              lock_ttl=timedelta(seconds=30))
+                              lock_ttl=timedelta(seconds=60))
 
             logging.info(f'All pools synced @ {datetime.utcnow().isoformat()}')
             start = now
