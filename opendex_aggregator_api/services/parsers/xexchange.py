@@ -39,7 +39,7 @@ def parse_xexchange_pool_status(hex_: str) -> XExchangePoolStatus:
     lp_token_supply, read = parse_amount(hex_[offset:])
     offset += read
 
-    total_fee_percent, read = parse_uint32(hex_[offset:])
+    total_fee_percent, read = parse_uint64(hex_[offset:])
     offset += read
 
     special_fee_percent, read = parse_uint64(hex_[offset:])
