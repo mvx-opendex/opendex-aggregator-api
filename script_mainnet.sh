@@ -3,6 +3,7 @@
 VENV_DIR=.venv
 
 export GATEWAY_URL=http://jex-observer-squad:8079
+export MVX_INDEX_URL=https://index.multiversx.com
 export PUBLIC_GATEWAY_URL=https://gateway.multiversx.com
 export REDIS_HOST=localhost
 export ROUTER_POOLS_DIR=${HOME}/jex-router-pools/pools
