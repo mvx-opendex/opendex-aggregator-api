@@ -1,5 +1,6 @@
 aiohttp==3.12.14
 cachetools==6.0.0
+elasticsearch==8.19.1
 fastapi==0.115.12
 gunicorn==23.0.0
 multiversx-sdk-core==0.8.1

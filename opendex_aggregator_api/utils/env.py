@@ -6,6 +6,10 @@ def mvx_gateway_url():
     return os.environ['GATEWAY_URL']
 
 
+def mvx_index_url():
+    return os.environ.get('MVX_INDEX_URL', '')
+
+
 def mvx_public_gateway_url():
     return os.environ['PUBLIC_GATEWAY_URL']
 

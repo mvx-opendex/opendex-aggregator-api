@@ -7,12 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from opendex_aggregator_api.routers import (evaluations, multi_eval, routes,
                                             tokens)
-from opendex_aggregator_api.tasks import sync_pools
+from opendex_aggregator_api.tasks import sync_ignored_tokens, sync_pools
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s [%(process)d] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 THREAD_SYNC_DEX_AGGREGATOR = threading.Thread(target=sync_pools.loop)
+THREAD_SYNC_IGNORED_TOKENS = threading.Thread(target=sync_ignored_tokens.loop)
 
 
 async def lifespan(app: FastAPI):
@@ -20,7 +21,7 @@ async def lifespan(app: FastAPI):
     if not no_task:
 
         THREAD_SYNC_DEX_AGGREGATOR.start()
-
+        THREAD_SYNC_IGNORED_TOKENS.start()
     try:
         yield
     except:
@@ -28,7 +29,7 @@ async def lifespan(app: FastAPI):
 
     if not no_task:
         sync_pools.stop()
-
+        sync_ignored_tokens.stop()
 
 app = FastAPI(lifespan=lifespan)
 

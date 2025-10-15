@@ -3,6 +3,7 @@
 VENV_DIR=.venv
 
 export GATEWAY_URL=https://devnet-gateway.multiversx.com
+export MVX_INDEX_URL=https://devnet-index.multiversx.com
 export PUBLIC_GATEWAY_URL=https://devnet-gateway.multiversx.com
 export REDIS_HOST=localhost
 export ROUTER_POOLS_DIR=

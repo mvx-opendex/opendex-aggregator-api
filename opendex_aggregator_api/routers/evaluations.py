@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from opendex_aggregator_api.data.datastore import get_tokens
 from opendex_aggregator_api.data.model import Esdt
+from opendex_aggregator_api.ignored_tokens import IGNORED_TOKENS
 from opendex_aggregator_api.pools.model import (DynamicRoutingSwapEvaluation,
                                                 SwapEvaluation, SwapRoute)
 from opendex_aggregator_api.routers.adapters import (adap_dyn_eval,
@@ -20,14 +21,17 @@ from opendex_aggregator_api.utils.env import mvx_gateway_url
 router = APIRouter()
 
 
-@router.get("/evaluate")
-@router.post("/evaluate")
+@router.get('/evaluate')
+@router.post('/evaluate')
 async def do_evaluate(token_in: str,
                       token_out: str,
                       amount_in: Optional[int] = None,
                       net_amount_out: Optional[int] = None,
                       max_hops: int = Query(default=3, ge=1, le=4),
                       with_dyn_routing: Optional[bool] = False) -> SwapEvaluationOut:
+    if token_in in IGNORED_TOKENS or token_out in IGNORED_TOKENS:
+        raise HTTPException(status_code=400,
+                            detail='Invalid input or output token')
 
     if amount_in is None:
         if net_amount_out is None:
