@@ -1,4 +1,4 @@
-aiohttp==3.12.13
+aiohttp==3.12.14
 cachetools==6.0.0
 fastapi==0.115.12
 gunicorn==23.0.0
