@@ -300,11 +300,11 @@ async def _sync_onedex_pools() -> List[SwapPool]:
         logging.info(f'OneDex: pairs to load {last_pair_id}')
 
         all_pairs: List[OneDexPair] = []
-        done = False
         from_ = 0
-        size = 500
+        size = 250
 
-        while not done:
+        while from_ < last_pair_id:
+
             res = await async_sc_query(http_client,
                                        sc_address,
                                        function='viewPairsPaginated',
@@ -313,15 +313,8 @@ async def _sync_onedex_pools() -> List[SwapPool]:
             if res is not None and len(res) > 0:
                 pairs = [parse_onedex_pair(r) for r in res]
                 all_pairs.extend(pairs)
-            else:
-                logging.error(
-                    f'Error calling "viewPairsPaginated" ({from_}, {size}) from OneDex SC')
-                return []
 
             from_ += size
-
-            if from_ > last_pair_id:
-                done = True
 
         logging.info(f'OneDex: pairs before {len(all_pairs)}')
 
