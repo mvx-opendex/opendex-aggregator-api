@@ -29,6 +29,7 @@ from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
                                                LpTokenComposition, OneDexPair,
                                                OpendexPair,
                                                XExchangePoolStatus)
+from opendex_aggregator_api.ignored_pools import IGNORED_POOLS
 from opendex_aggregator_api.ignored_tokens import IGNORED_TOKENS
 from opendex_aggregator_api.pools.ashswap import (AshSwapPoolV2,
                                                   AshSwapStableSwapPool)
@@ -211,7 +212,8 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
     lp_statuses = [s for s in lp_statuses
                    if s.state == 1
                    and _is_pair_valid([(s.first_token_id, str(s.first_token_reserve)),
-                                      (s.second_token_id, str(s.second_token_reserve))])]
+                                      (s.second_token_id, str(s.second_token_reserve))],
+                                      s.sc_address)]
 
     logging.info(f'xExchange: pairs after filter {len(lp_statuses)}')
 
@@ -319,7 +321,8 @@ async def _sync_onedex_pools() -> List[SwapPool]:
         all_pairs = [p for p in all_pairs
                      if p.state == 1
                      and _is_pair_valid([(p.first_token_identifier, p.first_token_reserve),
-                                         (p.second_token_identifier, p.second_token_reserve)])]
+                                         (p.second_token_identifier, p.second_token_reserve)],
+                                        sc_address)]
 
         logging.info(f'OneDex: pairs after {len(all_pairs)}')
 
@@ -391,7 +394,9 @@ async def _sync_ashswap_stable_pools() -> List[SwapPool]:
                                     for r in res]
 
             stablepools_statuses = [s for s in stablepools_statuses
-                                    if s.state == 1]
+                                    if s.state == 1
+                                    and _is_pair_valid([(t, r) for t, r in zip(s.tokens, s.reserves)],
+                                                       s.sc_address)]
 
             for status in stablepools_statuses:
 
@@ -465,7 +470,9 @@ async def _sync_ashswap_v2_pools() -> List[SwapPool]:
                 parse_ashswap_v2_pool_status(r) for r in res]
 
             v2_pools_statuses = [s for s in v2_pools_statuses
-                                 if s.state == 1]
+                                 if s.state == 1
+                                 and _is_pair_valid([(t, r) for t, r in zip(s.tokens, s.reserves)],
+                                                    s.sc_address)]
 
             for status in v2_pools_statuses:
 
@@ -598,7 +605,8 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             _all_lp_tokens_compositions.append(pool.lp_token_composition())
 
             if not _is_pair_valid([(first_token.identifier, first_token_reserves),
-                                   (second_token.identifier, second_token_reserves)]):
+                                   (second_token.identifier, second_token_reserves)],
+                                  lp_status.sc_address):
                 continue
 
             set_dex_aggregator_pool(
@@ -1057,7 +1065,8 @@ async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[Sw
     op_pairs = [p for p in op_pairs
                 if not p.paused
                 and _is_pair_valid([(p.first_token_id, p.first_token_reserve),
-                                    (p.second_token_id, p.second_token_reserve)])]
+                                    (p.second_token_id, p.second_token_reserve)],
+                                   p.sc_address)]
 
     logging.info(f'Opendex: pairs after filter {len(op_pairs)}')
 
@@ -1174,12 +1183,17 @@ async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
     return swap_pools
 
 
-def _is_pair_valid(tokens_reserves: List[Tuple[str, str]]) -> bool:
+def _is_pair_valid(tokens_reserves: List[Tuple[str, str]],
+                   sc_address: str) -> bool:
     is_valid = True
 
-    if any((t in IGNORED_TOKENS
-            for t, _ in tokens_reserves)):
+    if sc_address in IGNORED_POOLS:
         is_valid = False
+
+    elif any((t in IGNORED_TOKENS
+              for t, _ in tokens_reserves)):
+        is_valid = False
+
     else:
         for token_id, reserve in tokens_reserves:
             if token_id == JEX_IDENTIFIER and int(reserve) < 1_000*10**18:
