@@ -25,6 +25,7 @@ from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_exchange_rates,
                                                    set_swap_pools, set_tokens)
 from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
+                                               JexStablePoolStatus,
                                                LpTokenComposition, OneDexPair,
                                                OpendexPair,
                                                XExchangePoolStatus)
@@ -47,8 +48,7 @@ from opendex_aggregator_api.services.parsers.ashswap import (
 from opendex_aggregator_api.services.parsers.common import parse_address
 from opendex_aggregator_api.services.parsers.hatom import parse_hatom_mm
 from opendex_aggregator_api.services.parsers.jexchange import (
-    parse_jex_cp_lp_status, parse_jex_deployed_contract,
-    parse_jex_stablepool_status)
+    parse_jex_cp_lp_status, parse_jex_stablepool_status)
 from opendex_aggregator_api.services.parsers.onedex import parse_onedex_pair
 from opendex_aggregator_api.services.parsers.opendex import parse_opendex_pool
 from opendex_aggregator_api.services.parsers.xexchange import \
@@ -659,28 +659,40 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
-        res = await async_sc_query(http_client, sc_deployer, 'getAllContracts')
+        lp_statuses: List[JexStablePoolStatus] = []
+        done = False
+        from_ = 0
+        size = 500
 
-        if res is None:
-            logging.error('Error fetching JEX stable pools')
-            return []
+        while not done:
+            logging.info(f'Loading JEX stable pools ({from_},{size})')
 
-        contracts = [parse_jex_deployed_contract(r) for r in res]
-        sc_addresses = [x.sc_address
-                        for x in contracts
-                        if x.sc_type == 1]
+            res = await async_sc_query(http_client,
+                                       sc_address_aggregator(),
+                                       'getJexStablePools',
+                                       [from_, size])
+
+            if res is None:
+                logging.error(f'Error calling getJexStablePools ({from_},{size})'
+                              ' from aggregator SC')
+                return []
+
+            has_more = res[-1] == '01'
+            res = res[:-1]
+
+            new_lp_statuses = [parse_jex_stablepool_status(x)
+                               for x in res]
+
+            lp_statuses.extend(new_lp_statuses)
+
+            from_ += size
+
+            if not has_more:
+                done = True
 
         nb_pools = 0
 
-        for sc_address in sc_addresses:
-            try:
-                res = await async_sc_query(http_client, sc_address, 'getStatus')
-
-                lp_status = parse_jex_stablepool_status(sc_address, res[0])
-            except:
-                logging.exception(
-                    f'Error parsing JEX stable pool (address={sc_address})')
-                continue
+        for lp_status in lp_statuses:
 
             if lp_status.paused:
                 continue
@@ -690,7 +702,7 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
             reserves = [int(x) for x in lp_status.reserves]
             underlying_prices = [int(x) for x in lp_status.underlying_prices]
 
-            lp_token_name = f"LP {'/'.join((t.ticker for t in tokens))} (JEXchange)"
+            lp_token_name = f"LP {'/'.join((t.ticker for t in tokens))} (JEX)"
             lp_token = _get_or_fetch_token(lp_status.lp_token_identifier,
                                            is_lp_token=True,
                                            exchange='jexchange',
@@ -736,10 +748,10 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
 
             for t1, t2 in product(lp_status.tokens, lp_status.tokens):
                 if t1 != t2:
-                    set_dex_aggregator_pool(sc_address, t1, t2, pool)
+                    set_dex_aggregator_pool(lp_status.sc_address, t1, t2, pool)
 
             for t in lp_status.tokens:
-                set_dex_aggregator_pool(sc_address,
+                set_dex_aggregator_pool(lp_status.sc_address,
                                         t,
                                         lp_status.lp_token_identifier,
                                         deposit_pool)
