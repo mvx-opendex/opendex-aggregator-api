@@ -15,7 +15,7 @@ from multiversx_sdk_core import Address
 
 import opendex_aggregator_api.services.prices as prices_svc
 from opendex_aggregator_api.data.constants import (
-    SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2, SC_TYPE_EXROND,
+    SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2,
     SC_TYPE_HATOM_MONEY_MARKET_MINT, SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
     SC_TYPE_HATOM_STAKE, SC_TYPE_HATOM_UNSTAKE, SC_TYPE_JEXCHANGE_LP,
     SC_TYPE_JEXCHANGE_LP_DEPOSIT, SC_TYPE_JEXCHANGE_STABLEPOOL,
@@ -25,6 +25,7 @@ from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_exchange_rates,
                                                    set_swap_pools, set_tokens)
 from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
+                                               JexStablePoolStatus,
                                                LpTokenComposition, OneDexPair,
                                                OpendexPair,
                                                XExchangePoolStatus)
@@ -38,7 +39,6 @@ from opendex_aggregator_api.pools.jexchange import (
 from opendex_aggregator_api.pools.model import SwapPool
 from opendex_aggregator_api.pools.onedex import OneDexConstantProductPool
 from opendex_aggregator_api.pools.opendex import OpendexConstantProductPool
-from opendex_aggregator_api.pools.pools import ConstantProductPool
 from opendex_aggregator_api.pools.xexchange import XExchangeConstantProductPool
 from opendex_aggregator_api.pools.xoxno import XoxnoConstantPricePool
 from opendex_aggregator_api.services.externals import async_sc_query
@@ -47,8 +47,7 @@ from opendex_aggregator_api.services.parsers.ashswap import (
 from opendex_aggregator_api.services.parsers.common import parse_address
 from opendex_aggregator_api.services.parsers.hatom import parse_hatom_mm
 from opendex_aggregator_api.services.parsers.jexchange import (
-    parse_jex_cp_lp_status, parse_jex_deployed_contract,
-    parse_jex_stablepool_status)
+    parse_jex_cp_lp_status, parse_jex_stablepool_status)
 from opendex_aggregator_api.services.parsers.onedex import parse_onedex_pair
 from opendex_aggregator_api.services.parsers.opendex import parse_opendex_pool
 from opendex_aggregator_api.services.parsers.xexchange import \
@@ -124,7 +123,6 @@ async def _sync_all_pools():
         _sync_ashswap_v2_pools,
         _sync_jex_cp_pools,
         _sync_jex_stablepools,
-        # _sync_exrond_pools,
         _sync_other_router_pools,
         _sync_hatom_staking_pools,
         _sync_hatom_money_markets,
@@ -659,28 +657,40 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
 
     async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
 
-        res = await async_sc_query(http_client, sc_deployer, 'getAllContracts')
+        lp_statuses: List[JexStablePoolStatus] = []
+        done = False
+        from_ = 0
+        size = 500
 
-        if res is None:
-            logging.error('Error fetching JEX stable pools')
-            return []
+        while not done:
+            logging.info(f'Loading JEX stable pools ({from_},{size})')
 
-        contracts = [parse_jex_deployed_contract(r) for r in res]
-        sc_addresses = [x.sc_address
-                        for x in contracts
-                        if x.sc_type == 1]
+            res = await async_sc_query(http_client,
+                                       sc_address_aggregator(),
+                                       'getJexStablePools',
+                                       [from_, size])
+
+            if res is None:
+                logging.error(f'Error calling getJexStablePools ({from_},{size})'
+                              ' from aggregator SC')
+                return []
+
+            has_more = res[-1] == '01'
+            res = res[:-1]
+
+            new_lp_statuses = [parse_jex_stablepool_status(x)
+                               for x in res]
+
+            lp_statuses.extend(new_lp_statuses)
+
+            from_ += size
+
+            if not has_more:
+                done = True
 
         nb_pools = 0
 
-        for sc_address in sc_addresses:
-            try:
-                res = await async_sc_query(http_client, sc_address, 'getStatus')
-
-                lp_status = parse_jex_stablepool_status(sc_address, res[0])
-            except:
-                logging.exception(
-                    f'Error parsing JEX stable pool (address={sc_address})')
-                continue
+        for lp_status in lp_statuses:
 
             if lp_status.paused:
                 continue
@@ -690,7 +700,7 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
             reserves = [int(x) for x in lp_status.reserves]
             underlying_prices = [int(x) for x in lp_status.underlying_prices]
 
-            lp_token_name = f"LP {'/'.join((t.ticker for t in tokens))} (JEXchange)"
+            lp_token_name = f"LP {'/'.join((t.ticker for t in tokens))} (JEX)"
             lp_token = _get_or_fetch_token(lp_status.lp_token_identifier,
                                            is_lp_token=True,
                                            exchange='jexchange',
@@ -736,10 +746,10 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
 
             for t1, t2 in product(lp_status.tokens, lp_status.tokens):
                 if t1 != t2:
-                    set_dex_aggregator_pool(sc_address, t1, t2, pool)
+                    set_dex_aggregator_pool(lp_status.sc_address, t1, t2, pool)
 
             for t in lp_status.tokens:
-                set_dex_aggregator_pool(sc_address,
+                set_dex_aggregator_pool(lp_status.sc_address,
                                         t,
                                         lp_status.lp_token_identifier,
                                         deposit_pool)
@@ -749,114 +759,6 @@ async def _sync_jex_stablepools() -> List[SwapPool]:
     logging.info(f'JEX stable pools: {nb_pools}')
 
     logging.info('Loading JEX stable pools - done')
-
-    return swap_pools
-
-
-async def _sync_exrond_pools() -> List[SwapPool]:
-    logging.info('Loading Exrond pools')
-
-    query = '''
-{
-  pairs {
-    address
-    firstTokenReserve
-    secondTokenReserve
-    firstToken {
-      identifier
-      __typename
-    }
-    secondToken {
-      identifier
-      __typename
-    }
-    liquidityPoolToken {
-      identifier
-      supply
-        __typename
-    }
-    totalFeePercent
-    __typename
-  }
-}
-'''
-    data = {
-        'query': query
-    }
-    url = 'https://api.exrond.com/graphql'
-    # resp = requests.post(url, json=data)
-
-    swap_pools = []
-
-    async with aiohttp.request('POST', url=url, json=data) as resp:
-        json_ = await resp.json()
-        pairs = json_['data']['pairs']
-
-        logging.info(f'Exrond: pairs before filter {len(pairs)}')
-
-        pairs = [p for p in pairs if _is_pair_valid(
-            [(p['firstToken']['identifier'], p['firstTokenReserve']),
-             (p['secondToken']['identifier'], p['secondTokenReserve'])]
-        )]
-
-        logging.info(f'Exrond: pairs after filter {len(pairs)}')
-
-        for pair in pairs:
-            sc_address = pair['address']
-            first_token = _get_or_fetch_token(
-                pair['firstToken']['identifier'])
-            second_token = _get_or_fetch_token(
-                pair['secondToken']['identifier'])
-            lp_token_supply = pair['liquidityPoolToken']['supply']
-            lp_token_identifier: str = pair['liquidityPoolToken']['identifier']
-            lp_token = _get_or_fetch_token(lp_token_identifier,
-                                           is_lp_token=True,
-                                           exchange='exrond',
-                                           custom_name=f'LP {first_token.ticker}/{second_token.ticker} (Exrond)')
-
-            _all_tokens[first_token.identifier] = first_token
-            _all_tokens[second_token.identifier] = second_token
-            _all_tokens[lp_token.identifier] = lp_token
-
-            if first_token is None or second_token is None:
-                continue
-
-            if not lp_token_identifier.startswith('LP'):
-                continue
-
-            first_token_reserves = int(pair['firstTokenReserve'])
-            second_token_reserves = int(pair['secondTokenReserve'])
-            fees_percent_base_pts = int(
-                10_000 * float(pair['totalFeePercent']))
-
-            pool = ConstantProductPool(fees_percent_base_pts=fees_percent_base_pts,
-                                       first_token=first_token,
-                                       first_token_reserves=first_token_reserves,
-                                       second_token=second_token,
-                                       second_token_reserves=second_token_reserves,
-                                       lp_token=lp_token,
-                                       lp_token_supply=lp_token_supply)
-
-            _all_rates.update(pool.exchange_rates(sc_address=sc_address))
-
-            _all_lp_tokens_compositions.append(pool.lp_token_composition())
-
-            swap_pools.append(SwapPool(name=f'Exrond: {first_token.name}/{second_token.name}',
-                                       sc_address=sc_address,
-                                       tokens_in=[first_token.identifier,
-                                                  second_token.identifier],
-                                       tokens_out=[first_token.identifier,
-                                                   second_token.identifier],
-                                       type=SC_TYPE_EXROND))
-
-            set_dex_aggregator_pool(
-                sc_address, first_token.identifier, second_token.identifier, pool)
-            set_dex_aggregator_pool(
-                sc_address, second_token.identifier, first_token.identifier, pool)
-
-    logging.info(f'Exrond pools: {len(pairs)}')
-
-    logging.info('Loading Exrond pools - done')
 
     return swap_pools
 

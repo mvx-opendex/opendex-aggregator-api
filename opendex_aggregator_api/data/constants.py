@@ -1,6 +1,5 @@
 SC_TYPE_ASHSWAP_STABLEPOOL = 'ashswap_stablepool'
 SC_TYPE_ASHSWAP_V2 = 'ashswap_v2'
-SC_TYPE_EXROND = 'exrond'
 SC_TYPE_ONEDEX = 'onedex'
 SC_TYPE_XEXCHANGE = 'xexchange'
 SC_TYPE_JEXCHANGE_LP = 'jexchange_lp'
@@ -19,7 +18,7 @@ SC_TYPES_AND_GAS = [
     (None, 0),
     (SC_TYPE_ASHSWAP_STABLEPOOL,    30_000_000),
     (SC_TYPE_ASHSWAP_V2, 30_000_000),
-    (SC_TYPE_EXROND, 20_000_000),
+    ('', 0),  # 'exrond' deprecated
     (SC_TYPE_ONEDEX, 20_000_000),
     (SC_TYPE_XEXCHANGE, 25_000_000),
     (SC_TYPE_JEXCHANGE_LP, 20_000_000),

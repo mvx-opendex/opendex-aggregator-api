@@ -87,8 +87,11 @@ def parse_jex_cp_lp_status(sc_address: str, hex_: str) -> JexCpLpStatus:
                                              str(fees_7_epochs_second_token)])
 
 
-def parse_jex_stablepool_status(sc_address: str, hex_: str) -> JexStablePoolStatus:
+def parse_jex_stablepool_status(hex_: str) -> JexStablePoolStatus:
     offset = 0
+
+    sc_address, read = parse_address(hex_[offset:])
+    offset += read
 
     paused, read = parse_uint8(hex_[offset:])
     offset += read
@@ -166,7 +169,7 @@ def parse_jex_stablepool_status(sc_address: str, hex_: str) -> JexStablePoolStat
     else:
         underlying_prices = [str(10**18)] * nb_tokens
 
-    return JexStablePoolStatus(sc_address=sc_address,
+    return JexStablePoolStatus(sc_address=sc_address.bech32(),
                                paused=paused,
                                amp_factor=amp_factor,
                                nb_tokens=nb_tokens,
