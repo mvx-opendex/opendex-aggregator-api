@@ -1,15 +1,7 @@
-from typing import Optional
 from opendex_aggregator_api.data.model import XExchangePoolStatus
 from opendex_aggregator_api.services.parsers.common import (
     parse_address, parse_amount, parse_token_identifier, parse_uint8,
-    parse_uint32, parse_uint64)
-
-
-def parse_xexchange_pool_status_option(hex_: str) -> Optional[XExchangePoolStatus]:
-    if hex_ == '' or hex_ == '00':
-        return None
-    else:
-        return parse_xexchange_pool_status(hex_[2:])
+    parse_uint64)
 
 
 def parse_xexchange_pool_status(hex_: str) -> XExchangePoolStatus:
