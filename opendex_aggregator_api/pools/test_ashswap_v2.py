@@ -21,7 +21,12 @@ TOKEN_OUT = Esdt(decimals=18,
 @pytest.mark.parametrize('reserves,xp,amount_in,expected_amount_out,expected_admin_fee', [
     ([6610310763, 10775028285126628963544615],
      [6610310763000000000000, 8175014856796592762449],
-     100_000000, 158153_183456644670162885, 208_848375516246118801)
+     100_000000, 158153_183456644670162885, 208_848375516246118801),
+    #
+
+    ([6610310763, 10775028285126628963544615],
+     [6610310763000000000000, 8175014856796592762449],
+     1_000000, 1605_562256689781003174, 2_127575286856040260)
 ])
 def test_AshSwapPoolV2_estimate_amount_out(reserves: List[int],
                                            xp: List[int],
@@ -53,3 +58,37 @@ def test_AshSwapPoolV2_estimate_amount_out(reserves: List[int],
     assert net_amount_out == expected_amount_out
     assert admin_fee_in == 0
     assert admin_fee_out == expected_admin_fee
+
+
+@pytest.mark.parametrize('reserves,xp,amount_in,expected_amount_out', [
+    ([6610310763, 10775028285126628963544615],
+     [6610310763000000000000, 8175014856796592762449],
+     100_000000, 162357_901358540062453799)
+])
+def test_AshSwapPoolV2_estimate_theorical_amount_out(reserves: List[int],
+                                                     xp: List[int],
+                                                     amount_in: int,
+                                                     expected_amount_out: int):
+    first_token = TOKEN_IN
+    second_token = TOKEN_OUT
+
+    pool = AshSwapPoolV2(
+        amp=400000,
+        d=14713381882176947720176,
+        fee_gamma=230000000000000,
+        future_a_gamma_time=0,
+        gamma=145000000000000,
+        mid_fee=20000000,
+        out_fee=40000000,
+        price_scale=758700083236071,
+        reserves=reserves,
+        tokens=[TOKEN_IN, TOKEN_OUT],
+        xp=xp,
+        lp_token=None,
+        lp_token_supply=0
+    )
+
+    amount_out = pool.estimate_theorical_amount_out(
+        first_token, amount_in, second_token)
+
+    assert amount_out == expected_amount_out
