@@ -57,5 +57,9 @@ def sc_address_hatom_price_feed():
     return os.environ.get('SC_ADDRESS_HATOM_PRICE_FEED', '')
 
 
-def sc_address_xoxno_liquid_staking():
-    return os.environ.get('SC_ADDRESS_XOXNO_LIQUID_STAKING', '')
+def sc_address_xoxno_liquid_staking_egld():
+    return os.environ.get('SC_ADDRESS_XOXNO_LIQUID_STAKING_EGLD', '')
+
+
+def sc_address_xoxno_liquid_staking_xoxno():
+    return os.environ.get('SC_ADDRESS_XOXNO_LIQUID_STAKING_XOXNO', '')

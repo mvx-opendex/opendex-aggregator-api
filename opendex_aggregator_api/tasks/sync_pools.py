@@ -58,15 +58,12 @@ from opendex_aggregator_api.services.tokens import (JEX_IDENTIFIER,
                                                     WEGLD_IDENTIFIER,
                                                     get_or_fetch_token)
 from opendex_aggregator_api.utils.convert import hex2dec, hex2str
-from opendex_aggregator_api.utils.env import (mvx_gateway_url,
-                                              router_pools_dir,
-                                              sc_address_aggregator,
-                                              sc_address_hatom_staking_segld,
-                                              sc_address_hatom_staking_tao,
-                                              sc_address_jex_lp_deployer,
-                                              sc_address_onedex_swap,
-                                              sc_address_xoxno_liquid_staking,
-                                              sc_addresses_opendex_deployers)
+from opendex_aggregator_api.utils.env import (
+    mvx_gateway_url, router_pools_dir, sc_address_aggregator,
+    sc_address_hatom_staking_segld, sc_address_hatom_staking_tao,
+    sc_address_jex_lp_deployer, sc_address_onedex_swap,
+    sc_address_xoxno_liquid_staking_egld,
+    sc_address_xoxno_liquid_staking_xoxno, sc_addresses_opendex_deployers)
 from opendex_aggregator_api.utils.redis_utils import redis_lock_and_do
 
 _must_stop = False
@@ -128,7 +125,7 @@ async def _sync_all_pools():
         _sync_hatom_staking_pools,
         _sync_hatom_money_markets,
         # _sync_opendex_pools,
-        _sync_xoxno_liquid_staking,
+        _sync_xoxno_liquid_staking_pools,
     ]
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
@@ -860,8 +857,6 @@ async def _sync_hatom_staking_pool(sc_address: str,
                                         token.identifier,
                                         unstake_pool)
 
-    logging.info('Loading Hatom staking pool - done')
-
     return swap_pools
 
 
@@ -1127,13 +1122,26 @@ async def _sync_opendex_pools_from_deployer(deployer_sc_address: str) -> List[Sw
     return swap_pools
 
 
-async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
+async def _sync_xoxno_liquid_staking_pools() -> List[SwapPool]:
+    logging.info('Loading Xoxno staking pools')
+
+    pools = []
+
+    pools.extend(await _sync_xoxno_liquid_staking_pool(sc_address_xoxno_liquid_staking_egld(),
+                                                       main_token_id=WEGLD_IDENTIFIER))
+
+    pools.extend(await _sync_xoxno_liquid_staking_pool(sc_address_xoxno_liquid_staking_xoxno()))
+
+    logging.info('Loading Xoxno staking pool - done')
+
+    return pools
+
+
+async def _sync_xoxno_liquid_staking_pool(sc_address: str,
+                                          main_token_id: Optional[str] = None) -> List[SwapPool]:
     logging.info('Loading Xoxno staking pool')
 
-    sc_address = sc_address_xoxno_liquid_staking()
-
     if sc_address == '':
-        logging.info('SC_ADDRESS_XOXNO_LIQUID_STAKING not set -> skip')
         return []
 
     swap_pools = []
@@ -1148,8 +1156,19 @@ async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
 
         rate = hex2dec(res[0])
 
+        if main_token_id is None:
+            res = await async_sc_query(http_client=http_client,
+                                       sc_address=sc_address,
+                                       function='getMainToken')
+
+            if res is None:
+                logging.error(
+                    f'Error fetching Xoxno liquid staking info (main token)')
+
+            main_token_id = hex2str(res[0])
+
         res = await async_sc_query(http_client=http_client,
-                                   sc_address=sc_address_xoxno_liquid_staking(),
+                                   sc_address=sc_address,
                                    function='getLsTokenId')
 
         if res is None:
@@ -1158,7 +1177,7 @@ async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
 
         ls_token_id = hex2str(res[0])
 
-        token_in = _get_or_fetch_token(WEGLD_IDENTIFIER)
+        token_in = _get_or_fetch_token(main_token_id)
         token_out = _get_or_fetch_token(ls_token_id)
 
         _all_tokens[token_in.identifier] = token_in
@@ -1166,11 +1185,11 @@ async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
         pool = XoxnoConstantPricePool(price=rate,
                                       token_in=token_in,
                                       token_out=token_out,
-                                      token_out_reserve=99999*10**token_out.decimals)
+                                      token_out_reserve=99999999999*10**token_out.decimals)
 
         swap_pools.append(SwapPool(name=f'Xoxno (stake)',
                                    sc_address=sc_address,
-                                   tokens_in=[WEGLD_IDENTIFIER],
+                                   tokens_in=[main_token_id],
                                    tokens_out=[ls_token_id],
                                    type=SC_TYPE_XOXNO_STAKE))
 
@@ -1180,8 +1199,6 @@ async def _sync_xoxno_liquid_staking() -> List[SwapPool]:
                                 token_in.identifier,
                                 token_out.identifier,
                                 pool)
-
-    logging.info('Loading Xoxno staking pool - done')
 
     return swap_pools
 
