@@ -12,9 +12,19 @@ def fetch_paused_tokens() -> List[str]:
         'query': {
             'bool': {
                 'must': [
-                    {'term': {'type': 'FungibleESDT'}},
-                    {'term': {'paused': True}}
-                ]
+                    {'term': {'type': 'FungibleESDT'}}
+
+                ],
+                'should': [
+                    {'term': {'paused': True}},
+                    {'nested': {
+                        'path': 'roles',
+                        'query': {
+                            'exists': {'field': 'roles.ESDTTransferRole'}
+                        }
+                    }}
+                ],
+                'minimum_should_match': 1
             }
         },
         '_source': ['token'],
