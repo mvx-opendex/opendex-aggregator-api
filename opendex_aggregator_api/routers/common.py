@@ -15,7 +15,7 @@ def get_or_find_sorted_routes(token_in: str,
                                         token_out,
                                         max_hops,
                                         max_hops2=max_hops+2,
-                                        max_routes=500)
+                                        max_routes=9999)
 
         return routes_svc.sort_routes(routes)
 
