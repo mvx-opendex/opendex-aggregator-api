@@ -70,6 +70,7 @@ do_start() {
 
 cp opendex_aggregator_api/ignored_pools.mainnet.py opendex_aggregator_api/ignored_pools.py
 cp opendex_aggregator_api/ignored_tokens.mainnet.py opendex_aggregator_api/ignored_tokens.py
+cp opendex_aggregator_api/token_constants.mainnet.py opendex_aggregator_api/token_constants.py
 
 if [ $# -eq 1 ]
 then

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from typing_extensions import override
 
-from opendex_aggregator_api.services.tokens import WEGLD_IDENTIFIER
+from opendex_aggregator_api.token_constants import WEGLD_IDENTIFIER
 
 from .pools import ConstantPricePool
 

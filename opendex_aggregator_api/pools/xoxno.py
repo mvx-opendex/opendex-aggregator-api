@@ -5,7 +5,7 @@ from typing_extensions import override
 
 from opendex_aggregator_api.data.model import Esdt
 from opendex_aggregator_api.pools.pools import ConstantPricePool
-from opendex_aggregator_api.services.tokens import WEGLD_IDENTIFIER
+from opendex_aggregator_api.token_constants import WEGLD_IDENTIFIER
 
 
 @dataclass

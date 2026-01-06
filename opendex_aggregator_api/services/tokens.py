@@ -10,9 +10,6 @@ from opendex_aggregator_api.utils.convert import hex2str
 from opendex_aggregator_api.utils.env import sc_address_system_tokens
 from opendex_aggregator_api.utils.redis_utils import redis_get_or_set_cache
 
-JEX_IDENTIFIER = 'JEX-9040ca'
-USDC_IDENTIFIER = 'USDC-c76f1f'
-WEGLD_IDENTIFIER = 'WEGLD-bd4d79'
 
 _LOCAL_CACHE = {}
 

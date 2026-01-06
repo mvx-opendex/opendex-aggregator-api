@@ -8,6 +8,7 @@ export PUBLIC_GATEWAY_URL=https://devnet-gateway.multiversx.com
 export REDIS_HOST=localhost
 export ROUTER_POOLS_DIR=
 export SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgqqjyq5g07fsh7a5wsvc4fugu8n2v9vcer6avsr4s62v
+export SC_ADDRESS_HATOM_PRICE_FEED=
 export SC_ADDRESS_HATOM_STAKING=
 export SC_ADDRESS_JEX_LP_DEPLOYER=
 export SC_ADDRESS_ONEDEX_SWAP=
@@ -67,6 +68,7 @@ do_start() {
 
 cp opendex_aggregator_api/ignored_pools.devnet.py opendex_aggregator_api/ignored_pools.py
 cp opendex_aggregator_api/ignored_tokens.devnet.py opendex_aggregator_api/ignored_tokens.py
+cp opendex_aggregator_api/token_constants.devnet.py opendex_aggregator_api/token_constants.py
 
 if [ $# -eq 1 ]
 then

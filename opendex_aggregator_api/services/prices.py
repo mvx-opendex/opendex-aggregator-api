@@ -3,7 +3,7 @@ from typing import List, Optional, Set
 import opendex_aggregator_api.services.hatom as hatom_svc
 from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
                                                LpTokenComposition)
-from opendex_aggregator_api.services.tokens import (USDC_IDENTIFIER,
+from opendex_aggregator_api.token_constants import (USDC_IDENTIFIER,
                                                     WEGLD_IDENTIFIER)
 
 

@@ -53,10 +53,10 @@ from opendex_aggregator_api.services.parsers.onedex import parse_onedex_pair
 from opendex_aggregator_api.services.parsers.opendex import parse_opendex_pool
 from opendex_aggregator_api.services.parsers.xexchange import \
     parse_xexchange_pool_status
-from opendex_aggregator_api.services.tokens import (JEX_IDENTIFIER,
+from opendex_aggregator_api.token_constants import (JEX_IDENTIFIER,
                                                     USDC_IDENTIFIER,
-                                                    WEGLD_IDENTIFIER,
-                                                    get_or_fetch_token)
+                                                    WEGLD_IDENTIFIER)
+from opendex_aggregator_api.services.tokens import get_or_fetch_token
 from opendex_aggregator_api.utils.convert import hex2dec, hex2str
 from opendex_aggregator_api.utils.env import (
     mvx_gateway_url, router_pools_dir, sc_address_aggregator,
