@@ -191,7 +191,7 @@ async def _sync_xexchange_pools() -> List[SwapPool]:
 
             if res is None:
                 logging.error(
-                    f'Error calling "getXExchangePools" ({from_},{size}) from aggregator SC')
+                    f'Error calling "getXExchangePoolsV2" ({from_},{size}) from aggregator SC')
                 return None
 
             has_more = res[-1] == '01'
