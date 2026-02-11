@@ -48,6 +48,8 @@ ExecStart=/home/jex/opendex-aggregator-api/.venv/bin/gunicorn \
     --max-requests 1000 \
     --max-requests-jitter 100
 
+ExecReload=/bin/kill -s HUP $MAINPID
+
 Restart=always
 RestartSec=5
 KillSignal=SIGQUIT
