@@ -1,0 +1,9 @@
+[nginx-429]
+
+enabled = true
+port = http,https
+filter = nginx-429
+logpath = /var/log/nginx/access.log
+maxretry = 20
+findtime = 60
+bantime = 600

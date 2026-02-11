@@ -1,0 +1,65 @@
+[Unit]
+Description=OpenDex aggregator API
+After=network.target
+
+[Service]
+Type=simple
+User=jex
+Group=jex
+WorkingDirectory=/home/jex/opendex-aggregator-api
+
+Environment="NB_WORKERS=2"
+Environment="PYTHONUNBUFFERED=1"
+
+Environment="GATEWAY_URL=http://jex-observer-squad:8079"
+Environment="MVX_INDEX_URL=https://index.multiversx.com"
+Environment="PUBLIC_GATEWAY_URL=https://gateway.multiversx.com"
+Environment="REDIS_HOST=localhost"
+Environment="ROUTER_POOLS_DIR=/home/jex/jex-router-pools/pools"
+Environment="SC_ADDRESS_AGGREGATOR=erd1qqqqqqqqqqqqqpgq360nakqgsp5zkmguptucpjy6n4n3du7e5snsd2swzq"
+Environment="SC_ADDRESS_HATOM_PRICE_FEED=erd1qqqqqqqqqqqqqpgqh3e67630mm7t6awvgdrh78ws9hfh85tz78sssecur8"
+Environment="SC_ADDRESS_HATOM_STAKING_SEGLD=erd1qqqqqqqqqqqqqpgq4gzfcw7kmkjy8zsf04ce6dl0auhtzjx078sslvrf4e"
+Environment="SC_ADDRESS_HATOM_STAKING_TAO=erd1qqqqqqqqqqqqqpgqhykmg59ny8tem37m0gng3ygwtphmefyz78ssfecn6q"
+Environment="SC_ADDRESS_JEX_LP_DEPLOYER=erd1qqqqqqqqqqqqqpgqpz4skj4q0kwndpp0a5n52328xchee6rs6avsqfytay"
+Environment="SC_ADDRESS_ONEDEX_SWAP=erd1qqqqqqqqqqqqqpgqqz6vp9y50ep867vnr296mqf3dduh6guvmvlsu3sujc"
+Environment="SC_ADDRESS_SYSTEM_TOKENS=erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"
+Environment="SC_ADDRESS_XOXNO_LIQUID_STAKING_EGLD=erd1qqqqqqqqqqqqqpgq6uzdzy54wnesfnlaycxwymrn9texlnmyah0ssrfvk6"
+Environment="SC_ADDRESS_XOXNO_LIQUID_STAKING_XOXNO=erd1qqqqqqqqqqqqqpgqs5w0wfmf5gw7qae82upgu26cpk2ug8l245qszu3dxf"
+Environment="SC_ADDRESSES_OPENDEX_DEPLOYERS="
+
+Environment="REDIS_HOST=localhost"
+
+# Copy mainnet-specific files
+ExecStartPre=/usr/bin/install -m 644 opendex_aggregator_api/ignored_pools.mainnet.py opendex_aggregator_api/ignored_pools.py
+ExecStartPre=/usr/bin/install -m 644 opendex_aggregator_api/ignored_tokens.mainnet.py opendex_aggregator_api/ignored_tokens.py
+ExecStartPre=/usr/bin/install -m 644 opendex_aggregator_api/token_constants.mainnet.py opendex_aggregator_api/token_constants.py
+
+ExecStart=/home/jex/opendex-aggregator-api/.venv/bin/gunicorn \
+    -k uvicorn.workers.UvicornWorker \
+    opendex_aggregator_api.main:app \
+    --workers ${NB_WORKERS} \
+    --bind 127.0.0.1:3002 \
+    --log-level error \
+    --error-logfile - \
+    --access-logfile - \
+    --timeout 60 \
+    --graceful-timeout 30 \
+    --keep-alive 5 \
+    --max-requests 1000 \
+    --max-requests-jitter 100
+
+Restart=always
+RestartSec=5
+KillSignal=SIGQUIT
+TimeoutStopSec=45
+
+# Light hardening (safe for home directory apps)
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Explicit but optional (this is default behavior)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
