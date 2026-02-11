@@ -4,3 +4,4 @@
 
 opendex_aggregator_api/ignored_pools.py
 opendex_aggregator_api/ignored_tokens.py
+opendex_aggregator_api/token_constants.py
