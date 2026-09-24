@@ -136,6 +136,19 @@ class XExchangePoolStatus(BaseModel):
     total_fee_percent: int
 
 
+class DinoVoxLpStatus(BaseModel):
+    sc_address: str
+    is_active: bool
+    token_a: str
+    token_b: str
+    token_a_reserve: int
+    token_b_reserve: int
+    lp_token: str
+    lp_supply: int
+    total_fee_percent: int
+    protocol_fee_pct: int
+
+
 class HatomMoneyMarket(BaseModel):
     sc_address: str
     hatom_token_id: str
