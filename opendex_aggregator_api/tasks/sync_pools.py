@@ -13,9 +13,11 @@ from typing import Callable, List, Mapping, Optional, Set, Tuple
 import aiohttp
 from multiversx_sdk_core import Address
 
+from opendex_aggregator_api.pools.dinovox import DinoVoxConstantProductPool
+from opendex_aggregator_api.services.parsers.dinovox import parse_dinovox_lp_status
 import opendex_aggregator_api.services.prices as prices_svc
 from opendex_aggregator_api.data.constants import (
-    SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2,
+    SC_TYPE_ASHSWAP_STABLEPOOL, SC_TYPE_ASHSWAP_V2, SC_TYPE_DINOVOX,
     SC_TYPE_HATOM_MONEY_MARKET_MINT, SC_TYPE_HATOM_MONEY_MARKET_REDEEM,
     SC_TYPE_HATOM_STAKE, SC_TYPE_HATOM_UNSTAKE, SC_TYPE_JEXCHANGE_LP,
     SC_TYPE_JEXCHANGE_LP_DEPOSIT, SC_TYPE_JEXCHANGE_STABLEPOOL,
@@ -24,7 +26,7 @@ from opendex_aggregator_api.data.constants import (
 from opendex_aggregator_api.data.datastore import (set_dex_aggregator_pool,
                                                    set_exchange_rates,
                                                    set_swap_pools, set_tokens)
-from opendex_aggregator_api.data.model import (Esdt, ExchangeRate,
+from opendex_aggregator_api.data.model import (DinoVoxLpStatus, Esdt, ExchangeRate,
                                                JexStablePoolStatus,
                                                LpTokenComposition, OneDexPair,
                                                OpendexPair,
@@ -126,6 +128,7 @@ async def _sync_all_pools():
         _sync_hatom_money_markets,
         # _sync_opendex_pools,
         _sync_xoxno_liquid_staking_pools,
+        _sync_dinovox_pools
     ]
 
     tasks = [asyncio.create_task(_safely_do(f), name=f.__name__)
@@ -576,7 +579,7 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             _all_tokens[first_token.identifier] = first_token
             _all_tokens[second_token.identifier] = second_token
 
-            if not lp_status.lp_token_identifier:
+            if not lp_status.lp_token_identifier or lp_status.lp_token_identifier == 'TOKEN-000000':
                 continue
 
             lp_token = _get_or_fetch_token(lp_status.lp_token_identifier,
@@ -1199,6 +1202,101 @@ async def _sync_xoxno_liquid_staking_pool(sc_address: str,
                                 token_in.identifier,
                                 token_out.identifier,
                                 pool)
+
+    return swap_pools
+
+
+async def _sync_dinovox_pools() -> List[SwapPool]:
+    logging.info('Loading Dinovox pools')
+
+    lp_statuses: List[DinoVoxLpStatus] = []
+
+    async with aiohttp.ClientSession(mvx_gateway_url()) as http_client:
+
+        done = False
+        from_ = 0
+        size = 100
+
+        while not done:
+            logging.info(f'Loading Dinovox pools ({from_},{size})')
+
+            res = await async_sc_query(http_client,
+                                       sc_address_aggregator(),
+                                       'getDinoVoxPools',
+                                       [from_, size])
+
+            if res is None:
+                logging.error(
+                    f'Error calling "getDinoVoxPools" ({from_},{size}) from aggregator SC')
+                return None
+
+            has_more = res[-1] == '01'
+            res = res[:-1]
+
+            lp_statuses.extend([x for x in
+                                [parse_dinovox_lp_status(r)
+                                    for r in res]
+                                if x])
+
+            if not has_more:
+                done = True
+
+            from_ += size
+
+    logging.info(f'Dinovox: pairs before filter {len(lp_statuses)}')
+
+    lp_statuses = [s for s in lp_statuses
+                   if s.is_active
+                   and _is_pair_valid([(s.token_a, str(s.token_a_reserve)),
+                                      (s.token_b, str(s.token_b_reserve))],
+                                      s.sc_address)]
+
+    logging.info(f'Dinovox: pairs after filter {len(lp_statuses)}')
+
+    swap_pools = []
+
+    for lp_status in lp_statuses:
+        token_a = _get_or_fetch_token(lp_status.token_a)
+        token_b = _get_or_fetch_token(lp_status.token_b)
+        lp_token = _get_or_fetch_token(lp_status.lp_token,
+                                       is_lp_token=True,
+                                       exchange='dinovox',
+                                       custom_name=f'LP {token_a.ticker}/{token_b.ticker} (Dinovox)')
+
+        _all_tokens[token_a.identifier] = token_a
+        _all_tokens[token_b.identifier] = token_b
+        _all_tokens[lp_token.identifier] = lp_token
+
+        if token_a is None or token_b is None:
+            continue
+
+        pool = DinoVoxConstantProductPool(lp_token=lp_token,
+                                          lp_supply=lp_status.lp_supply,
+                                          token_a=token_a,
+                                          token_a_reserve=lp_status.token_a_reserve,
+                                          token_b=token_b,
+                                          token_b_reserve=lp_status.token_b_reserve,
+                                          fee_bps=lp_status.total_fee_percent,
+                                          protocol_fee=lp_status.protocol_fee_pct)
+
+        _all_rates.update(pool.exchange_rates(sc_address=lp_status.sc_address))
+
+        _all_lp_tokens_compositions.append(pool.lp_token_composition())
+
+        swap_pools.append(SwapPool(name=f'Dinovox: {token_a.name}/{token_b.name}',
+                                   sc_address=lp_status.sc_address,
+                                   tokens_in=[token_a.identifier,
+                                              token_b.identifier],
+                                   tokens_out=[token_a.identifier,
+                                               token_b.identifier],
+                                   type=SC_TYPE_DINOVOX))
+
+        set_dex_aggregator_pool(
+            lp_status.sc_address, token_a.identifier, token_b.identifier, pool)
+        set_dex_aggregator_pool(
+            lp_status.sc_address, token_b.identifier, token_a.identifier, pool)
+
+    logging.info('Loading Dinovox pools - done')
 
     return swap_pools
 
