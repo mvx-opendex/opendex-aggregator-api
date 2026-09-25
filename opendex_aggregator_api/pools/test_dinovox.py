@@ -28,11 +28,19 @@ LP_TOKEN = Esdt(decimals=18,
                 exchange='xexchange')
 
 
-@pytest.mark.parametrize('reserves,amount_in,expected', [
-    ([21890732963734405102, 2171502946503654878463],
-     10000000000000000, 988547464092429567)
+@pytest.mark.parametrize('reserves,amount_in,expected_amount_out, expected_special_fee_in', [
+    ([1000000, 2000000], 100000, 181323, 90),
+    ([1000000, 2000000], 334, 666, 0),
+    ([500000000000000000000000, 1000000000000000000000000],
+     1000000000000000000000, 1990031876438381866559, 900000000000000000),
+    ([1000000000000000000000, 1000000000000000000000],
+     500000000000000000000, 332665999332665999333, 450000000000000000),
+    ([5000, 10000], 334, 625, 0)
 ])
-def test_estimate_amount_out(reserves: List[int], amount_in: int, expected: int):
+def test_estimate_amount_out(reserves: List[int],
+                             amount_in: int,
+                             expected_amount_out: int,
+                             expected_special_fee_in: int):
     first_token = TOKEN_IN
     second_token = TOKEN_OUT
 
@@ -49,6 +57,32 @@ def test_estimate_amount_out(reserves: List[int], amount_in: int, expected: int)
     net_amount_out, special_fee_in, special_fee_out = pool.estimate_amount_out(
         first_token, amount_in, second_token)
 
-    assert net_amount_out == expected
-    assert special_fee_in == 9000000000000
+    assert net_amount_out == expected_amount_out
+    assert special_fee_in == expected_special_fee_in
     assert special_fee_out == 0
+
+
+@pytest.mark.parametrize('reserves,amount_in', [
+    ([1000000, 2000000], 100),
+    ([5000, 10000], 50)
+])
+def test_estimate_amount_out_revert(reserves: List[int],
+                                    amount_in: int):
+    first_token = TOKEN_IN
+    second_token = TOKEN_OUT
+
+    pool = DinoVoxConstantProductPool(
+        token_a=first_token,
+        token_a_reserve=reserves[0],
+        lp_token=LP_TOKEN,
+        lp_supply=999,
+        token_b=second_token,
+        token_b_reserve=reserves[1],
+        fee_bps=30,
+        protocol_fee=3000)
+
+    try:
+        pool.estimate_amount_out(first_token, amount_in, second_token)
+        raise AssertionError('Expected ValueError to be raised')
+    except ValueError as e:
+        assert str(e) == 'Amount to swap to low'

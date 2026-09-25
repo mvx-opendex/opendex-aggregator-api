@@ -53,16 +53,13 @@ class DinoVoxConstantProductPool(ConstantProductPool):
 
         total_fee = int(amount_in * self.total_fee / MAX_FEE)
         protocol_fee = int(total_fee * self.protocol_fee / MAX_FEE)
+        lp_fee = total_fee - protocol_fee
+        if lp_fee <= 0:
+            raise ValueError(f'Amount to swap to low')
+
         net_in = amount_in - total_fee
-
-        k = in_reserve * out_reserve
-        new_in_reserve = in_reserve + net_in
-        new_out_reserve = int(k / new_in_reserve)
-
-        if out_reserve < new_out_reserve:
-            raise ValueError(f'Insufficient liquidity')
-
-        amount_out = out_reserve - new_out_reserve
+        amount_out = out_reserve - \
+            (in_reserve * out_reserve) // (in_reserve + net_in)
 
         return amount_out, protocol_fee, 0
 
