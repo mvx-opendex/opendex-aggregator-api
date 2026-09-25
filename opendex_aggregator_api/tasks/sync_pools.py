@@ -579,7 +579,7 @@ async def _sync_jex_cp_pools() -> List[SwapPool]:
             _all_tokens[first_token.identifier] = first_token
             _all_tokens[second_token.identifier] = second_token
 
-            if not lp_status.lp_token_identifier:
+            if not lp_status.lp_token_identifier or lp_status.lp_token_identifier == 'TOKEN-000000':
                 continue
 
             lp_token = _get_or_fetch_token(lp_status.lp_token_identifier,
