@@ -90,7 +90,7 @@ def loop():
 
     global _ready
 
-    delta = timedelta(seconds=30)
+    delta = timedelta(seconds=15)
     start = datetime.min
     while not _must_stop:
         now = datetime.now()

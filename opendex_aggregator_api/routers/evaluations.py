@@ -27,7 +27,7 @@ async def do_evaluate(token_in: str,
                       token_out: str,
                       amount_in: Optional[int] = None,
                       net_amount_out: Optional[int] = None,
-                      max_hops: int = Query(default=3, ge=1, le=4),
+                      max_hops: int = Query(default=4, ge=1, le=4),
                       with_dyn_routing: Optional[bool] = False) -> SwapEvaluationOut:
     if token_in in IGNORED_TOKENS or token_out in IGNORED_TOKENS:
         raise HTTPException(status_code=400,
