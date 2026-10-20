@@ -5,6 +5,7 @@ from typing import List, Tuple
 from typing_extensions import override
 
 from opendex_aggregator_api.data.model import Esdt
+from opendex_aggregator_api.utils.math import ceildiv
 
 from .pools import ConstantProductPool
 
@@ -18,6 +19,7 @@ class OneDexConstantProductPool(ConstantProductPool):
     """
 
     main_pair_tokens: List[str]
+    default_fee: int = 40
 
     def __init__(self,
                  total_fee: int,
@@ -54,6 +56,11 @@ class OneDexConstantProductPool(ConstantProductPool):
         in_reserve, out_reserve = self._reserves(token_in,
                                                  token_out)
 
+        if self.total_fee == 0:
+            fee_percent = self.default_fee
+        else:
+            fee_percent = self.total_fee
+
         try:
             self.main_pair_tokens.index(token_in.identifier)
             fee_input_token = True
@@ -61,8 +68,7 @@ class OneDexConstantProductPool(ConstantProductPool):
             fee_input_token = False
 
         if fee_input_token:
-            amount_in_with_fee = amount_in * \
-                (MAX_FEE - self.total_fee)
+            amount_in_with_fee = amount_in * (MAX_FEE - fee_percent)
             num = amount_in_with_fee * out_reserve
             den = (in_reserve * MAX_FEE) + amount_in_with_fee
             net_amount_out = num // den
@@ -71,9 +77,7 @@ class OneDexConstantProductPool(ConstantProductPool):
         else:
             amount_out_without_fee = (
                 amount_in * out_reserve) // (in_reserve + amount_in)
-
-            fee = (amount_out_without_fee *
-                   self.total_fee) // MAX_FEE
+            fee = ceildiv(amount_out_without_fee * fee_percent, MAX_FEE)
 
             net_amount_out = amount_out_without_fee - fee
 
